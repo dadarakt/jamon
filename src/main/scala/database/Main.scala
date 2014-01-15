@@ -6,6 +6,7 @@ package database
  */
 
 import com.tinkerpop.rexster.client.RexsterClientFactory
+import com.tinkerpop.rexster.client.RexsterClient
 import scala.collection.JavaConversions._
 import grizzled.slf4j.Logging
 
@@ -15,11 +16,12 @@ object Main extends Logging{
 
     val client = RexsterClientFactory.open("localhost", "graph")
 
-    val names: Seq[String] = client.execute("g.V.name").toSeq
-    debug("%d names: %s" format (names.size, names.mkString("[", ",", "]")))
-
-    val simonLikes: Seq[String] =
-      client.execute("g.V('name',name).out('likes').name", Map("name" -> "Simon")).toSeq
+//    val names: Seq[String] = client.execute("g.V.name").toSeq
+//    debug("%d names: %s" format (names.size, names.mkString("[", ",", "]")))
+//
+//    val simonLikes: Seq[String] =
+//      client.execute("g.V('name',name).out('likes').name", Map("name" -> "Simon")).toSeq
+    printDatabase(client)
   }
 
 
@@ -32,16 +34,25 @@ object Main extends Logging{
 
   /**
    * Adds a string in the database to see what happens
-   * @param s The string to be entered into the database
    */
-  def addStringToDatabase(s: String) = {
+  def addStringToDatabase(name: String, likes: Seq[(String, String)]) = {
 
   }
 
   /**
    * Prints some kind of traversing over the database
    */
-  def printDatabase = {
+  def printDatabase(client: RexsterClient) = {
+    val vertices: Seq[String] = client.execute("g.V.name").toSeq
+    val edges: Seq[String] = client.execute("g.E.name").toSeq
 
+    println("-"*80)
+    println("-->> Vertices: ")
+    for(vertex <- vertices) println(vertex)
+    println("-->> Edges:")
+    for(edge <- edges) println(edge)
+    println("-"*80)
   }
+
+
 }
