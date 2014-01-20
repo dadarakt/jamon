@@ -9,33 +9,39 @@ import com.tinkerpop.rexster.client.RexsterClientFactory
 import com.tinkerpop.rexster.client.RexsterClient
 import scala.collection.JavaConversions._
 import grizzled.slf4j.Logging
+import com.tinkerpop.blueprints.impls.rexster.RexsterGraph // next try for the rexpro version
+
+
 
 object Main extends Logging{
   def main(args: Array[String]){
-    println("Now here we go!")
-
-    val client = RexsterClientFactory.open("localhost", "graph")
-
-//    val names: Seq[String] = client.execute("g.V.name").toSeq
-//    debug("%d names: %s" format (names.size, names.mkString("[", ",", "]")))
+    val graph = new RexsterGraph("http://localhost:40002/graphs/gratefulgraph")
+    printDatabase(graph)
+//    // See what we got
+//    val client = RexsterClientFactory.open("localhost", 40004, "gratefulgraph")
+//    printDatabase(client)
 //
-//    val simonLikes: Seq[String] =
-//      client.execute("g.V('name',name).out('likes').name", Map("name" -> "Simon")).toSeq
-    printDatabase(client)
+//    // Remove everything and see if that worked
+//    clearDatabase(client)
+//    printDatabase(client)
+//
+//    // Add things and see what happenend
+//    addThingsToDatabase(client)
+//    printDatabase(client)
   }
 
 
   /**
-   * Sets up a test instance of the database locally.
+   * Removes everything in the database !
    */
-  def setupDatabase = {
+  def clearDatabase(client: RexsterClient) = {
 
   }
 
   /**
-   * Adds a string in the database to see what happens
+   * Adds some things to the database
    */
-  def addStringToDatabase(name: String, likes: Seq[(String, String)]) = {
+  def addThingsToDatabase(client: RexsterClient) = {
 
   }
 
@@ -50,6 +56,23 @@ object Main extends Logging{
     println("-->> Vertices: ")
     for(vertex <- vertices) println(vertex)
     println("-->> Edges:")
+    for(edge <- edges) println(edge)
+    println("-"*80)
+  }
+
+
+  def printDatabase(graph: RexsterGraph) = {
+    // Load everything into memory TODO this has to be dealt otherwise with in bigger DBs
+    val vertices  = graph.getVertices.map(v => Option(v.getProperty("name"))).flatten
+    val edges     = graph.getEdges
+
+    // Print everything
+    println("-"*80)
+    println("-->> Vertices: ")
+    println(vertices)
+    //for(vertex <- vertices) println(vertex)
+    println("-->> Edges:")
+    //println(edges)
     for(edge <- edges) println(edge)
     println("-"*80)
   }
