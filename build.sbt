@@ -11,12 +11,14 @@ libraryDependencies ++= {
   	"org.scalatest" % "scalatest_2.10" % "2.0" % "test",
   	"com.tinkerpop.rexster" % "rexster-protocol" % rexster,
 		"com.tinkerpop.blueprints" % "blueprints-rexster-graph" % rexster,
-	"com.tinkerpop.blueprints" % "blueprints-rexster-graph" % rexster,
+		"com.tinkerpop.blueprints" % "blueprints-rexster-graph" % rexster,
     "org.slf4j" % "slf4j-api" % slf4j,
     "org.slf4j" % "jcl-over-slf4j" % slf4j,
     "org.slf4j" % "log4j-over-slf4j" % slf4j,
     "org.clapper" %% "grizzled-slf4j" % "1.0.1",
-    "ch.qos.logback" % "logback-classic" % "1.0.13"
+    "ch.qos.logback" % "logback-classic" % "1.0.13",
+		"com.thinkaurelius.titan" % "titan-core" % "0.3.2",
+		"com.thinkaurelius.titan" % "titan-cassandra" % "0.3.1"
 	)
 }
 
