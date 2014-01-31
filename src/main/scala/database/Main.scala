@@ -12,72 +12,59 @@ import com.tinkerpop.blueprints.impls.rexster.RexsterGraph
 import org.apache.commons.configuration.BaseConfiguration
 import scala.util.{Success, Try}
 import com.thinkaurelius.titan.core.{TitanGraph, TitanFactory}
-
+import com.tinkerpop.blueprints.{Edge, Vertex}
+import scala.util.control.NonFatal
 
 
 object Main extends Logging{
 
   // Constants
 //  val App     = "rexster"
-  val Address = "localhost"
-  val Port    = 8184
   val GraphName = "graph"
 
   def main(args: Array[String]){
 
     // Setup configuration for the graph we want
-    val clientConfig = new BaseConfiguration {
+    val conf = new BaseConfiguration {
       setProperty("storage.backend", "cassandra")
-      setProperty("storage.hostname", "localhost")
+      setProperty("storage.hostname", "127.0.0.1")
       setProperty("storage.directory" ,"/tmp/titan")
-      addProperty(RexsterClientTokens.CONFIG_MESSAGE_RETRY_COUNT, 16)
-      addProperty(RexsterClientTokens.CONFIG_MESSAGE_RETRY_WAIT_MS, 50)
-      addProperty(RexsterClientTokens.CONFIG_HOSTNAME, Address)
-      addProperty(RexsterClientTokens.CONFIG_PORT, Port)
     }
 
+    // This should make the graph instance I wanna have
+    val g: TitanGraph = try {
+      TitanFactory.open(conf)
+    } catch{
+      case NonFatal(e) => {
+        println("Error while accessing database, Cassandra seems to be down.!", e)
+        return // Just get out of here for now
+      }
+    }
+
+    println("////////////////////// Try to get all vertices: /////////////////////////////")
+    // First clear this shit out
+    for(vertex <- g.getVertices) {
+      println("-->" + vertex.getProperty("name"))
+      //g.removeVertex(vertex)
+    }
+    g.commit
+
+    println("/////????///////////////////////////////////")
 
 
-    // Check if the graph does already exist
-//    val graph = Try(new RexsterGraph("http://localhost:8182/graphs/graph"))
-    val client = RexsterClientFactory.open(clientConfig)
-    //client.execute("""g = GraphOfTheGodsFactory.create('/tmp/titan') """)
+    // Configure the index over the names
+    //g.createKeyIndex("name", classOf[Vertex])
+    println(g.isOpen)
+    val juno: Vertex = g.addVertex(null)
+    juno.setProperty("name", "juno")
+    val jupiter: Vertex = g.addVertex(null)
+    jupiter.setProperty("name", "jupiter")
+    val married: Edge = g.addEdge(null, juno, jupiter,"married")
 
-    // Another try using the things directly now
-    //val g: TitanGraph = TitanFactory.open(clientConfig)
-    //if(g.isOpen) println("Dat is offen") else println("naeh")
+    val wurst = g.addVertex(null)
+    wurst.setProperty("name", "wurst")
 
-
-
-
-//    graph match {
-//      case Success(g) => {
-//        println("Here is the graph")
-//        //printDatabase(g)
-//      }
-//      case _  => println("We could not find the graph, my lord.")
-//    }
-
-
-
-//    val g: TitanGraph = TitanFactory.open
-
-    // using the configuration to make sessionless requests to the database
-    // TODO one problem is that the client does not operate asynchronously which will be a problem in a web-based
-    // application. Is there a fast and easy way to write such a client or does this really hinder me progressing
-    // with this task. We'll see about that.
-//    val client = RexsterClientFactory.open(clientConfig)
-    // A rexpro connection
-    //val graph = new RexsterGraph("http://localhost:8182/graphs/graph")
-
-    // Create a new graph from scratch
-    // Check if there is a database in this session via the temproray file
-//    val file = new File("test")
-//    if(!file.isFile){
-//      client.execute("")
-//    }
-//    printDatabase(client)
-    //printDatabase(graph)
+    g.commit
   }
 
   def openGraph(address: String): Try[RexsterGraph] = Try(new RexsterGraph("http://localhost:8182/graphs/graph"))
