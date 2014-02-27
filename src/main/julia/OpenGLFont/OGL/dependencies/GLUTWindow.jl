@@ -36,18 +36,13 @@ function keyboardUpFunc(key::Cuchar, x::Int32, y::Int32)
     return nothing
 end
 function displayFunc()
-
-        displayFuncCallback()
-
+    displayFuncCallback()
     glutSwapBuffers()
     return nothing
 end
 
 function reshapeFunc(w::GLsizei, h::GLsizei)
-    try resizeFunc(w,h) 
-    catch y
-        println(y)
-    end
+    resizeFunc(w,h)
     return nothing
 end
 

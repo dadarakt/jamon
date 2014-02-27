@@ -1,18 +1,12 @@
-// Input vertex data, different for all executions of this shader.
-in vec2 position;
-in vec2 uv;
+attribute vec2 position;
 
-// Output data ; will be interpolated for each fragment.
-out vec2 UV;
+attribute vec2 a_textureCoordinate;
+varying vec2 v_textureCoordinate;
 
-// Values that stay constant for the whole mesh.
 uniform mat4 mvp;
 
 void main(){
-
-	gl_Position = mvp * vec4(position, 0, 1);
-	
-	// UV of the vertex. No special space for this one.
-	UV = uv;
+	gl_Position = mvp * vec4(position, 0, 1);	
+	v_textureCoordinate = a_textureCoordinate;
 }
 

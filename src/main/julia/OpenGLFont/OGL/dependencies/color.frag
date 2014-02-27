@@ -1,17 +1,9 @@
-
-// Interpolated values from the vertex shaders
-in vec2 UV;
-
-uniform vec3 textColor;
-
-// Ouput data
-out vec4 color;
-
-// Values that stay constant for the whole mesh.
+varying vec2 v_textureCoordinate;
+uniform vec4 textColor;
 uniform sampler2D fontTexture;
 
 void main(){
 
 	// Output color = color of the texture at the specified UV
-	color = vec4(textColor, texture(fontTexture, UV.xy).x);
+	gl_FragColor = vec4(textColor.xyz, (texture2D(fontTexture, v_textureCoordinate)).x * textColor.w);
 }

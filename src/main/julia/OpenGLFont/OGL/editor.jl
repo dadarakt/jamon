@@ -15,6 +15,8 @@ function displayFuncCallback()
 
 
     render(textField.area)
+
+    render(textField.enrichedText, (font, textField.lineHeight))
     return nothing
 end
 

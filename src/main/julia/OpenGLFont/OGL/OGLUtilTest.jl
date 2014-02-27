@@ -2,24 +2,20 @@ include("dependencies/OGLUtil.jl")
 
 
 function displayFuncCallback()
-	global projMatrix, model
+	global projMatrix, model, font
     glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
 
-	
-	for rect in rects
-    	render(rect)
-	end
-	for circle in circles
-    	render(circle)
-	end
+
+	render("mooooooooooooooooooooooooooooooooooooooinasdn asdnnnn \n lowe my shit \n nigga schit fug sat", 50, 500)
     return nothing
 end	
-
 
 createWindow(name = "Moiiin", windowSize = [1000, 1100], windowPosition = [1950, 20])
 linkFunctions()
 initUtils()
-amount  = 5000
+
+
+amount  = 200
 
 
 circles = [Circle(200f0, 

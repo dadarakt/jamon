@@ -3,6 +3,15 @@ include("GLUTWindow.jl")
 include("GLMatrixMath.jl")
 include("shader.jl")
 
+
+global flatShader 
+global textShader
+global projMatrix = eye(GLfloat, 4,4)
+global viewMatrix = eye(GLfloat, 4,4)
+global model      = eye(GLfloat, 4,4)
+model[1,4] = 1
+model[2,4] = 1
+
 immutable Texture
     id::GLuint
     textureType::Uint16
@@ -30,47 +39,12 @@ immutable Texture
 	    new(id, textureType, format, w, h)
     end
 end
-type GLWordNode
-    transform::Array{Float32, 2}
+type StyledWord
     color::Array{Float32, 1}
-    index::(Int, Int)
+    text::String
 end
 
-type AsciiAtlas
-	lineHeight::GLfloat
-	advance::GLfloat
-	texture::Texture
-	dictionary::Dict{Char, Array{Float32, 1}}
-end
-function AsciiAtlas(name::String)
-    texture          	= Texture("$(name).bmp", format=DEPTH_COMPONENT)
-    flStream    		= open("$(name).txt")
-    width      		 	= int(readline(flStream))
-    height      		= int(readline(flStream))
-    lineHeight::Float32 = int(readline(flStream))
 
-    asciiDict = Dict{Char, Array{Float32, 1}}()
-    advance::Float32 = 0
-    for line in eachline(flStream)
-        values          		= split(line)
-        charCode        		= char(int(values[1]))
-        advance  				= int(values[2])
-        x::Float32      		= int(values[3]) / width
-        x2::Float32     		= (int(values[3]) + advance) / width
-        y::Float32      		= int(values[4]) / height
-        texLineHeight::Float32 	= lineHeight / height
-
-        asciiDict[charCode] = [
-            x, y + texLineHeight,
-            x, y , 
-            x2, y + texLineHeight, 
-            x2, y+ texLineHeight,
-            x, y ,
-            x2, y]
-    end
-    close(flStream)
-    AsciiAtlas(lineHeight, advance, texture, asciiDict)
-end
 
 immutable GLBuffer
     id::GLuint
@@ -99,6 +73,67 @@ end
 immutable Program
 	id::GLuint
 	Program(name::ASCIIString) = new (loadShaders(name))
+end
+
+type AsciiAtlas
+    lineHeight::GLfloat
+    advance::GLfloat
+    texture::Texture
+    dictionary::Dict{Char, (Array{Float32, 1}, Float32)}
+    textVertArray::GLuint
+end
+
+function AsciiAtlas(name::String)
+    global textShader
+    texture             = Texture("$(name).bmp", format=DEPTH_COMPONENT)
+    flStream            = open("$(name).txt")
+    width               = int(readline(flStream))
+    height              = int(readline(flStream))
+    lineHeight::Float32 = int(readline(flStream))
+    advance::Float32 = 0
+
+    asciiDict   = Dict{Char, (Array{Float32, 1},  Float32)}()
+    verts       = Array(Float32, 0)
+    uv          = Array(Float32, 0)
+
+    for line in eachline(flStream)
+        values                  = split(line)
+        charCode                = char(int(values[1]))
+        advance                 = int(values[2])
+        x::Float32              = int(values[3]) / width
+        x2::Float32             = (int(values[3]) + advance) / width
+        y::Float32              = int(values[4]) / height
+        texLineHeight::Float32  = lineHeight / height
+
+        charUV = [
+            x, y + texLineHeight,
+            x, y , 
+            x2, y + texLineHeight, 
+            x2, y+ texLineHeight,
+            x, y ,
+            x2, y]
+        asciiDict[charCode] = (charUV, advance)
+        push!(verts, createQuad(0f0, 0f0, advance, lineHeight)...)
+        push!(uv, charUV...)
+    end
+
+    vertBuff    = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, verts)
+    uvBuff      = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, uv)
+
+    vetexArrayID = glGenVertexArray()
+    glBindVertexArray(vetexArrayID)
+    glBindBuffer(ARRAY_BUFFER, vertBuff.id)
+    vertexLoc   = glGetAttribLocation(textShader.id, "position")
+    glVertexAttribPointer(vertexLoc, 2, FLOAT, FALSE, 0, 0)
+    glBindBuffer(ARRAY_BUFFER, uvBuff.id)
+    uvLoc   = glGetAttribLocation(textShader.id, "uv")
+    glVertexAttribPointer(uvLoc, 2, FLOAT, FALSE, 0, 0)
+    glEnableVertexAttribArray(vertexLoc)
+    glEnableVertexAttribArray(uvLoc)
+    glBindVertexArray(0)
+
+    close(flStream)
+    AsciiAtlas(lineHeight, advance, texture, asciiDict, vetexArrayID)
 end
 
 
@@ -219,58 +254,42 @@ function moveY(event::MouseClicked)
 end
 registerEvent(EventAction{MouseClicked}("", x-> x.key == 3 || x.key == 4, (), moveY, ()))
 
-function toOpenGL(text::Array{String,1})
 
-    words = Array(GLWordNode, 0)
-    flattenedText = ""
 
-    xAdvance = 0
-    xShift = 0
-    xIndex = 0
-    lineAdvance = 0
-
-    for word in text
-        if word == "\n"
-            lineAdvance += 1
-            xShift = -xIndex
-        else
-            transform = eye(Float32, 4,4)
-            transform[1,4] = xShift * font.advance
-            transform[2,4] = 500 - (lineAdvance *  (font.lineHeight + 30))
-            push!(words, GLWordNode(transform, get(juliaColorDict, word, [0f0,0f0,0f0]), (xIndex, length(word))))
-            flattenedText   *= word
-            xIndex          += length(word)
-        end
-    end
-    verts   = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES,  createQuadStrip(0f0, 0f0, 0f0, font.advance, font.lineHeight, length(flattenedText)))
-    uv      = GLBuffer(DYNAMIC_DRAW, ARRAY_BUFFER, LINE_STRIP,  mapreduce(
-                theChar -> get(font.dictionary, theChar, zeros(GLfloat, 6*2)), 
-                vcat, 
-                flattenedText))
-
-    vetexArrayID = glGenVertexArray()
-    glBindVertexArray(vetexArrayID)
-    glBindBuffer(ARRAY_BUFFER, verts.id)
-    vertexLoc   = glGetAttribLocation(textShader.id, "position")
-    glVertexAttribPointer(vertexLoc, 2, FLOAT, FALSE, 0, 0)
-    glBindBuffer(ARRAY_BUFFER, uv.id)
-    uvLoc   = glGetAttribLocation(textShader.id, "uv")
-    glVertexAttribPointer(uvLoc, 2, FLOAT, FALSE, 0, 0)
-    glEnableVertexAttribArray(vertexLoc)
-    glEnableVertexAttribArray(uvLoc)
-    glBindVertexArray(0)
-
-    vetexArrayID, words
+function render(char::Char, x::Float32, y::Float32)
+    glUniformMatrix4fv(glGetUniformLocation(textShader.id, "mvp"),  1, FALSE, reshape(projMatrix * model * [1 0 0 x ; 0 1 0 y ; 0 0 1 0 ; 0 0 0 1], 16))
+    glDrawArrays(TRIANGLES, int(char) * 6, (int(char) + 1) * 6)
 end
 
-function render(words::Array{GLWordNode, 1}, vetexArrayID::GLuint)
-    glBindVertexArray(vetexArrayID)
+
+render(string::String, x::Real, y::Real) = render(string, float32([0,0,0,1]), x, y)
+
+render(string::String, color::Array{Real, 1}, x::Real, y::Real) = render(string, float32(color), x, y)
+
+render(string::String, color::Array{Float32, 1}, x::Real, y::Real) = render(StyledWord(color, string), x, y)
+
+render(word::StyledWord, x::Real, y::Real) = render([word], x, y, standardFont)
+
+render(words::Array{StyledWord, 1}, x::Real, y::Real, font::AsciiAtlas) = render(words, float32(x), float32(y), font)
+function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::AsciiAtlas)
+    glUseProgram(textShader.id)
+    glBindVertexArray(font.textVertArray)
+    glActiveTexture(TEXTURE0)
+    glBindTexture(TEXTURE_2D, font.texture.id)
+    glUniform1i(glGetUniformLocation(textShader.id, "fontTexture"), 0)
+    oldX = x
     for word in words
-        glUniformMatrix4fv(glGetUniformLocation(textShader.id, "mvp"),  1, FALSE, reshape(projMatrix * model * word.transform, 16))
-        glUniform3f(glGetUniformLocation(textShader.id, "textColor"), word.color...)
-        glDrawArrays(TRIANGLES, word.index[1] * 6, word.index[2] * 6)
+        glUniform4f(glGetUniformLocation(textShader.id, "textColor"), word.color...)
+        for char in word.text
+            if char == '\n'
+                y -= font.lineHeight
+                x = oldX
+            else if x - font.advance >= 0 && y + font.lineHeight >= 0 && 
+                render(char, x, y)
+                x += font.advance 
+            end
+        end
     end
-    glBindVertexArray(0)
 end
 
 function render(shape::Shape)
@@ -293,14 +312,17 @@ function initUtils()
     glEnable(BLEND)
     glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
 
-    global flatShader = Program("dependencies/flatShader")
-    global textShader = Program("dependencies/color") 
-    global projMatrix = eye(GLfloat, 4,4)
-    global viewMatrix = eye(GLfloat, 4,4)
-    global model      = eye(GLfloat, 4,4)
-    model[1,4] = 1
-    model[2,4] = 1
+    global flatShader   = Program("dependencies/flatShader")
+    global textShader   = Program("dependencies/color") 
+    global standardFont = AsciiAtlas("dependencies/VeraMono")
+
 
     global CIRCLE = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLE_FAN, createCircle(1, 0, 0, 124))
     global RECTANGLE = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, createQuad(0f0,0f0, 1f0, 1f0)) 
 end
+
+
+
+
+
+
