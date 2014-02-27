@@ -263,16 +263,15 @@ end
 
 
 render(string::String, x::Real, y::Real) = render(string, float32([0,0,0,1]), x, y)
-
 render(string::String, color::Array{Real, 1}, x::Real, y::Real) = render(string, float32(color), x, y)
-
 render(string::String, color::Array{Float32, 1}, x::Real, y::Real) = render(StyledWord(color, string), x, y)
-
 render(word::StyledWord, x::Real, y::Real) = render([word], x, y, standardFont)
-
 render(words::Array{StyledWord, 1}, x::Real, y::Real, font::AsciiAtlas) = render(words, float32(x), float32(y), font)
+
 function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::AsciiAtlas)
+    glEnable(DEPTH_TEST)
     glUseProgram(textShader.id)
+
     glBindVertexArray(font.textVertArray)
     glActiveTexture(TEXTURE0)
     glBindTexture(TEXTURE_2D, font.texture.id)
@@ -281,19 +280,24 @@ function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::Ascii
     for word in words
         glUniform4f(glGetUniformLocation(textShader.id, "textColor"), word.color...)
         for char in word.text
-            if char == '\n'
+            if char == '\n' || char == '\r'
                 y -= font.lineHeight
                 x = oldX
-            else if x - font.advance >= 0 && y + font.lineHeight >= 0 && 
+            elseif isblank(char)
+                x += font.advance
+            else
                 render(char, x, y)
                 x += font.advance 
             end
         end
     end
+    glBindVertexArray(0)
 end
 
 function render(shape::Shape)
     global projMatrix, model, flatShader
+    glDisable(DEPTH_TEST)
+
     glUseProgram(flatShader.id)
     glUniformMatrix4fv(glGetUniformLocation(flatShader.id, "mvp"),  1, FALSE, reshape(projMatrix * model * shape.transformations, 16))
     glUniform4f(glGetUniformLocation(flatShader.id, "Color"), shape.color...)
@@ -302,12 +306,14 @@ function render(shape::Shape)
     glBindBuffer(ARRAY_BUFFER, shape.glContent.id)
     glVertexAttribPointer(glGetAttribLocation(flatShader.id, "position"), 2, FLOAT, FALSE, 0, 0)
     glDrawArrays(shape.glContent.format, 0, shape.glContent.size)
+    glBindBuffer(ARRAY_BUFFER, 0)
 end
 
 
 function initUtils()
-    glClearColor(1f0, 1f0, 1f0, 1.0f0)
-    glEnable(DEPTH_TEST)
+    glClearColor(1f0, 1f0, 1f0, 0f0)
+    glDisable(DEPTH_TEST)
+    glDisable(CULL_FACE)
     glEnable(MULTISAMPLE)
     glEnable(BLEND)
     glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
