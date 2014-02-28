@@ -57,5 +57,11 @@ end
 global cursor = 1
 registerEvent(EventAction{KeyDown}("", x -> ~x.special, (), editText, ()))
 
+function moveY(event::MouseClicked)
+	global model
+	model[2,4] = model[2,4] + translateYMatrix(event.key == 4 ? -10f0 : 10f0)[2,4]
+end
+registerEvent(EventAction{MouseClicked}("", x-> x.key == 3 || x.key == 4, (), moveY, ()))
+
 
 glutMainLoop()

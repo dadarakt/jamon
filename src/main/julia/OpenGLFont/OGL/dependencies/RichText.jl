@@ -1,21 +1,41 @@
-juliaAttributeDict = [
+immutable Style
+	color::Array{Float32, 1}
+	function Style(color::Array{Float32, 1})
+		if length(color) == 3
+			new([color..., 1f0])
+		elseif length(color) == 4
+			new(color)
+		else
+			throw(error("not a color"))
+		end
+	end
+end
+Style(x::Array{Real, 1}) = Style(float32(x))
+Style(x::Array{Int64, 1}) = Style(float32(x))
+immutable StyledWord
+    text::String
+    style::Style
+end
+
+
+global juliaAttributeDict = [
 	"for" 		=> (["for"], ["for"], []), 
 	"\"" 		=> (["\""], ["\""], ["\""]),
 	"end" 		=> (["end"], [], ["\"", "function", "for", "if", "else", "begin", "quote"])
 ]
-juliaColorDict = [
-	"for" 		=> [0.5f0, 0.8f0, 0.3f0], 
-	"if" 		=> [0.2f0, 0.8f0, 0.5f0], 
-	"end" 		=> [0.5f0, 0.1f0, 0.3f0], 
-	"in" 		=> [0.0f0, 0.1f0, 0.5f0], 
-	"begin" 	=> [0.5f0, 0.1f0, 0.3f0], 
-	"in" 		=> [0.0f0, 0.1f0, 0.5f0],
-	"\$" 		=> [0.9f0, 0.2f0, 0.01f0],
-	"function" => [0.6f0, 0.3f0, 0.2f0],
-	"include" 	=> [0.1f0, 0.9f0, 0.2f0],
-	"using" 	=> [0.2f0, 0.9f0, 0.2f0],
-	"global" 	=> [0.8f0, 0.1f0, 0.2f0],
-	"\"" 		=> [0.9f0, 0.1f0, 0.1f0]]
+global juliaStyleDict = [
+	"for" 		=> Style([0.5f0, 0.8f0, 0.3f0]), 
+	"if" 		=> Style([0.2f0, 0.8f0, 0.5f0]), 
+	"end" 		=> Style([0.5f0, 0.1f0, 0.3f0]), 
+	"in" 		=> Style([0.0f0, 0.1f0, 0.5f0]), 
+	"begin" 	=> Style([0.5f0, 0.1f0, 0.3f0]), 
+	"in" 		=> Style([0.0f0, 0.1f0, 0.5f0]),
+	"\$" 		=> Style([0.9f0, 0.2f0, 0.01f0]),
+	"function" 	=> Style([0.6f0, 0.3f0, 0.2f0]),
+	"include" 	=> Style([0.1f0, 0.9f0, 0.2f0]),
+	"using" 	=> Style([0.2f0, 0.9f0, 0.2f0]),
+	"global" 	=> Style([0.8f0, 0.1f0, 0.2f0]),
+	"\"" 		=> Style([0.9f0, 0.1f0, 0.1f0])]
 
 
 JuliaKeywords = ["function", "end", "begin", "abstract", "type", "if", "else", "elseif", "in", "for", "return", "using", "include"]
@@ -69,29 +89,30 @@ function matchTokens(buffer::ASCIIString, tokens, tokensFound)
 	return false, "", "", fill("", 0)
 end
 
-function enrich(text, seperatorTokens)	
-	enriched 		= fill("", 0)
+function enrich(text, seperatorTokens, styleDict)	
+	enriched 		= Array(StyledWord, 0)
 	tokensFound 	= fill("", 0)
 	blanks 			= ""
 	currentWord 	= ""
 	seperator 		= ""
+
 	for char in text
 		if char == '\t' || char == ' '
 			if isempty(blanks)
-				~isempty(currentWord) && push!(enriched, currentWord)
+				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style([0,0,0,1]))))
 				currentWord = ""
 			end
 			blanks = blanks * string(char)
 		else
 			if ~isempty(blanks)
-				push!(enriched, "|"^length(blanks))
+				push!(enriched, StyledWord(" "^length(blanks), Style([0,0,0,1])))
 				blanks = ""
 			end
 			seperator *= string(char)
 			found, seperator, currentWordTmp, tokensFound = matchTokens(seperator, seperatorTokens, tokensFound)
 			if found
-				~isempty(currentWord) && push!(enriched, currentWord)
-				push!(enriched, seperator)
+				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style([0,0,0,1]))))
+				push!(enriched, StyledWord(seperator, get(styleDict, seperator, Style([0,0,0,1]))))
 				currentWord = ""
 				seperator = currentWordTmp
 				if ~isempty(seperator) && isempty(tokensFound)

@@ -2,6 +2,7 @@
 include("GLUTWindow.jl")
 include("GLMatrixMath.jl")
 include("shader.jl")
+include("RichText.jl")
 
 
 global flatShader 
@@ -39,10 +40,7 @@ immutable Texture
 	    new(id, textureType, format, w, h)
     end
 end
-type StyledWord
-    color::Array{Float32, 1}
-    text::String
-end
+
 
 
 
@@ -139,13 +137,20 @@ end
 
 abstract Shape
 
+
+
 immutable Circle <: Shape
     glContent::GLBuffer
     attributes::Array{Float32, 1}
     transformations::Matrix
     color::Array{Float32, 1}
     function Circle(radius::Float32, middleX::Float32, middleY::Float32, color::Array{Float32,1})
-        new(CIRCLE, [radius, middleX, middleY], [radius 0 0 middleX ; 0 radius 0 middleY ; 0 0 0 0 ; 0 0 0 1], color)
+        if length(color) == 3
+            color = [color..., 1f0]
+        elseif length(color) != 4
+            throw(error("not a color"))
+        end 
+        new(CIRCLE, [middleX, middleY, radius], [radius 0 0 middleX ; 0 radius 0 middleY ; 0 0 0 0 ; 0 0 0 1], color)
     end
 end
 immutable Rectangle <: Shape
@@ -154,9 +159,16 @@ immutable Rectangle <: Shape
     transformations::Matrix
     color::Array{Float32, 1}
     function Rectangle(x::Float32, y::Float32, width::Float32, height::Float32, color::Array{Float32,1})
+
+        if length(color) == 3
+            color = [color..., 1f0]
+        elseif length(color) != 4
+            throw(error("not a color"))
+        end 
         new(RECTANGLE, [x, y, width, height], [width 0 0 x ; 0 height 0 y ; 0 0 0 0 ; 0 0 0 1], color)
     end
 end
+
 immutable Polygon <: Shape
     glContent::GLBuffer
     attributes::Array{Float32, 1}
@@ -179,10 +191,49 @@ immutable Polygon <: Shape
                 boundingBox[2] = y
             end
         end
+        if length(color) == 3
+            color = [color..., 1f0]
+        elseif length(color) != 4
+            throw(error("not a color"))
+        end 
         boundingBox[1] = boundingBox[1] 
         new(GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLE_FAN, polygon), boundingBox, eye(Float32, 4,4), color)
     end
 end
+
+_radius(a::Circle) = a.attributes[3]
+_x(a::Union(Rectangle, Circle)) = a.attributes[1]
+_y(a::Union(Rectangle, Circle)) = a.attributes[2]
+_width(a::Rectangle) = a.attributes[3]
+_height(a::Rectangle) = a.attributes[4]
+
+
+
+function inside(polygon::Polygon, x::Real, y::Real)
+    a = polygon.points
+    c = false
+    i = length(a) - 1
+    for (x1, y1) in a
+        (x0, y0) =  a[i % length(a) + 1]
+        if (y1 < y) != (y0 > y) &&
+            (x < (x0-x1) * (y-y1) / (y0-y1) + x1)
+            c = ~c
+        end 
+        i += 1
+    end
+    return c
+end
+function inside(circle::Circle, x::Real, y::Real)
+    xD = abs(_x(circle) - x) - _radius(circle) 
+    yD = abs(_y(circle) - y) - _radius(circle)
+    xD <= 0 && yD <= 0
+end
+function inside(rect::Rectangle, x::Real, y::Real)
+    _x(rect) <= x && _y(rect) <= y && _x(rect) + _width(rect) >= x && _y(rect) + _height(rect) >= y 
+end
+
+
+
 
 function glGetVariable(variable::Uint16)
     result::Ptr{GLint} = int32([-1])
@@ -248,12 +299,6 @@ function resizeFunc(w::GLsizei, h::GLsizei)
     return nothing
 end
 
-function moveY(event::MouseClicked)
-	global model
-	model[2,4] = model[2,4] + translateYMatrix(event.key == 4 ? -10f0 : 10f0)[2,4]
-end
-registerEvent(EventAction{MouseClicked}("", x-> x.key == 3 || x.key == 4, (), moveY, ()))
-
 
 
 function render(char::Char, x::Float32, y::Float32)
@@ -262,23 +307,26 @@ function render(char::Char, x::Float32, y::Float32)
 end
 
 
-render(string::String, x::Real, y::Real) = render(string, float32([0,0,0,1]), x, y)
-render(string::String, color::Array{Real, 1}, x::Real, y::Real) = render(string, float32(color), x, y)
-render(string::String, color::Array{Float32, 1}, x::Real, y::Real) = render(StyledWord(color, string), x, y)
-render(word::StyledWord, x::Real, y::Real) = render([word], x, y, standardFont)
-render(words::Array{StyledWord, 1}, x::Real, y::Real, font::AsciiAtlas) = render(words, float32(x), float32(y), font)
+#render(string::String, x::Real, y::Real) = render(string, float32([0,0,0,1]), x, y)
+#render(string::String, color::Array{Real, 1}, x::Real, y::Real) = render(string, float32(color), x, y)
+#render(string::String, color::Array{Float32, 1}, x::Real, y::Real) = render(StyledWord(color, string), x, y)
+#render(word::StyledWord, x::Real, y::Real) = render([word], x, y, standardFont)
+#render(words::Array{StyledWord, 1}, x::Real, y::Real, font::AsciiAtlas) = render(words, float32(x), float32(y), font)
 
-function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::AsciiAtlas)
+function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::AsciiAtlas, delimiter::Shape)
     glEnable(DEPTH_TEST)
-    glUseProgram(textShader.id)
 
+    glEnable(BLEND)
+    glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
+
+    glUseProgram(textShader.id)
     glBindVertexArray(font.textVertArray)
     glActiveTexture(TEXTURE0)
     glBindTexture(TEXTURE_2D, font.texture.id)
     glUniform1i(glGetUniformLocation(textShader.id, "fontTexture"), 0)
     oldX = x
     for word in words
-        glUniform4f(glGetUniformLocation(textShader.id, "textColor"), word.color...)
+        render(word.style)
         for char in word.text
             if char == '\n' || char == '\r'
                 y -= font.lineHeight
@@ -286,7 +334,9 @@ function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::Ascii
             elseif isblank(char)
                 x += font.advance
             else
-                render(char, x, y)
+               # if inside(delimiter, x, y)
+                    render(char, x, y)
+                #end
                 x += font.advance 
             end
         end
@@ -294,10 +344,12 @@ function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::Ascii
     glBindVertexArray(0)
 end
 
+function render(style::Style)
+    glUniform4f(glGetUniformLocation(textShader.id, "textColor"), style.color...) 
+end
 function render(shape::Shape)
     global projMatrix, model, flatShader
     glDisable(DEPTH_TEST)
-
     glUseProgram(flatShader.id)
     glUniformMatrix4fv(glGetUniformLocation(flatShader.id, "mvp"),  1, FALSE, reshape(projMatrix * model * shape.transformations, 16))
     glUniform4f(glGetUniformLocation(flatShader.id, "Color"), shape.color...)
@@ -307,6 +359,67 @@ function render(shape::Shape)
     glVertexAttribPointer(glGetAttribLocation(flatShader.id, "position"), 2, FLOAT, FALSE, 0, 0)
     glDrawArrays(shape.glContent.format, 0, shape.glContent.size)
     glBindBuffer(ARRAY_BUFFER, 0)
+end
+
+
+
+
+function delete(text::String, index::Int)
+     if index > 1 && index < length(text)
+        text = text[1:index - 1] * text[index + 1:end]
+     elseif index == length(text)
+        return chop(text)
+     elseif index == 1
+        return text[index + 1:end]
+     end
+end
+function insert(text::String, char::Union(String,Char), index::Int)
+    if index > 1 && index < length(text)
+        return text[1:index - 1] * string(char) * text[index:end]
+     elseif index == length(text)
+        return text * string(char)
+    elseif index == 1
+        return  string(char) * text
+     end
+end
+
+
+
+type TextField
+    area::Shape
+    font::AsciiAtlas
+    style::Dict{ASCIIString, Style}
+    enrichedText::Array{StyledWord, 1}
+    text::ASCIIString
+    cursor::Int
+    scroll::Int
+    function TextField(area::Shape,
+    font::AsciiAtlas,
+    style::Dict{ASCIIString, Style},
+    text::ASCIIString,
+    cursor::Int,
+    scroll::Int)
+        text = insert(text, '|' , cursor)
+        enriched = enrich(text, JuliaNonBlankSeperators, style)
+        new(area, font, style, enriched, text, cursor, scroll)
+    end
+end
+
+function render(textField::TextField)
+    glEnable(BLEND)
+    #Use a simple blendfunc for drawing the background
+    glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
+    render(textField.area)
+    glBlendFuncSeparate(ZERO, ONE, SRC_COLOR, ZERO)
+
+    mask = deepcopy(textField.area)
+    fill!(mask.color, 0f0)
+    mask.color[4] = 1f0
+    render(mask)
+    glBlendFunc(DST_ALPHA, ONE_MINUS_DST_ALPHA)
+    model = eye(Float32, 4,4)
+    model[2,4] = textField.scroll
+    render(textField.enrichedText, _x(textField.area), _y(textField.area) - textField.scroll, textField.font, textField.area)
 end
 
 
@@ -326,9 +439,4 @@ function initUtils()
     global CIRCLE = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLE_FAN, createCircle(1, 0, 0, 124))
     global RECTANGLE = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, createQuad(0f0,0f0, 1f0, 1f0)) 
 end
-
-
-
-
-
 
