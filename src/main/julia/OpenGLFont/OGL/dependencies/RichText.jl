@@ -42,7 +42,7 @@ JuliaKeywords = ["function", "end", "begin", "abstract", "type", "if", "else", "
 specialChar = [string(char(i)) for i=[33:47, 58:64, 91:94, 123:126]]
 equals = [i * "=" for i=["+", "-", "/", "\\", "*", "<", ">", "^", "!", "|", "%", "="]]
 rest = ["::", "||", "&&", "=>", "...", "|>", "\n"]
-JuliaNonBlankSeperators = Set(specialChar..., equals..., rest...)
+JuliaNonBlankSeperators = Set({specialChar..., equals..., rest...})
 
 
 function matchTokens(buffer::ASCIIString, tokens, tokensFound)

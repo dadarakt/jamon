@@ -1,8 +1,21 @@
 global OpenGLver = "4.3"
 using OpenGL
 
+function computeFOVProjection(fov::Float32, aspect::Float32, nearDist::Float32, farDist::Float32; leftHanded = true)
+    @assert fov > 0 && aspect != 0 
 
-function set_orthographic(
+    result = eye(Float32, 4, 4)
+    frustumDepth = farDist - nearDist
+    oneOverDepth = 1 / frustumDepth
+
+    result[2,2] = 1f0 / tan(0.5f0 * fov)
+    result[1,1] = (leftHanded ? 1f0 : -1f0 ) * result[2,2] / aspect
+    result[3,3] = farDist * oneOverDepth
+    result[4,3] = (-farDist * nearDist) * oneOverDepth
+    result[3,4] = 1
+    result[4,4] = 0
+end
+function computeOrthographicProjection(
                         left::GLfloat,   right::GLfloat,
                        bottom::GLfloat, top::GLfloat,
                        znear::GLfloat,  zfar::GLfloat )
