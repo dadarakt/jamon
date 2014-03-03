@@ -95,11 +95,11 @@ function enrich(text, seperatorTokens, styleDict)
 	blanks 			= ""
 	currentWord 	= ""
 	seperator 		= ""
-
+	defaultColor = float32([0,0,0,0.6])
 	for char in text
 		if char == '\t' || char == ' '
 			if isempty(blanks)
-				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style([0,0,0,1]))))
+				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style(defaultColor))))
 				currentWord = ""
 			end
 			blanks = blanks * string(char)
@@ -111,8 +111,8 @@ function enrich(text, seperatorTokens, styleDict)
 			seperator *= string(char)
 			found, seperator, currentWordTmp, tokensFound = matchTokens(seperator, seperatorTokens, tokensFound)
 			if found
-				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style([0,0,0,1]))))
-				push!(enriched, StyledWord(seperator, get(styleDict, seperator, Style([0,0,0,1]))))
+				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style(defaultColor))))
+				push!(enriched, StyledWord(seperator, get(styleDict, seperator, Style(defaultColor))))
 				currentWord = ""
 				seperator = currentWordTmp
 				if ~isempty(seperator) && isempty(tokensFound)
@@ -125,4 +125,26 @@ function enrich(text, seperatorTokens, styleDict)
 		end
 	end
 	enriched
+end
+
+
+function delete(text::String, index::Int)
+     if index > 1 && index < length(text)
+        text = text[1:index - 1] * text[index + 1:end]
+     elseif index == length(text)
+        return chop(text)
+     elseif index == 1
+        return text[index + 1:end]
+     end
+end
+function insert(text::String, char::Union(String,Char), index::Int)
+	index = index > length(text) ? length(text) : index
+	index = index < 1 ? 1 : index
+    if index > 1 && index < length(text)
+        return text[1:index - 1] * string(char) * text[index:end]
+     elseif index == length(text)
+        return text * string(char)
+    elseif index == 1
+        return  string(char) * text
+    end
 end

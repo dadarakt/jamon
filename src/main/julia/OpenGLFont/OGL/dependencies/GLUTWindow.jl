@@ -1,6 +1,5 @@
-
 global OpenGLver = "4.3"
-using OpenGL, GLUT
+using GLUT, OpenGL
 
 reload("dependencies/Events.jl")
 
@@ -20,19 +19,19 @@ function mouseFunc(button::Int32, status::Int32, x::Int32, y::Int32)
     return nothing
 end
 function specialFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(true, char(key)))
+    invoke(listenTo, (KeyDown,), KeyDown(true, char(key), x, y))
     return nothing
 end
 function specialUpFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(true, char(key)))
+    invoke(listenTo, (KeyUp,), KeyUp(true, char(key), x, y))
     return nothing
 end
 function keyboardFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(false, char(key)))
+    invoke(listenTo, (KeyDown,), KeyDown(false, char(key), x, y))
     return nothing
 end
 function keyboardUpFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(false, char(key)))
+    invoke(listenTo, (KeyUp,), KeyUp(false, char(key), x, y))
     return nothing
 end
 function displayFunc()
@@ -64,6 +63,12 @@ function createWindow(;name="GLUT Window", displayMode=int32(GLUT_DEPTH | GLUT_D
     glutInitWindowPosition(windowPosition...)
     glutInitWindowSize(windowSize...);
     glutCreateWindow(name)
+
+
+    glGetStringPtr = glutGetProcAddress("glGetString")
+    version = ccall(glGetStringPtr, Ptr{GLubyte}, (GLenum,), 0x1F02)
+    message = bytestring(convert(Ptr{Uint8}, version))
+    println(message)
 end
 
 function linkFunctions(;

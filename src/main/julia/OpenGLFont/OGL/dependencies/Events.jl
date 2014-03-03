@@ -12,14 +12,20 @@ end
 immutable KeyDown <: Event
     special::Bool
     key::Char
+    x::Int
+    y::Int
 end
 immutable KeyUp <: Event
     special::Bool
     key::Char
+    x::Int
+    y::Int
 end
 immutable KeyDownMouseClicked <: Event
 	currentMouseClicked::Dict{Int, (Int, Int)}
 	currentKeyDown::Dict{Int, Bool}
+	x::Int
+    y::Int
 end
 
 
@@ -66,7 +72,7 @@ function fillCurrentMouseClicked(event)
 	if event.status == 0
 		currentMouseClicked[int(event.key)] = (int(event.x), int(event.y))
 		if ~isempty(currentKeyDown)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown)))
+			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), currentMouseClicked.x, currentMouseClicked.y))
 		end
 	else
 		pop!(currentMouseClicked, int(event.key), ())
@@ -76,7 +82,7 @@ function fillCurrentKeyDown(event, status::Int)
 	if status == 1
 		currentKeyDown[int(event.key)] = event.special
 		if ~isempty(currentMouseClicked)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown)))
+			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), currentMouseClicked.x, currentMouseClicked.y))
 		end
 	else
 		pop!(currentKeyDown, int(event.key), ())

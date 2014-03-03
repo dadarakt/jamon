@@ -12,25 +12,10 @@ function displayFuncCallback()
     glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
 
     render(textField)
+    render(textField2)
     
     return nothing
 end
-
-
-
-createWindow(name = "Moiiin", windowSize = [1000, 1100], windowPosition = [1950, 20])
-linkFunctions()
-initUtils()
-
-
-font 	= AsciiAtlas("dependencies/VeraMono")
-
-fStream = open("enrich.jl")
-text = readall(fStream)
-close(fStream)
-
-textField = TextField(Rectangle(0f0,500f0,500f0,500f0, float32([1, 1, 1, 1])), font, juliaStyleDict, text, 1, 0)
-
 
 function editText(event::KeyDown, textField::TextField)
 	textField.text = delete(textField.text, textField.cursor)
@@ -38,6 +23,7 @@ function editText(event::KeyDown, textField::TextField)
 		textField.text = delete(textField.text, textField.cursor)
 		textField.cursor -= textField.cursor > 1 ? 1 : 0
 	elseif event.key == '\n' || event.key == '\r' || ~iscntrl(event.key)
+		println(event.key)
 		textField.text = insert(textField.text, event.key, textField.cursor - 1)
 		textField.cursor += textField.cursor < length(textField.text) ? 1 : 0
 	end
@@ -45,7 +31,6 @@ function editText(event::KeyDown, textField::TextField)
 	textField.enrichedText = enrich(textField.text, JuliaNonBlankSeperators, textField.style) 
 end
 
-registerEvent(EventAction{KeyDown}("", x -> ~x.special, (), editText, (textField,)))
 
 function moveCursor(event, textField::TextField)
 	textField.text = delete(textField.text, textField.cursor)
@@ -74,24 +59,38 @@ function moveCursor(event, textField::TextField)
 	textField.enrichedText = enrich(textField.text, JuliaNonBlankSeperators, textField.style) 
 
 end
-registerEvent(EventAction{KeyDown}("", x -> x.special, (), moveCursor, (textField,)))
 
 
 function scroll(event::MouseClicked, textField::TextField)
 	global model
 	textField.scroll = textField.scroll + (event.key == 4 ? -10f0 : 10f0)
 end
-registerEvent(EventAction{MouseClicked}("", x-> x.key == 3 || x.key == 4, (), scroll, (textField, )))
+function registerStandartEvents(textField::TextField)
+	registerEvent(EventAction{KeyDown}("", x -> inside(textField.area, x.x, x.y) && ~x.special, (), editText, (textField,)))
+	registerEvent(EventAction{KeyDown}("", x -> inside(textField.area, x.x, x.y) && x.special, (), moveCursor, (textField,)))
+	registerEvent(EventAction{MouseClicked}("", x-> inside(textField.area, x.x, x.y) && (x.key == 3 || x.key == 4), (), scroll, (textField, )))
+end
 
 
 
-trol = "hallo"
-trol = insert(trol, 'f', 3)
-println(trol)
-trol = delete(trol, 3)
-println(trol)
+
+createWindow(name = "Moiiin", windowSize = [1000, 1100], windowPosition = [1950, 20])
+linkFunctions()
+initUtils()
 
 
-glClearColor(0.9f0, 0.9f0, 0.9f0, 0f0)
+font 	= AsciiAtlas("dependencies/VeraMono")
+
+fStream = open("enrich.jl")
+text = readall(fStream)
+close(fStream)
+
+textField = TextField(Rectangle(0f0,0f0,1000f0,500f0, float32([1, 1, 1, 1])), font, juliaStyleDict, text, 1, 0)
+textField2 = TextField(Rectangle(0f0,500f0,1000f0,500f0, float32([1, 1, 1, 1])), font, juliaStyleDict, text, 1, 0)
+registerStandartEvents(textField)
+registerStandartEvents(textField2)
+
+
+glClearColor(0.9f0, 0.9f0, 0.0f0, 0f0)
 
 glutMainLoop()

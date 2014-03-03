@@ -329,9 +329,9 @@ function render(words::Array{StyledWord, 1}, x::Float32, y::Float32, font::Ascii
             elseif isblank(char)
                 x += font.advance
             else
-               # if inside(delimiter, x, y)
+                if inside(delimiter, x, y)
                     render(char, x, y)
-                #end
+                end
                 x += font.advance 
             end
         end
@@ -341,6 +341,7 @@ end
 
 function render(style::Style)
     glUniform4f(glGetUniformLocation(textShader.id, "textColor"), style.color...) 
+    glUniform4f(glGetUniformLocation(textShader.id, "backgroundColor"), float32([0,0,0,0.0])...) 
 end
 function render(shape::Shape)
     global projMatrix, model, flatShader
@@ -354,28 +355,6 @@ function render(shape::Shape)
     glVertexAttribPointer(glGetAttribLocation(flatShader.id, "position"), 2, FLOAT, FALSE, 0, 0)
     glDrawArrays(shape.glContent.format, 0, shape.glContent.size)
     glBindBuffer(ARRAY_BUFFER, 0)
-end
-
-
-
-
-function delete(text::String, index::Int)
-     if index > 1 && index < length(text)
-        text = text[1:index - 1] * text[index + 1:end]
-     elseif index == length(text)
-        return chop(text)
-     elseif index == 1
-        return text[index + 1:end]
-     end
-end
-function insert(text::String, char::Union(String,Char), index::Int)
-    if index > 1 && index < length(text)
-        return text[1:index - 1] * string(char) * text[index:end]
-     elseif index == length(text)
-        return text * string(char)
-    elseif index == 1
-        return  string(char) * text
-     end
 end
 
 
@@ -405,15 +384,15 @@ function render(textField::TextField)
     #Use a simple blendfunc for drawing the background
     glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
     render(textField.area)
-    glBlendFuncSeparate(ZERO, ONE, SRC_COLOR, ZERO)
+   # glBlendFuncSeparate(ZERO, ONE, SRC_COLOR, ZERO)
 
     mask = deepcopy(textField.area)
-    fill!(mask.color, 0f0)
-    mask.color[4] = 1f0
-    render(mask)
-    glBlendFunc(DST_ALPHA, ONE_MINUS_DST_ALPHA)
-    model = eye(Float32, 4,4)
-    model[2,4] = textField.scroll
+    #fill!(mask.color, 0f0)
+    #mask.color[4] = 1f0
+    #render(mask)
+    #glBlendFunc(DST_ALPHA, ONE_MINUS_DST_ALPHA)
+    #model = eye(Float32, 4,4)
+    #model[2,4] = textField.scroll
     render(textField.enrichedText, _x(textField.area), _y(textField.area) - textField.scroll, textField.font, textField.area)
 end
 
@@ -427,7 +406,7 @@ function initUtils()
     glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
 
     global flatShader   = Program("dependencies/flatShader")
-    global textShader   = Program("dependencies/color") 
+    global textShader   = Program("dependencies/textShader") 
     global BRDFShader   = Program("dependencies/BRDF") 
     global standardFont = AsciiAtlas("dependencies/VeraMono")
 
