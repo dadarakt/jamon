@@ -357,7 +357,12 @@ function render(shape::Shape)
     glBindBuffer(ARRAY_BUFFER, 0)
 end
 
-
+type Cursor
+    draw::Shape
+    line::Int
+    word::Int
+    index::Int
+end
 
 type TextField
     area::Shape
@@ -365,17 +370,20 @@ type TextField
     style::Dict{ASCIIString, Style}
     enrichedText::Array{StyledWord, 1}
     text::ASCIIString
-    cursor::Int
+    cursor::Cursor
     scroll::Int
+    focus::Bool
+
     function TextField(area::Shape,
     font::AsciiAtlas,
     style::Dict{ASCIIString, Style},
     text::ASCIIString,
-    cursor::Int,
     scroll::Int)
-        text = insert(text, '|' , cursor)
+
         enriched = enrich(text, JuliaNonBlankSeperators, style)
-        new(area, font, style, enriched, text, cursor, scroll)
+        new(area, font, style, enriched, text, 
+            Cursor(Rectangle(_x(area),_y(area) - scroll, 5f0,20f0, float32([0, 0, 0, 1])), 1, 1, 1), 
+            scroll, false)
     end
 end
 
@@ -384,6 +392,7 @@ function render(textField::TextField)
     #Use a simple blendfunc for drawing the background
     glBlendFunc(SRC_ALPHA, ONE_MINUS_SRC_ALPHA)
     render(textField.area)
+    render(textField.cursor.draw)
    # glBlendFuncSeparate(ZERO, ONE, SRC_COLOR, ZERO)
 
     mask = deepcopy(textField.area)
@@ -393,6 +402,7 @@ function render(textField::TextField)
     #glBlendFunc(DST_ALPHA, ONE_MINUS_DST_ALPHA)
     #model = eye(Float32, 4,4)
     #model[2,4] = textField.scroll
+
     render(textField.enrichedText, _x(textField.area), _y(textField.area) - textField.scroll, textField.font, textField.area)
 end
 

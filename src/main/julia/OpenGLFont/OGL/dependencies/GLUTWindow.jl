@@ -3,35 +3,38 @@ using GLUT, OpenGL
 
 reload("dependencies/Events.jl")
 
+
+
+
 function entryFunc(state::Int32)
     return nothing
 end
 function motionFunc(x::Int32, y::Int32)
-    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), int(y)))
+    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), WINDOW_SIZE[2] - int(y)))
     return nothing
 end
 function passiveMotionFunc(x::Int32, y::Int32)
-    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), int(y)))
+    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), WINDOW_SIZE[2] - int(y)))
     return nothing
 end
 function mouseFunc(button::Int32, status::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (MouseClicked,), MouseClicked(int(button), int(status), int(x), int(y)))
+    invoke(listenTo, (MouseClicked,), MouseClicked(int(button), int(status), int(x), WINDOW_SIZE[2] - int(y)))
     return nothing
 end
 function specialFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(true, char(key), x, y))
+    invoke(listenTo, (KeyDown,), KeyDown(true, char(key), x, WINDOW_SIZE[2] - y))
     return nothing
 end
 function specialUpFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(true, char(key), x, y))
+    invoke(listenTo, (KeyUp,), KeyUp(true, char(key), x, WINDOW_SIZE[2] - y))
     return nothing
 end
 function keyboardFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(false, char(key), x, y))
+    invoke(listenTo, (KeyDown,), KeyDown(false, char(key), x, WINDOW_SIZE[2] - y))
     return nothing
 end
 function keyboardUpFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(false, char(key), x, y))
+    invoke(listenTo, (KeyUp,), KeyUp(false, char(key), x, WINDOW_SIZE[2] - y))
     return nothing
 end
 function displayFunc()
@@ -41,6 +44,9 @@ function displayFunc()
 end
 
 function reshapeFunc(w::GLsizei, h::GLsizei)
+    global const WINDOW_SIZE = [0,0]
+    WINDOW_SIZE[1] = int(w)
+    WINDOW_SIZE[2] = int(h)
     resizeFunc(w,h)
     return nothing
 end
@@ -63,12 +69,6 @@ function createWindow(;name="GLUT Window", displayMode=int32(GLUT_DEPTH | GLUT_D
     glutInitWindowPosition(windowPosition...)
     glutInitWindowSize(windowSize...);
     glutCreateWindow(name)
-
-
-    glGetStringPtr = glutGetProcAddress("glGetString")
-    version = ccall(glGetStringPtr, Ptr{GLubyte}, (GLenum,), 0x1F02)
-    message = bytestring(convert(Ptr{Uint8}, version))
-    println(message)
 end
 
 function linkFunctions(;

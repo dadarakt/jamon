@@ -21,6 +21,7 @@ immutable KeyUp <: Event
     x::Int
     y::Int
 end
+
 immutable KeyDownMouseClicked <: Event
 	currentMouseClicked::Dict{Int, (Int, Int)}
 	currentKeyDown::Dict{Int, Bool}
@@ -28,6 +29,10 @@ immutable KeyDownMouseClicked <: Event
     y::Int
 end
 
+immutable WindowResized <: Event
+    width::Int
+    height::Int
+end
 
 immutable EventAction{T}
 	id::ASCIIString
@@ -44,6 +49,7 @@ KEYDOWN_EVENT_QUEUE 				= Array(EventAction{KeyDown}, 				0)
 KEYUP_EVENT_QUEUE 					= Array(EventAction{KeyUp}, 				0)
 MOUSECLICKED_EVENT_QUEUE 			= Array(EventAction{MouseClicked},  		0)
 MOUSEMOVED_EVENT_QUEUE 				= Array(EventAction{MouseMoved},  			0)
+KEYDOWNMOUSECLICKED_EVENT_QUEUE 	= Array(EventAction{KeyDownMouseClicked},  	0)
 KEYDOWNMOUSECLICKED_EVENT_QUEUE 	= Array(EventAction{KeyDownMouseClicked},  	0)
 registerEvent(eventAction::EventAction{KeyDown}) 				= push!(KEYDOWN_EVENT_QUEUE, 				eventAction)
 registerEvent(eventAction::EventAction{KeyUp}) 					= push!(KEYUP_EVENT_QUEUE, 					eventAction)
@@ -72,7 +78,7 @@ function fillCurrentMouseClicked(event)
 	if event.status == 0
 		currentMouseClicked[int(event.key)] = (int(event.x), int(event.y))
 		if ~isempty(currentKeyDown)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), currentMouseClicked.x, currentMouseClicked.y))
+			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
 		end
 	else
 		pop!(currentMouseClicked, int(event.key), ())
@@ -82,7 +88,7 @@ function fillCurrentKeyDown(event, status::Int)
 	if status == 1
 		currentKeyDown[int(event.key)] = event.special
 		if ~isempty(currentMouseClicked)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), currentMouseClicked.x, currentMouseClicked.y))
+			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
 		end
 	else
 		pop!(currentKeyDown, int(event.key), ())
