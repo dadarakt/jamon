@@ -4,6 +4,7 @@ include("GLMatrixMath.jl")
 include("shader.jl")
 include("RichText.jl")
 
+import Images.imread
 
 global flatShader 
 global textShader
@@ -12,6 +13,22 @@ global viewMatrix = eye(GLfloat, 4,4)
 global model      = eye(GLfloat, 4,4)
 model[1,4] = 1
 model[2,4] = 1
+
+function glimreadGray(filename::String)
+
+    img = imread(filename)
+    w = size(img,2)
+    h = size(img,3)
+    img1D = Array(Uint8, w*h)
+    img1DIndex = 1
+    for hI=1:h
+        for wI=1:w
+            img1D[img1DIndex] = img[1, wI, hI]
+            img1DIndex = img1DIndex + 1
+        end
+    end
+    return img1D, w, h
+end
 
 immutable Texture
     id::GLuint

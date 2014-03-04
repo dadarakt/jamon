@@ -4,8 +4,6 @@ using GLUT, OpenGL
 reload("dependencies/Events.jl")
 
 
-
-
 function entryFunc(state::Int32)
     return nothing
 end

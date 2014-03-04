@@ -63,7 +63,7 @@ end
 
 function scroll(event::MouseClicked, textField::TextField)
 	textField.scroll = textField.scroll + (event.key == 4 ? -10f0 : 10f0)
-	textField.cursor.draw[2,4] += (event.key == 4 ? -10f0 : 10f0)
+	textField.cursor.draw.transformations[2,4] -= (event.key == 4 ? -10f0 : 10f0)
 end
 function getFocus(event::MouseClicked, textField::TextField)
 	newColor = deepcopy(textField.area)
