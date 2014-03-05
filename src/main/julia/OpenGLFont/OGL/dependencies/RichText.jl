@@ -12,7 +12,7 @@ immutable Style
 end
 Style(x::Array{Real, 1}) = Style(float32(x))
 Style(x::Array{Int64, 1}) = Style(float32(x))
-immutable StyledWord
+type StyledWord
     text::String
     style::Style
 end
@@ -37,94 +37,53 @@ global juliaStyleDict = [
 	"global" 	=> Style([0.8f0, 0.1f0, 0.2f0]),
 	"\"" 		=> Style([0.9f0, 0.1f0, 0.1f0])]
 
-
-JuliaKeywords = ["function", "end", "begin", "abstract", "type", "if", "else", "elseif", "in", "for", "return", "using", "include"]
-specialChar = [string(char(i)) for i=[33:47, 58:64, 91:94, 123:126]]
-equals = [i * "=" for i=["+", "-", "/", "\\", "*", "<", ">", "^", "!", "|", "%", "="]]
-rest = ["::", "||", "&&", "=>", "...", "|>", "\n"]
-JuliaNonBlankSeperators = Set({specialChar..., equals..., rest...})
-
-
-function matchTokens(buffer::ASCIIString, tokens, tokensFound)
-	if ~isempty(buffer)
-		if isempty(tokensFound)
-			@assert length(buffer) == 1
-			for token in tokens
-				if token[1] == buffer[1]
-					push!(tokensFound, token)
-				end
-			end
-		else
-			tokensFoundTmp 	= fill("", 0)
-			previousMatch 	= ""
-			@assert length(buffer) > 1
-			for token in tokensFound 
-				
-				if (length(token) >= length(buffer) && token[length(buffer)] == buffer[end])
-					push!(tokensFoundTmp, token)
-				elseif length(token) == length(buffer) - 1
-					previousMatch = token
-				end
-			end
-			tokensFound = tokensFoundTmp
-			if isempty(tokensFound) && previousMatch != ""
-				nextBuff = string(buffer[end])
-				for token in tokens
-					if token[1] == nextBuff[1]
-						push!(tokensFound, token)
-					end
-				end
-				return true, previousMatch, string(buffer[end]), tokensFound
-			end
+function escapeRegexChars(text)
+	escapedString = ""
+	regexChars = ".+*?\\/|[]{}()"
+	regex = Regex(join([ "\\$i" for i in regexChars], '|'))
+	for char in text
+		if ismatch(regex, string(char))
+			escapedString *= "\\"
 		end
-		if isempty(tokensFound)
-			return false, "", buffer, tokensFound
-		elseif length(tokensFound) > 1
-			return false, buffer, "", tokensFound
-		elseif length(tokensFound) == 1 && length(tokensFound[1]) == length(buffer)
-			empty!(tokensFound)
-			return true, buffer, "", tokensFound
-		end
+		escapedString *= string(char)
 	end
-	return false, "", "", fill("", 0)
+	escapedString
 end
 
-function enrich(text, seperatorTokens, styleDict)	
-	enriched 		= Array(StyledWord, 0)
-	tokensFound 	= fill("", 0)
-	blanks 			= ""
-	currentWord 	= ""
-	seperator 		= ""
-	defaultColor = float32([0,0,0,0.6])
-	for char in text
-		if char == '\t' || char == ' '
-			if isempty(blanks)
-				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style(defaultColor))))
-				currentWord = ""
-			end
-			blanks = blanks * string(char)
-		else
-			if ~isempty(blanks)
-				push!(enriched, StyledWord(" "^length(blanks), Style([0,0,0,1])))
-				blanks = ""
-			end
-			seperator *= string(char)
-			found, seperator, currentWordTmp, tokensFound = matchTokens(seperator, seperatorTokens, tokensFound)
-			if found
-				~isempty(currentWord) && push!(enriched, StyledWord(currentWord, get(styleDict, currentWord, Style(defaultColor))))
-				push!(enriched, StyledWord(seperator, get(styleDict, seperator, Style(defaultColor))))
-				currentWord = ""
-				seperator = currentWordTmp
-				if ~isempty(seperator) && isempty(tokensFound)
-					seperator = "" 
-					currentWord *= currentWordTmp
-				end
-			else
-				currentWord *= currentWordTmp
-			end
-		end
-	end
-	enriched
+makeRegex(regexList) = join(map(escapeRegexChars, regexList), '|')
+
+
+JuliaKeywords 	= ["function", "end", "begin", "abstract", "type", "if", "else", "elseif", "in", "for", "return", "using"]
+
+unaryOp 		= [string(char(i)) for i=[33:47, 58:64, 91:94, 123:126]]
+equalsOp 		= [i * "=" for i=["+", "-", "/", "\\", "*", "^", "!", "|", "%"]]
+boolOp			= [ "||", "&&", ">=", "<=", "=="]
+trinaryOp 		= ["..."]
+advanced 		= ["::", "|>"]
+
+Operators 		= sort([unaryOp..., equalsOp..., boolOp..., advanced..., trinaryOp...], by=length, rev=true)
+
+blanks 			= "[\s\t]+"
+number 			= "[[:digit:]]+[\.]{0,1}[[:digit:]]*(f0)?"
+names			= "(?<=[^[:alnum:]]{1})[[:alpha:]_]{1}[[:alnum:]_]+"
+
+#Order is important for the regex...
+JULIA_REGEX		= Regex(join([makeRegex(JuliaKeywords), names, blanks, number], '|') * "|" * makeRegex(Operators))
+
+
+function split(text, regex)
+	matchall(regex, text)
+end
+
+fStream = open("enrich.jl")
+text = readall(fStream)
+close(fStream)
+
+#a = split(readall(fStream), JULIA_REGEX)
+a = matchall(JULIA_REGEX, text)
+
+for word in a 
+	println(word)
 end
 
 
