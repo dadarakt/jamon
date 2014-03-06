@@ -1,0 +1,1 @@
+glClearColor(0.9f0, 0.9f0, 0.9f0, 1.0f0)
