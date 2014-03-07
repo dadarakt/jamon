@@ -6,12 +6,8 @@ package database
  *
  */
 
-
-
-import com.tinkerpop.rexster.client.{RexsterClientFactory, RexsterClientTokens, RexsterClient}
 import scala.collection.JavaConversions._
 import grizzled.slf4j.Logging
-import com.tinkerpop.blueprints.impls.rexster.RexsterGraph
 import org.apache.commons.configuration.BaseConfiguration
 import scala.util.{Success, Try}
 import com.thinkaurelius.titan.core.{TitanGraph, TitanFactory}

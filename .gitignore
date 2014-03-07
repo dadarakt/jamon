@@ -1,0 +1,6 @@
+target/
+project/
+.idea/
+res/
+.idea_modules/
+*.swp

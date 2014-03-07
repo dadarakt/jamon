@@ -5,21 +5,25 @@ package database
  * This might be the entry point to the system but let's see.
  */
 
-import com.tinkerpop.rexster.client.{RexsterClientFactory, RexsterClientTokens, RexsterClient}
-import scala.collection.JavaConversions._
 import grizzled.slf4j.Logging
-import com.tinkerpop.blueprints.impls.rexster.RexsterGraph
 import org.apache.commons.configuration.BaseConfiguration
-import scala.util.{Success, Try}
-import com.thinkaurelius.titan.core.{TitanGraph, TitanFactory}
+import scala.util.Try
+import com.thinkaurelius.titan.core._
 import com.tinkerpop.blueprints.{Edge, Vertex}
 import scala.util.control.NonFatal
-
+import scala.collection.JavaConversions._
+import scala.io.Source
+import com.thinkaurelius.titan.graphdb.blueprints.TitanBlueprintsGraph
+import com.thinkaurelius.titan.graphdb.database.StandardTitanGraph
+import com.tinkerpop.blueprints.ThreadedTransactionalGraph
 
 object Main extends Logging{
+// Load a file and read all the lines for further processing
+  val lines = try{
+    Source.fromFile("res/Main.scala").getLines().toSeq
+  }
 
   // Constants
-//  val App     = "rexster"
   val GraphName = "graph"
 
   def main(args: Array[String]){
@@ -28,7 +32,8 @@ object Main extends Logging{
     val conf = new BaseConfiguration {
       setProperty("storage.backend", "cassandra")
       setProperty("storage.hostname", "127.0.0.1")
-      setProperty("storage.directory" ,"/tmp/titan")
+      setProperty("storage.directory" ,"/tmp/titanuis")
+      setProperty("storage.enable-basic-metrics", "true")
     }
 
     // This should make the graph instance I wanna have
@@ -36,90 +41,76 @@ object Main extends Logging{
       TitanFactory.open(conf)
     } catch{
       case NonFatal(e) => {
-        println("Error while accessing database, Cassandra seems to be down.!", e)
+        error("Cannot connect to the database!", e)
         return // Just get out of here for now
       }
     }
 
-    println("////////////////////// Try to get all vertices: /////////////////////////////")
-    // First clear this shit out
-    for(vertex <- g.getVertices) {
-      println("-->" + vertex.getProperty("name"))
-      //g.removeVertex(vertex)
+    GraphUtils.clearGraph(g)
+
+
+    // Print initial database
+    GraphUtils.printGraph(g)
+
+    // Just make sure the graph is there and ready
+    println(s"-------> ${g.isOpen}")
+    println(g.getClass)
+
+    // Start a transaction on the graph
+    val transaction = g.newTransaction
+    // And add ALL THE LINES
+    for(line <- lines) {
+      val vertex = transaction.addVertex(null)
+      vertex.setProperty("lineOfCode", line)
     }
+    // println(transaction.hasModifications)
+    // transaction.commit
+    transaction.commit
+
+    Thread.sleep(1000)
+
+    // printDatabase(g)
+
+    //Read out all the vertices
+    println(s"Number of lines: ${lines.length}")
+
+    // Retrieve all vertices to a sequence
+    val vertices = g.getVertices.toSeq
+    println(s"Number of vertices: ${vertices.length}")
     g.commit
 
-    println("/////????///////////////////////////////////")
 
-
-    // Configure the index over the names
-    //g.createKeyIndex("name", classOf[Vertex])
-    println(g.isOpen)
-    val juno: Vertex = g.addVertex(null)
-    juno.setProperty("name", "juno")
-    val jupiter: Vertex = g.addVertex(null)
-    jupiter.setProperty("name", "jupiter")
-    val married: Edge = g.addEdge(null, juno, jupiter,"married")
-
-    val wurst = g.addVertex(null)
-    wurst.setProperty("name", "wurst")
-
-    g.commit
+    // printDatabase(g)
+    // // Finally remove all vertices in the graph
+    // clearGraph(g)   
   }
+}
 
-  def openGraph(address: String): Try[RexsterGraph] = Try(new RexsterGraph("http://localhost:8182/graphs/graph"))
-
+object GraphUtils {
   /**
-   * This methods creates a new graph in titan after receiving the needed configuration
-   */
-  def createNewGraph(conf: BaseConfiguration) = {
-    // First test if the graph already exists
-
-  }
-
-
-  /**
-   * Removes everything in the database ! TODO is this even supported or does this operation not make any sense?
-   * We'll see about that, I guess. What else is there to say now? hmmmmmm. I'll leave it here for the moment.
-   */
-  def clearDatabase(client: RexsterClient) = {
-
-  }
-
-  /**
-   * Adds some things to the database
-   */
-  def addThingsToDatabase(client: RexsterClient) = {
-
-  }
-
-  /**
-   * Prints the database using the provided client
-   */
-  def printDatabase(client: RexsterClient) = {
-
-    // TODO there is a problem that scala DOES not know the return type at compile-time. This should be fixed using
-    // something like a thin wrapper or adapter for scala. Do this as soon as possible to enable nice typesafe
-    // coding in the framework. Aber so ganz hab ich das noch nicht verstanden.
-    val vertices: Seq[String] = client.execute("g.V.name").toSeq
-    val edges: Seq[String] = client.execute("g.E.name").toSeq
-
-    println("-"*80)
-    println("-->> Vertices: ")
-    for(vertex <- vertices) println(vertex)
-    println("-->> Edges:")
-    for(edge <- edges) println(edge)
-    println("-"*80)
-  }
+     * Clears all data from a graph, should be handles with extreme caution!
+     */
+    def clearGraph(graph: ThreadedTransactionalGraph) = {
+      //info("Clearing out all data from the graph")
+      val transaction = graph.newTransaction
+      var counter = 0
+      for(vertex <- graph.getVertices){
+        counter += 1
+        vertex.remove
+      }
+      transaction.commit
+      //info(s"Cleared $counter vertices from the graph $graph")
+    }
 
   /**
    * Prints the graph using the RexsterGraph instance provided
    * @param graph
    */
-  def printDatabase(graph: RexsterGraph) = {
+  def printGraph(graph: ThreadedTransactionalGraph) = {
+    val transaction = graph.newTransaction
     // Load everything into memory TODO this has to be dealt otherwise with in bigger DBs
-    val vertices  = graph.getVertices.map(v => Option(v.getProperty("name"))).flatten
-    val edges     = graph.getEdges
+    val vertices  = transaction.getVertices.map(v => Option(v.getProperty("name"))).flatten
+    val edges     = transaction.getEdges
 
     // Print everything
     println("-"*80)
@@ -130,7 +121,7 @@ object Main extends Logging{
     //println(edges)
     for(edge <- edges) println(edge)
     println("-"*80)
-  }
-
-
+    transaction.commit
+  }    
 }
+
