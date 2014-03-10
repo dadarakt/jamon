@@ -57,17 +57,17 @@ object Main extends Logging{
     println(g.getClass)
 
     // Start a transaction on the graph
-    val transaction = g.newTransaction
+    //val transaction = g.newTransaction
     // And add ALL THE LINES
-    for(line <- lines) {
-      val vertex = transaction.addVertex(null)
-      vertex.setProperty("lineOfCode", line)
-    }
-    // println(transaction.hasModifications)
+    // for(line <- lines) {
+    //   val vertex = transaction.addVertex(null)
+    //   vertex.setProperty("lineOfCode", line)
+    // }
+    // println(s"-----> ${transaction.hasModifications}")
     // transaction.commit
-    transaction.commit
+    //transaction.commit
 
-    Thread.sleep(1000)
+    //Thread.sleep(1000)
 
     // printDatabase(g)
 
@@ -75,8 +75,10 @@ object Main extends Logging{
     println(s"Number of lines: ${lines.length}")
 
     // Retrieve all vertices to a sequence
-    val vertices = g.getVertices.toSeq
-    println(s"Number of vertices: ${vertices.length}")
+    val vertices = g.getVertices
+    val verticesSeq = vertices.toSeq
+    println(vertices)
+    println(s"Number of vertices: ${verticesSeq.length}")
     g.commit
 
 
@@ -99,7 +101,7 @@ object GraphUtils {
         vertex.remove
       }
       transaction.commit
-      //info(s"Cleared $counter vertices from the graph $graph")
+      //oinfo(s"Cleared $counter vertices from the graph $graph")
     }
 
   /**

@@ -6,7 +6,6 @@ scalaVersion := "2.10.3"
 
 libraryDependencies ++= {
   val slf4j = "1.7.5"
-  val rexster = "2.3.0"
   Seq(
   	"org.scalatest" % "scalatest_2.10" % "2.0" % "test",
     "org.slf4j" % "slf4j-api" % slf4j,
@@ -14,7 +13,8 @@ libraryDependencies ++= {
     "org.slf4j" % "log4j-over-slf4j" % slf4j,
     "org.clapper" %% "grizzled-slf4j" % "1.0.1",
     "ch.qos.logback" % "logback-classic" % "1.0.13",
-		"com.thinkaurelius.titan" % "titan-all" % "0.4.2"
+		"com.thinkaurelius.titan" % "titan-all" % "0.4.2",
+		"com.typesafe" % "config" % "1.2.0"
 	)
 }
 
