@@ -1,9 +1,13 @@
 module GLText
-require("OpenGL.jl")
-require("GLTexture.jl")
-using SOpenGL, GLTexture
+require("modules/GLTexture.jl")
+require("modules/GLShader.jl")
+require("modules/GLShapes.jl")
+require("modules/GLWindow.jl")
 
-export render
+using OpenGL, GLTexture, GLShader, GLShapes
+import GLWindow.render,GLWindow.orthographicProj
+
+export render, initTextRendering
 
 type AsciiAtlas
     lineHeight::GLfloat
@@ -33,7 +37,6 @@ type AsciiAtlas
 	        x2::Float32             = (int(values[3]) + advance) / width
 	        y::Float32              = int(values[4]) / height
 	        texLineHeight::Float32  = lineHeight / height
-
 	        charUV = [
 	            x, y + texLineHeight,
 	            x, y , 
@@ -46,11 +49,10 @@ type AsciiAtlas
 	        push!(uv, charUV...)
 	    end
 	    close(flStream)
-
 	    vertBuff    = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, verts)
 	    uvBuff      = GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLES, uv)
 
-	    vetexArrayID = glGenVertexArray()
+	    vetexArrayID = glGenVertexArrays()
 	    glBindVertexArray(vetexArrayID)
 	    glBindBuffer(ARRAY_BUFFER, vertBuff.id)
 	    vertexLoc   = glGetAttribLocation(textShader.id, "position")
@@ -62,17 +64,16 @@ type AsciiAtlas
 	    glEnableVertexAttribArray(uvLoc)
 	    glBindVertexArray(0)
 
-	    AsciiAtlas(lineHeight, advance, texture, asciiDict, vetexArrayID)
+	    new(lineHeight, advance, texture, asciiDict, vetexArrayID)
 	end
 end
 
 function render(char::Char, x::Float32, y::Float32)
-    glUniformMatrix4fv(glGetUniformLocation(textShader.id, "mvp"),  1, FALSE, reshape(projMatrix * [1 0 0 x ; 0 1 0 y ; 0 0 1 0 ; 0 0 0 1], 16))
-    glDrawArrays(TRIANGLES, int(char) * 6, (int(char) + 1) * 6)
+    glUniformMatrix4fv(glGetUniformLocation(textShader.id, "mvp"),  1, FALSE, reshape(orthographicProj * [1 0 0 x ; 0 1 0 y ; 0 0 1 0 ; 0 0 0 1], 16))
+    glDrawArrays(TRIANGLES, int(char) * 6, 6)
 end
-
-render(text::String, x::FloatingPoint, y::FloatingPoint) = render(text, float32(x), float32(y), standartFont, float32([0,0,0,1]), zeros(Float32, 4))
-function render(text::String, x::Float32, y::Float32, font::AsciiAtlas, 
+render{T <: Real}(text::ASCIIString, x::T, y::T) = render(text, float32(x), float32(y), standardFont, float32([0,0,0,1]), zeros(Float32, 4))
+function render(text::ASCIIString, x::Float32, y::Float32, font::AsciiAtlas, 
 	backgroundColor::Array{Float32,1}, textColor::Array{Float32,1})
     glEnable(DEPTH_TEST)
     glEnable(BLEND)
@@ -83,27 +84,31 @@ function render(text::String, x::Float32, y::Float32, font::AsciiAtlas,
     glActiveTexture(TEXTURE0)
     glBindTexture(TEXTURE_2D, font.texture.id)
     glUniform1i(glGetUniformLocation(textShader.id, "fontTexture"), 0)
+    glUniform4f(glGetUniformLocation(textShader.id, "textColor"), textColor...) 
+    glUniform4f(glGetUniformLocation(textShader.id, "backgroundColor"), backgroundColor...)
+
     xStart = x
     for char in text
-    	glUniform4f(glGetUniformLocation(textShader.id, "textColor"), textColor...) 
-    	glUniform4f(glGetUniformLocation(textShader.id, "backgroundColor"), backgroundColor...) 
         if isblank(char) && backgroundColor[4] == 0
             x += font.advance
+        elseif char == '\r' || char == '\n'
+        	y -= font.lineHeight
+         	x = xStart
         else
             #if inside(delimiter, x, y)
                 render(char, x, y)
             #end
             x += font.advance 
         end
-         y -= font.lineHeight
-         x = xStart
+         
     end
     glBindVertexArray(0)
 end
 
 function initTextRendering()
-    global textShader   = GLProgram("dependencies/textShader") 
-    global standardFont = AsciiAtlas("dependencies/VeraMono")
+    global textShader   = GLProgram("shader/textShader") 
+    global standardFont = AsciiAtlas("media/VeraMono")
+    #println(collect(keys(standardFont.dictionary)))
 end
 
 end #module TextRendering

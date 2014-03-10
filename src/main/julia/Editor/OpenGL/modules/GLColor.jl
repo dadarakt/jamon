@@ -1,4 +1,5 @@
 module GLColor
+export Color
 immutable Color{T <: Real}
 	rgba::Array{T, 1}
 	function Color(c::Array{T, 1})

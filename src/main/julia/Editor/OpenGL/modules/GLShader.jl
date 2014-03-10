@@ -1,7 +1,6 @@
 module GLShader
 
-require("OpenGL.jl")
-using SOpenGL
+using OpenGL
 
 export GLProgram, readShader
 
@@ -74,11 +73,5 @@ function readShader(filePath::String, shaderType)
     printShaderInfoLog(shaderID)
     return shaderID
 end
-
-
-
-
-
-
 
 end # module Shader

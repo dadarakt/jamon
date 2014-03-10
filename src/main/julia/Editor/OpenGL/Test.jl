@@ -1,7 +1,7 @@
-require("OpenGL.jl")
+require("modules/GLShader.jl")
 require("GLShader.jl")
 
-using SOpenGL,GLShader
+using OpenGL, GLShader
 
 version = glGetString(VERSION)
 println(bytestring(convert(Ptr{Uint8}, version)))

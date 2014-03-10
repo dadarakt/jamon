@@ -1,4 +1,4 @@
-#version 420 core
+#version 130
 
 varying vec2 v_textureCoordinate;
 uniform vec4 textColor;
@@ -19,7 +19,7 @@ void main(){
 
 	vec3 color = textColor.rgb * textAlpha + backgroundColor.rgb * (1.0 - textAlpha);
 
-	gl_FragColor = vec4(color, alpha);
+	gl_FragColor = vec4(0,0, 0, alphaAbove);
 
 	//gl_FragColor = vec4((textColor.rgb * (texture2D(fontTexture, v_textureCoordinate)).x) + (backgroundColor.rgb * backgroundColor.a) );
 }

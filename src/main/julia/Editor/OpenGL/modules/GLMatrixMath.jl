@@ -1,20 +1,20 @@
 module GLMatrixMath
-
-global OpenGLver = "4.3"
+global OpenGLver = "2.1"
 using OpenGL
+export computeFOVProjection, computeFOVProjection!, computeOrthographicProjection, computeOrthographicProjection!, translateXMatrix
 
 
-computeFOVProjection(fov::GLfloat, aspect::GLfloat, nearDist::GLfloat, farDist::GLfloat; leftHanded = true)
-    = computeFOVProjection!(zeros(GLfloat, 4, 4), fov, aspect, nearDist, farDist)
-function computeFOVProjection!(result::Matrix, fov::GLfloat, aspect::GLfloat, nearDist::GLfloat, farDist::GLfloat; leftHanded = true)
-    @assert fov > 0 && aspect != 0 
+computeFOVProjection(fov::GLfloat, aspect::GLfloat, nearDist::GLfloat, farDist::GLfloat) = computeFOVProjection!(zeros(GLfloat, 4, 4), fov, aspect, nearDist, farDist)
+
+function computeFOVProjection!(result::Matrix, fov::GLfloat, aspect::GLfloat, nearDist::GLfloat, farDist::GLfloat)
+   # @assert fov > 0 && aspect != 0 
 
     fill!(result, 0f0)
     frustumDepth = farDist - nearDist
     oneOverDepth = 1 / frustumDepth
 
     result[2,2] = 1f0 / tan(0.5f0 * fov)
-    result[1,1] = (leftHanded ? 1f0 : -1f0 ) * result[2,2] / aspect
+    result[1,1] = 1f0 * result[2,2] / aspect
     result[3,3] = farDist * oneOverDepth
     result[4,3] = (-farDist * nearDist) * oneOverDepth
     result[3,4] = 1
@@ -23,14 +23,14 @@ function computeFOVProjection!(result::Matrix, fov::GLfloat, aspect::GLfloat, ne
 end
 computeOrthographicProjection(
                         left::GLfloat,   right::GLfloat,
-                       bottom::GLfloat, top::GLfloat,
-                       znear::GLfloat,  zfar::GLfloat)
-                    = computeOrthographicProjection!(zeros(GLfloat, 4, 4), left, right, bottom, top, znear,  zfar)
+                        bottom::GLfloat, top::GLfloat,
+                        znear::GLfloat,  zfar::GLfloat) = computeOrthographicProjection!(zeros(GLfloat, 4, 4), left, right, bottom, top, znear,  zfar)
+
 function computeOrthographicProjection!(
                         matrix::Matrix,
                         left::GLfloat,   right::GLfloat,
                        bottom::GLfloat, top::GLfloat,
-                       znear::GLfloat,  zfar::GLfloat )
+                       znear::GLfloat,  zfar::GLfloat)
 
     @assert right  != left 
     @assert bottom != top  

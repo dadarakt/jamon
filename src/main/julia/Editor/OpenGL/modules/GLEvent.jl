@@ -1,7 +1,14 @@
 module GLEvent
 
+export registerEvent, publishEvent, KeyUp, KeyDown, MouseMoved, MouseMovedClicked, MouseClicked, KeyDownMouseClicked, EnteredWindow, WindowResized, EventAction, Event
+
 abstract Event
+
 immutable MouseMoved <: Event
+    x::Int
+    y::Int
+end
+immutable MouseMovedClicked <: Event
     x::Int
     y::Int
 end
@@ -31,6 +38,11 @@ immutable KeyDownMouseClicked <: Event
     y::Int
 end
 
+immutable EnteredWindow <: Event
+    entered::Bool
+    id::Int
+end
+
 immutable WindowResized <: Event
     width::Int
     height::Int
@@ -47,30 +59,26 @@ immutable EventAction{T}
 end
 
 #Action Event Queues 						#############################################################################
-KEYDOWN_EVENT_QUEUE 				= Array(EventAction{KeyDown}, 				0)
-KEYUP_EVENT_QUEUE 					= Array(EventAction{KeyUp}, 				0)
-MOUSECLICKED_EVENT_QUEUE 			= Array(EventAction{MouseClicked},  		0)
-MOUSEMOVED_EVENT_QUEUE 				= Array(EventAction{MouseMoved},  			0)
-KEYDOWNMOUSECLICKED_EVENT_QUEUE 	= Array(EventAction{KeyDownMouseClicked},  	0)
-KEYDOWNMOUSECLICKED_EVENT_QUEUE 	= Array(EventAction{KeyDownMouseClicked},  	0)
-registerEvent(eventAction::EventAction{KeyDown}) 				= push!(KEYDOWN_EVENT_QUEUE, 				eventAction)
-registerEvent(eventAction::EventAction{KeyUp}) 					= push!(KEYUP_EVENT_QUEUE, 					eventAction)
-registerEvent(eventAction::EventAction{MouseClicked}) 			= push!(MOUSECLICKED_EVENT_QUEUE, 			eventAction)
-registerEvent(eventAction::EventAction{MouseMoved}) 			= push!(MOUSEMOVED_EVENT_QUEUE, 			eventAction)
-registerEvent(eventAction::EventAction{KeyDownMouseClicked}) 	= push!(KEYDOWNMOUSECLICKED_EVENT_QUEUE, 	eventAction)
-function processEventQueue{T}(event, eventQueue::Array{EventAction{T}, 1})
+EVENT_ACTION_QUEUE 				= Dict{DataType, Array{EventAction, 1}}()
+
+function registerEvent{T}(eventAction::EventAction{T})
+	queue = get(EVENT_ACTION_QUEUE, T, EventAction{T}[])
+	push!(queue, eventAction)
+	println(EVENT_ACTION_QUEUE)
+	EVENT_ACTION_QUEUE[T] = queue
+end
+function publishEvent{T <: Event}(event::T)
+	eventQueue = get(EVENT_ACTION_QUEUE, T, EventAction{T}[])
 	for action in eventQueue
     	if action.condition(event, action.conditionArgs...)
     		action.action(event, action.actionArgs...)
     	end
     end
 end
-listenTo(x::Any)						= nothing
-listenTo(event::KeyDown) 				= processEventQueue(event, KEYDOWN_EVENT_QUEUE)
-listenTo(event::KeyUp) 					= processEventQueue(event, KEYUP_EVENT_QUEUE)
-listenTo(event::MouseClicked) 			= processEventQueue(event, MOUSECLICKED_EVENT_QUEUE)
-listenTo(event::MouseMoved) 			= processEventQueue(event, MOUSEMOVED_EVENT_QUEUE)
-listenTo(event::KeyDownMouseClicked) 	= processEventQueue(event, KEYDOWNMOUSECLICKED_EVENT_QUEUE)
+
+
+
+
 
 #KeyDownMouseClicked Event generation 		##############################################################################
 global currentMouseClicked 	= Dict{Int, (Int, Int)}()
@@ -80,7 +88,7 @@ function fillCurrentMouseClicked(event)
 	if event.status == 0
 		currentMouseClicked[int(event.key)] = (int(event.x), int(event.y))
 		if ~isempty(currentKeyDown)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
+			publishEvent(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
 		end
 	else
 		pop!(currentMouseClicked, int(event.key), ())
@@ -90,7 +98,7 @@ function fillCurrentKeyDown(event, status::Int)
 	if status == 1
 		currentKeyDown[int(event.key)] = event.special
 		if ~isempty(currentMouseClicked)
-			listenTo(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
+			publishEvent(KeyDownMouseClicked(deepcopy(currentMouseClicked), deepcopy(currentKeyDown), int(event.x), int(event.y)))
 		end
 	else
 		pop!(currentKeyDown, int(event.key), ())
@@ -101,5 +109,4 @@ registerEvent(EventAction{KeyUp}		("", x-> true, (), fillCurrentKeyDown, (0,)))
 registerEvent(EventAction{MouseClicked} ("", x-> true, (), fillCurrentMouseClicked, ()))
 
 
-export registerEvent, KeyUp, KeyDown, MouseMoved, MouseClicked, KeyDownMouseClicked, listenTo, EventAction
-end #GLEvent
+end #module GLEvent

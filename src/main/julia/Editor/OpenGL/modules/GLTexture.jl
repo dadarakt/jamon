@@ -1,9 +1,10 @@
 module GLTexture
+require("modules/GLShapes.jl")
+using OpenGL, GLShapes
 
-require("OpenGL.jl")
-using SOpenGL
 import Images.imread
 export Texture     
+
 function glimreadGray(filename::String)
     img = imread(filename)
     w = size(img,2)
@@ -49,7 +50,7 @@ immutable Texture
 		end
 		@assert length(img) > 0
 
-	    id = glGenTexture()
+	    id = glGenTextures()
 	    glBindTexture(textureType, id)
 	    glTexParameteri( textureType, TEXTURE_WRAP_S, CLAMP_TO_EDGE )
 	    glTexParameteri( textureType, TEXTURE_WRAP_T, CLAMP_TO_EDGE )
@@ -61,11 +62,6 @@ immutable Texture
     end
 end
 
-function render(t::Texture)
-    glActiveTexture(TEXTURE0)
-    glBindTexture(TEXTURE_2D, t.id)
-    glUniform1i(glGetUniformLocation(textShader.id, "fontTexture"), 0)
-end
 
 
 end #module GLTexture

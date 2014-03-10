@@ -92,6 +92,12 @@ end
 
 using DictUtils
 
+
+
+function sameArguments()
+
+end
+
 function reduceToCommonEntries(dicts)
 	allTypesResult = deepcopy(dicts)
 	map!(dict -> begin mapValues!(x -> "0", dict) ; dict end, allTypesResult)

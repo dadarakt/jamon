@@ -1,5 +1,3 @@
-require("../modules/GLText.jl")
-require("GLTest.jl")
-using GLText, GLTest
-
+require("modules/GLText.jl")
+using GLText
 push!(RENDER_LIST, ("halloöösajdlkjasld", 20, 20))

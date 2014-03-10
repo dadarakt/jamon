@@ -1,7 +1,13 @@
 module GLShapes
-require("modules/GLColor.jl")
-abstract Shape
 
+require("modules/GLColor.jl")
+using GLColor, OpenGL
+
+
+export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render
+
+
+abstract Shape
 
 immutable Circle{T <: Real} <: Shape
     x::T

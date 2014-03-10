@@ -1,56 +1,50 @@
-require("modules/GLEvent.jl")
-
-using GLEvent
 module GLWindow
-using GLUT, GLEvent
+require("modules/GLEvent.jl")
+require("modules/GLMatrixMath.jl")
+using GLUT, OpenGL, GLEvent, GLMatrixMath
+export createWindow, linkFunctions, render, RENDER_LIST
+
+global const RENDER_LIST        = Tuple[]
 
 
-function entryFunc(state::Int32)
-    return nothing
-end
-function motionFunc(x::Int32, y::Int32)
-    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), WINDOW_SIZE[2] - int(y)))
-    return nothing
-end
-function passiveMotionFunc(x::Int32, y::Int32)
-    invoke(listenTo, (MouseMoved,), MouseMoved(int(x), WINDOW_SIZE[2] - int(y)))
-    return nothing
-end
-function mouseFunc(button::Int32, status::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (MouseClicked,), MouseClicked(int(button), int(status), int(x), WINDOW_SIZE[2] - int(y)))
-    return nothing
-end
-function specialFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(true, char(key), x, WINDOW_SIZE[2] - y))
-    return nothing
-end
-function specialUpFunc(key::Int32, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(true, char(key), x, WINDOW_SIZE[2] - y))
-    return nothing
-end
-function keyboardFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyDown,), KeyDown(false, char(key), x, WINDOW_SIZE[2] - y))
-    return nothing
-end
-function keyboardUpFunc(key::Cuchar, x::Int32, y::Int32)
-    invoke(listenTo, (KeyUp,), KeyUp(false, char(key), x, WINDOW_SIZE[2] - y))
-    return nothing
-end
+global const orthographicProj   = eye(GLfloat, 4,4)
+global const perspectiveProj    = eye(GLfloat, 4,4)
+
+render(a::Any) = error("No method for this type: $(typeof(a))")
 function displayFunc()
-    displayFuncCallback()
+    glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
+    for elem in RENDER_LIST
+       render(elem...)
+    end
     glutSwapBuffers()
     return nothing
 end
 
+#push events from glut to our event queue
+keyboardFunc(key::Cuchar, x::Int32, y::Int32)               = publishEvent(KeyDown(false, char(key), x, WINDOW_SIZE[2] - y))
+keyboardUpFunc(key::Cuchar, x::Int32, y::Int32)             = publishEvent(KeyUp(false, char(key), x, WINDOW_SIZE[2] - y))
+
+specialFunc(key::Int32, x::Int32, y::Int32)                 = publishEvent(KeyDown(true, char(key), x, WINDOW_SIZE[2] - y))
+specialUpFunc(key::Int32, x::Int32, y::Int32)               = publishEvent(KeyUp(true, char(key), x, WINDOW_SIZE[2] - y))
+
+mouseFunc(button::Int32, status::Int32, x::Int32, y::Int32) = publishEvent(MouseClicked(int(button), int(status), int(x), WINDOW_SIZE[2] - int(y)))
+motionFunc(x::Int32, y::Int32)                              = publishEvent(MouseMovedClicked(int(x), WINDOW_SIZE[2] - int(y)))
+passiveMotionFunc(x::Int32, y::Int32)                       = publishEvent(MouseMoved(int(x), WINDOW_SIZE[2] - int(y)))
+
+entryFunc(state::Int32)                                     = publishEvent(EnteredWindow(bool(state), glutGetWindow()))
+
+const WINDOW_SIZE = [0,0]
 function reshapeFunc(w::Csize_t, h::Csize_t)
-    global const WINDOW_SIZE = [0,0]
     WINDOW_SIZE[1] = int(w)
     WINDOW_SIZE[2] = int(h)
-    reshapeFuncCallback(w,h)
+    glViewport(0, 0, w, h)
+    computeOrthographicProjection!(orthographicProj,0.0f0, float32(w), 0.0f0, float32(h), -10f0, 10f0)
+    publishEvent(WindowResized(int(w),int(h)))
     return nothing
 end
 
 
+#Cfunction pointer for glut
 _entryFunc          = cfunction(entryFunc, Void, (Int32,))
 _motionFunc         = cfunction(motionFunc, Void, (Int32, Int32))
 _passiveMotionFunc  = cfunction(passiveMotionFunc, Void, (Int32, Int32))
@@ -59,19 +53,20 @@ _specialFunc        = cfunction(specialFunc, Void, (Int32, Int32, Int32))
 _specialUpFunc      = cfunction(specialUpFunc, Void, (Int32, Int32, Int32))
 _keyboardFunc       = cfunction(keyboardFunc, Void, (Cuchar, Int32, Int32))
 _keyboardUpFunc     = cfunction(keyboardUpFunc, Void, (Cuchar, Int32, Int32))
-_displayFunc        = cfunction(displayFunc, Void, ())
 _reshapeFunc        = cfunction(reshapeFunc, Void, (Csize_t, Csize_t))
+_displayFunc        = cfunction(displayFunc, Void, ())
+
 
 function createWindow(;
     name = "GLUT Window", 
-    displayMode = int32(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE), 
-    windowPosition = [100,100], 
-    windowSize = [500,500])
+    displayMode         = int32(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_ALPHA), 
+    windowPosition      = int32([2000,100]), 
+    windowSize          = int32([500,500]))
 
-    glutInitDisplayMode(displayMode)
-    glutInitWindowPosition(windowPosition...)
-    glutInitWindowSize(windowSize...);
-    glutCreateWindow(name)
+    glutReshapeWindow(windowSize...)
+    glutPositionWindow(windowPosition...)
+    glutSetWindowTitle(name)
+    glutShowWindow()
 end
 
 function linkFunctions(;
@@ -95,5 +90,5 @@ function linkFunctions(;
     (keyboardUpF | specialUpF) && glutSetKeyRepeat(GLUT_KEY_REPEAT_OFF)
 end
 
-export linkFunctions, createWindow
-end #end GLWindow
+end
+
