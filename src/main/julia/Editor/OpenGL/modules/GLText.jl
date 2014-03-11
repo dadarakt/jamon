@@ -1,16 +1,3 @@
-module GLText
-
-require("modules/GLTexture.jl")
-
-require("modules/GLShader.jl")
-require("modules/GLShapes.jl")
-require("modules/GLWindow.jl")
-
-using OpenGL, GLTexture, GLShader, GLShapes
-import GLWindow.render,GLWindow.orthographicProj
-
-export render, initTextRendering
-
 type AsciiAtlas
     lineHeight::GLfloat
     advance::GLfloat
@@ -96,10 +83,6 @@ function render(text::ASCIIString, x::Float32, y::Float32, font::AsciiAtlas,
 end
 
 function initTextRendering()
-
     global textShader   = GLProgram("shader/textShader") 
     global standardFont = AsciiAtlas("media/VeraMono")
-    #println(collect(keys(standardFont.dictionary)))
 end
-
-end #module TextRendering

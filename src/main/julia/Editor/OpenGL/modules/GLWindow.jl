@@ -1,11 +1,5 @@
-module GLWindow
-require("modules/GLEvent.jl")
-require("modules/GLMatrixMath.jl")
-using GLUT, OpenGL, GLEvent, GLMatrixMath
-export createWindow, linkFunctions, render, RENDER_LIST
 
 global const RENDER_LIST        = Tuple[]
-
 
 global const orthographicProj   = eye(GLfloat, 4,4)
 global const perspectiveProj    = eye(GLfloat, 4,4)
@@ -33,6 +27,7 @@ passiveMotionFunc(x::Int32, y::Int32)                       = publishEvent(Mouse
 entryFunc(state::Int32)                                     = publishEvent(EnteredWindow(bool(state), glutGetWindow()))
 
 const WINDOW_SIZE = [0,0]
+
 function reshapeFunc(w::Csize_t, h::Csize_t)
     WINDOW_SIZE[1] = int(w)
     WINDOW_SIZE[2] = int(h)
@@ -90,5 +85,4 @@ function linkFunctions(;
     (keyboardUpF | specialUpF) && glutSetKeyRepeat(GLUT_KEY_REPEAT_OFF)
 end
 
-end
-
+export createWindow, linkFunctions, RENDER_LIST

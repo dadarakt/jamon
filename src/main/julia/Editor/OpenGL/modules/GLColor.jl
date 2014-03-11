@@ -1,4 +1,3 @@
-module GLColor
 export Color
 immutable Color
 	rgba::Array{Float32, 1}
@@ -15,4 +14,3 @@ immutable Color
 end
 Color{T}(c::Array{T, 1}) = Color(float32(c))
 Color(c...) = Color(float32(c))
-end #module GLColor

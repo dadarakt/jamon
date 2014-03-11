@@ -1,7 +1,3 @@
-module GLEvent
-
-export registerEvent, publishEvent, KeyUp, KeyDown, MouseMoved, MouseMovedClicked, MouseClicked, KeyDownMouseClicked, EnteredWindow, WindowResized, EventAction, Event
-
 abstract Event
 
 immutable MouseMoved <: Event
@@ -104,5 +100,4 @@ registerEvent(EventAction{KeyDown}		("", x-> true, (), fillCurrentKeyDown, (1,))
 registerEvent(EventAction{KeyUp}		("", x-> true, (), fillCurrentKeyDown, (0,)))
 registerEvent(EventAction{MouseClicked} ("", x-> true, (), fillCurrentMouseClicked, ()))
 
-
-end #module GLEvent
+export registerEvent, publishEvent, KeyUp, KeyDown, MouseMoved, MouseMovedClicked, MouseClicked, KeyDownMouseClicked, EnteredWindow, WindowResized, EventAction, Event

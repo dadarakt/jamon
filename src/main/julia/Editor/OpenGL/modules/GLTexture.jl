@@ -1,10 +1,4 @@
-module GLTexture
-
-using OpenGL
-import Images.imread, OpenGL.render
-
-export Texture     
-
+import Images.imread
 
 immutable Texture
     id::GLuint
@@ -74,4 +68,4 @@ function render(t::Texture, programID::GLuint, attribName::ASCIIString)
     glUniform1i(glGetUniformLocation(programID, attribName), 0)
 end
 
-end #module GLTexture
+export Texture  

@@ -1,8 +1,3 @@
-module GLShader
-
-using OpenGL
-
-export GLProgram, readShader
 
 immutable GLProgram
     id::GLuint
@@ -22,7 +17,6 @@ immutable GLProgram
     end
 end
 GLProgram(name::String) = GLProgram("$(name).vert", "$(name).frag")
-
 
 function printShaderInfoLog(obj::GLuint)
     infologLength::Array{GLint, 1} = [0]
@@ -74,4 +68,4 @@ function readShader(filePath::String, shaderType)
     return shaderID
 end
 
-end # module Shader
+export GLProgram, readShader

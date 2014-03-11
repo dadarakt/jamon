@@ -1,19 +1,4 @@
-module GLShapes
-
-require("modules/GLColor.jl")
-require("modules/GLWindow.jl")
-require("modules/GLTexture.jl")
-
-require("GLUtil.jl")
-using GLUtil
-using GLColor, OpenGL, GLTexture
-import OpenGL.render, GLWindow.orthographicProj
-
-export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render, initGLShapes
-
-
 abstract Shape
-
 
 immutable Circle{T <: Real} <: Shape
     x::T
@@ -146,10 +131,8 @@ function render(shape::Rectangle)
 end
 
 function initGLShapes()
-
     global flatShader = GLProgram("shader/flatShader")
     global RECTANGLE_VERT_ARRAY = GLVertexArray(["position" => createQuad(0f0, 0f0, 1f0, 1f0), "uv" => createQuadUV()], flatShader, primitiveMode = GL_TRIANGLES)
-
 end
 
-end
+export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render, initGLShapes
