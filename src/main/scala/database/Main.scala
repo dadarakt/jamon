@@ -57,15 +57,15 @@ object Main extends Logging{
     println(g.getClass)
 
     // Start a transaction on the graph
-    //val transaction = g.newTransaction
+    val transaction = g.newTransaction
     // And add ALL THE LINES
-    // for(line <- lines) {
-    //   val vertex = transaction.addVertex(null)
-    //   vertex.setProperty("lineOfCode", line)
-    // }
-    // println(s"-----> ${transaction.hasModifications}")
-    // transaction.commit
-    //transaction.commit
+    for(line <- lines) {
+      val vertex = transaction.addVertex(null)
+      vertex.setProperty("lineOfCode", line)
+    }
+    println(s"-----> ${transaction.hasModifications}")
+    transaction.commit
+
 
     //Thread.sleep(1000)
 
@@ -86,6 +86,8 @@ object Main extends Logging{
     // // Finally remove all vertices in the graph
     // clearGraph(g)   
   }
+
+
 }
 
 object GraphUtils {

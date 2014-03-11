@@ -10,32 +10,45 @@ import com.tinkerpop.blueprints.{Edge, Vertex}
 import scala.collection.JavaConversions._
 import com.thinkaurelius.titan.graphdb.database.StandardTitanGraph
 import com.typesafe.config._
+import scala.Option
+import org.apache.log4j.Logger
+import org.apache.log4j.Level
 
 object BluePrintTest {
 
 def main(args: Array[String]){
 
-	//
-	val conf = new BaseConfiguration {
-      setProperty("storage.backend", "cassandra")
-      setProperty("storage.hostname", "127.0.0.1")
-      setProperty("storage.directory" ,"/tmp/testing")
+	//Logger.getRootLogger.setLevel(log4j.Level.FATAL)
+  //println(Logger.level)
+
+    /**
+     * Reads the config needed for the database from the global configuration file. Throws any
+     * occuring exceptions since without sensible configuration this cannot run properly. 
+     */
+    def readConfigForDB: BaseConfiguration = {
+    	val globalConf = ConfigFactory.load
+    	new BaseConfiguration {
+    		setProperty("storage.backend", globalConf.getString("database.storage.backend"))
+    		setProperty("storage.hostname", globalConf.getString("database.storage.hostname"))
+      	setProperty("storage.directory" , globalConf.getString("database.storage.directory"))
+    	}
     }
 
+	val config = readConfigForDB
+
     // Try opening a graph using a config file
-    // val g: TitanGraph = try {
-    //   TitanFactory.open("graph.properties")
-    // } catch{
-    //   case NonFatal(e) => {
-    //     println("Cannot connect to the database!", e)
-    //     return // Just get out of here for now
-    //   }
-    // }
+    val g: TitanGraph = try {
+      TitanFactory.open(config)
+    } catch{
+      case NonFatal(e) => {
+        println("Cannot connect to the database!", e)
+        return // Just get out of here for now
+      }
+    }
 
-    // load some configs and prints them
-    val config: Config = ConfigFactory.load
-    println(config.getString("testing.wurst").getClass)
 
+    g.shutdown
+    
     // val usedConfigs = g.getConfiguration
     // for(entry <- usedConfigs) println(entryaa)
 
