@@ -9,8 +9,8 @@ immutable GLProgram
     fragShaderPath::ASCIIString
     vertShaderPath::ASCIIString
     function GLProgram(vertex_file_path::String, fragment_file_path::String)
-        vertexShaderID::GLuint   = readShader(vertex_file_path,   VERTEX_SHADER)
-        fragmentShaderID::GLuint = readShader(fragment_file_path, FRAGMENT_SHADER)
+        vertexShaderID::GLuint   = readShader(vertex_file_path,   GL_VERTEX_SHADER)
+        fragmentShaderID::GLuint = readShader(fragment_file_path, GL_FRAGMENT_SHADER)
         p = glCreateProgram()
         glAttachShader(p, vertexShaderID)
         glAttachShader(p, fragmentShaderID)
@@ -27,7 +27,7 @@ GLProgram(name::String) = GLProgram("$(name).vert", "$(name).frag")
 function printShaderInfoLog(obj::GLuint)
     infologLength::Array{GLint, 1} = [0]
     charsWritten::Array{GLsizei, 1}  = [0]
-    glGetShaderiv(obj, INFO_LOG_LENGTH, infologLength)
+    glGetShaderiv(obj, GL_INFO_LOG_LENGTH, infologLength)
     errorOccured = false
     if infologLength[1] > 1
         errorOccured = true
@@ -47,7 +47,7 @@ function printProgramInfoLog(obj::GLuint)
     infologLength::Array{GLint, 1} = [0]
     charsWritten::Array{GLsizei, 1}  = [0]
  
-    glGetProgramiv(obj, INFO_LOG_LENGTH, infologLength)
+    glGetProgramiv(obj, GL_INFO_LOG_LENGTH, infologLength)
     errorOccured = false
     if infologLength[1] > 1
         errorOccured = true
@@ -66,9 +66,9 @@ end
 function readShader(filePath::String, shaderType)
     shaderID::GLuint          = glCreateShader(shaderType)
     fileStream                = open(filePath)
-    shaderCode::Ptr{GLchar}   = readbytes(fileStream)
+    shaderCode::Ptr{GLchar}   = convert(Ptr{GLchar}, pointer(readbytes(fileStream)))
     close(fileStream)
-    glShaderSource(shaderID, 1, [shaderCode], 0)
+    glShaderSource(shaderID, 1, convert(Ptr{Uint8}, pointer([shaderCode])), 0)
     glCompileShader(shaderID)
     printShaderInfoLog(shaderID)
     return shaderID

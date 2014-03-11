@@ -1,4 +1,4 @@
-#version 420
+#version 130
 // Input vertex data, different for all executions of this shader.
 attribute vec2 position;
 attribute vec2 uv;

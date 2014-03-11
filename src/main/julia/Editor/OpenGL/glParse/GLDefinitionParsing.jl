@@ -63,7 +63,7 @@ sourceLocation = "deprecated/"
 
 typeAliasRegex 	= r"typealias ([[:graph:]]+) ([[:graph:]]+)"
 functionRegex 	= r"@getCFun \"libGL\" [[:graph:]]+ ([[:graph:]]+)(\([[:print:]]*\)::[[:graph:]]+)"
-constantRegex 	= r"const ([[:print:]]+)=([[:print:]]+)"
+constantRegex 	= r"const (GL_)?([[:print:]]+)=([[:print:]]+)"
 
 
 folders = readdir(sourceLocation)
@@ -80,9 +80,9 @@ for folder in folders
 	constants 	= eval(:($(parse("$(folder)_constants"))))
 	for line in lines
 		@match line begin 
-			typeAliasRegex(alias, _type) 	=> types[strip(alias)] 		= strip(_type)
-			functionRegex(name, func) 		=> functions[strip(name)] 	= strip(func)
-			constantRegex(name, value)		=> constants[strip(name)] 	= strip(value)
+			typeAliasRegex(alias, _type) 	=> types[strip(alias)] 			= strip(_type)
+			functionRegex(name, func) 		=> functions[strip(name)] 		= strip(func)
+			constantRegex(GL_, name, value)	=> constants["GL_"*strip(name)] = strip(value)
 		end
 	end
 	lines = 0
@@ -170,7 +170,6 @@ function dictDiff(subtractDict::Dict{ASCIIString, ASCIIString}, dict::Dict{ASCII
 	dictSet 	= Set(collect(keys(dict))...)
 
 	tmp = setdiff(dictSet, subtractSet)
-	println(typeof(tmp))
 	returnDict = Dict{ASCIIString, ASCIIString}()
 
 	for elem in tmp
@@ -281,6 +280,7 @@ writeDictTypes(fs, "GL_COMMON_TYPES", glCommonTypes)
 writeDictConstants(fs,"GL_COMMON_CONSTANTS", glCommonConstants)
 writeDictFunctions(fs, "GL_COMMON_FUNCTIONS", glCommonFunctions)
 close(fs)
+println(openGLFolder*"glCommon.jl")
 
 
 #Writing the diff files
@@ -288,13 +288,11 @@ for file in ["gl21", "gl33", "gl42", "gl43", "wgl", "nv", "glx", "amd", "arb", "
 	types 		= eval(:($(parse("$(file)_types"))))
 	functions 	= eval(:($(parse("$(file)_functions"))))
 	constants 	= eval(:($(parse("$(file)_constants"))))
-	println(typeof(types))
-	println(typeof(functions))
-	println(typeof(constants))
 	fs = open(openGLFolder*"$(file).jl", "w")
 	write(fs, "#Types, functions and constants, needed on top of the common ones\n")
 	writeDictTypes(fs, "GL_$(uppercase(file))_TYPES", dictDiff(allCommonTypes, types))
 	writeDictConstants(fs, "GL_$(uppercase(file))_CONSTANTS", dictDiff(glCommonConstants, constants))
 	writeDictFunctions(fs, "GL_$(uppercase(file))_FUNCTIONS", dictDiff(glCommonFunctions, functions))
 	close(fs)
+	println("written: $(openGLFolder)$(file).jl")
 end

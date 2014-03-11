@@ -1,4 +1,4 @@
-#version 420
+#version 130
 
 varying vec2 v_textureCoordinate;
 uniform vec4 textColor;

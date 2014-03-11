@@ -1,12 +1,14 @@
+#version 130
+
 attribute vec2 position;
 
-attribute vec2 a_textureCoordinate;
-varying vec2 v_textureCoordinate;
+attribute vec2 uv;
+varying vec2 o_uv;
 
 uniform mat4 mvp;
 
 void main(){
 	gl_Position = mvp * vec4(position, 0, 1);	
-	v_textureCoordinate = a_textureCoordinate;
+	o_uv = uv;
 }
 

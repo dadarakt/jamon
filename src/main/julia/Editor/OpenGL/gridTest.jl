@@ -1,9 +1,12 @@
 module Test
+
+
 require("modules/GLShader.jl")
 require("modules/GLText.jl")
 require("modules/GLWindow.jl")
 require("modules/GLEvent.jl")
 require("modules/GLMatrixMath.jl")
+
 using GLUT, OpenGL, GLWindow, GLShader, GLText, GLEvent, GLMatrixMath
 import GLWindow.render, GLWindow.perspectiveProj
 type Grid{T <: Real}
@@ -34,7 +37,7 @@ function render(g::Grid)
 	glUseProgram(gridshader.id)
     glBindVertexArray(g.id)
     cam = setCamera([5f0, 5f0, 5f0], [0f0, 0f0, 0f0])
-	glUniformMatrix4fv(glGetUniformLocation(gridshader.id, "mvp"),  1, FALSE, reshape(perspectiveProj * cam, 16))
+	glUniformMatrix4fv(glGetUniformLocation(gridshader.id, "mvp"),  1, FALSE, vec(perspectiveProj * cam))
     glDrawArrays(POINTS, 0, g.length)
 end
 

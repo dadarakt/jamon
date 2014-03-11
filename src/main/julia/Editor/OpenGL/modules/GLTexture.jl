@@ -1,32 +1,10 @@
 module GLTexture
-require("modules/GLShapes.jl")
-using OpenGL, GLShapes
 
-import Images.imread
+using OpenGL
+import Images.imread, OpenGL.render
+
 export Texture     
 
-function glimreadGray(filename::String)
-    img = imread(filename)
-    w = size(img,1)
-    h = size(img,2)
-    return img.data, w, h
-end
-function glimread(filename::String)
-    img = imread(filename)
-    w = size(img,2)
-    h = size(img,3)
-    img1D = Array(Uint8,w*h*3)
-    for j=1:w
-        for k=1:h
-            for i=1:3
-                img1D[3*w*(j-1)+3*(k-1)+i] = img[i,w-j+1,k]
-            end
-        end
-    end
-    println(count)
-    println(length(img1D))
-    return img1D, w, h
-end
 
 immutable Texture
     id::GLuint
@@ -34,27 +12,66 @@ immutable Texture
     format::Uint16
     width::Int
     height::Int
-    function Texture(path::ASCIIString; textureType::Uint16 = TEXTURE_2D, format::Uint16 = RGB)
-    	if format == RGB
-			img, w, h = glimread(path)
-		elseif format == DEPTH_COMPONENT
-			img, w, h = glimreadGray(path)
+    function Texture()
+        new(uint32(0), uint16(0), uint16(0), 0, 0)
+    end
+    function Texture(path::ASCIIString; targetFormat::Uint16 = GL_RGB, textureType::Uint16 = GL_TEXTURE_2D, alpha::Float32 = 1f0)
+        img = imread(path)
+        @assert length(img.data) > 0
+
+        imgFormat   = img.properties["colorspace"]
+        #glTexImage2D needs to know the pixel data format from imread, the type and the targetFormat
+        pixelDataFormat::Uint16 = 0
+        imgType                 = eltype(img.data)
+        glImgType::Uint16       = 0
+        glImgData1D = imgType[]
+        w = 0
+        h = 0
+        if imgFormat == "ARGB"
+            pixelDataFormat = GL_RGBA
+            glImgData1D = vec(permutedims(img.data, [2,3,1]))
+            w = size(img, 2)
+            h = size(img, 3)
+    	elseif imgFormat == "RGB"
+            pixelDataFormat = GL_RGB
+            w = size(img, 2)
+            h = size(img, 3)
+            glImgData1D = reshape(img.data, w, h * 3)
+
+		elseif imgFormat == "GRAY"
+            pixelDataFormat = GL_ALPHA
+            glImgData1D = img.data
+            w = size(img, 1)
+            h = size(img, 2)
 		else 
-			error("Format not supported")
+			error("Color Format $(imgFormat) not supported")
 		end
-		@assert length(img) > 0
+        if imgType == Uint8
+            glImgType = GL_UNSIGNED_BYTE
+        elseif imgType == Float32
+            glImgType = GL_FLOAT
+        elseif imgType == Int8
+            glImgType = GL_BYTE
+        else 
+            error("Type: $(imgType) not supported")
+        end
+        @assert w > 0 && h > 0 && length(glImgData1D) > 0
 	    id = glGenTextures()
 	    glBindTexture(textureType, id)
-	    glTexParameteri( textureType, TEXTURE_WRAP_S, CLAMP_TO_EDGE )
-	    glTexParameteri( textureType, TEXTURE_WRAP_T, CLAMP_TO_EDGE )
-	    glTexParameteri( textureType, TEXTURE_MAG_FILTER, LINEAR )
-	    glTexParameteri( textureType, TEXTURE_MIN_FILTER, LINEAR )
-	    glTexImage2D( textureType, 0, format, w, h, 0, format, UNSIGNED_BYTE, img)
+	    glTexParameteri( textureType, GL_TEXTURE_WRAP_S,       GL_CLAMP_TO_EDGE )
+	    glTexParameteri( textureType, GL_TEXTURE_WRAP_T,       GL_CLAMP_TO_EDGE )
+	    glTexParameteri( textureType, GL_TEXTURE_MAG_FILTER,   GL_LINEAR )
+	    glTexParameteri( textureType, GL_TEXTURE_MIN_FILTER,   GL_LINEAR )
+	    glTexImage2D( textureType, 0,targetFormat  , w, h, 0, pixelDataFormat, glImgType, glImgData1D)
 	    img = 0
-	    new(id, textureType, format, w, h)
+	    new(id, textureType, targetFormat, w, h)
     end
 end
 
-
+function render(t::Texture, programID::GLuint, attribName::ASCIIString)
+    glActiveTexture(GL_TEXTURE0)
+    glBindTexture(t.textureType, t.id)
+    glUniform1i(glGetUniformLocation(programID, attribName), 0)
+end
 
 end #module GLTexture

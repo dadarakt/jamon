@@ -1,13 +1,19 @@
 module GLShapes
 
 require("modules/GLColor.jl")
-using GLColor, OpenGL
+require("modules/GLWindow.jl")
+require("modules/GLTexture.jl")
 
+require("GLUtil.jl")
+using GLUtil
+using GLColor, OpenGL, GLTexture
+import OpenGL.render, GLWindow.orthographicProj
 
-export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render
+export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render, initGLShapes
 
 
 abstract Shape
+
 
 immutable Circle{T <: Real} <: Shape
     x::T
@@ -19,22 +25,29 @@ immutable Circle{T <: Real} <: Shape
     end
 end
 
-immutable Rectangle{T} <: Shape
-    x::T
-    y::T
-    w::T
-    h::T
+immutable Rectangle <: Shape
+    x::Float32
+    y::Float32
+    w::Float32
+    h::Float32
     color::Color
-    function Rectangle(x::T, y::T, width::T, height::T, color::Color)
-        new(x, y, width, height, color)
+    texture::Texture
+    function Rectangle(x::Float32, y::Float32, width::Float32, height::Float32, color::Color, texture::Texture)
+        new(x, y, width, height, color, texture)
     end
 end
 
+
+Rectangle{T <: Real}(x::T, y::T, width::T, height::T) = Rectangle(float32(x), float32(y), float32(width), float32(height), Color())
+
+function Rectangle(texture::ASCIIString)
+    t = Texture(texture)
+    Rectangle(0f0, 0f0, float32(t.width), float32(t.height), Color([0,0,0]), t)
+end
+
 immutable Polygon{T} <: Shape
-	glContent::GLBuffer
-    boundingBox::Rectangle{T}
-    transformations::Matrix{T}
-    color::Color{Float32}
+    boundingBox::Rectangle
+    color::Color
     function Polygon(polygon::Array{T, 1}, color::Color)
         @assert length(polygon) % 2 == 0
         boundingBox = Rectangle(-Inf32, -Inf32, Inf32, Inf32)
@@ -52,12 +65,9 @@ immutable Polygon{T} <: Shape
                 boundingBox[2] = y
             end
         end
-        boundingBox[1] = boundingBox[1] 
-        new(GLBuffer(STATIC_DRAW, ARRAY_BUFFER, TRIANGLE_FAN, polygon), boundingBox, eye(Float32, 4,4), color)
+        new(GLBuffer(GL_STATIC_DRAW, GL_ARRAY_BUFFER, GL_TRIANGLE_FAN, polygon), boundingBox, eye(Float32, 4,4), color)
     end
 end
-
-
 
 
 function inside(polygon::Polygon, x::Real, y::Real)
@@ -83,8 +93,8 @@ function inside(rect::Rectangle, x::Real, y::Real)
     rect.x <= x && rect.y <= y && rect.x + rect.w >= x && rect.y + rect.h >= y 
 end
 
-function createQuad(x::GLfloat, y::GLfloat, width::GLfloat, height::GLfloat)
-    v = [
+function createQuad{T <: Real}(x::T, y::T, width::T, height::T)
+    v = T[
     x, y,
     x, y + height,
     x + width,  y,
@@ -101,6 +111,7 @@ function createQuadUV()
     0, 0,
     1, 0])
 end
+
 function createCircle(r, x, y, amount)
     slice = (2*pi) / amount
     result = float32([x,y])
@@ -119,19 +130,26 @@ function createQuadStrip(x::GLfloat, y::GLfloat, spacing::GLfloat, width::GLfloa
     end
     return vertices
 end
-function render(shape::Shape)
-    global projMatrix, model, flatShader
-    glDisable(DEPTH_TEST)
-    glUseProgram(flatShader.id)
-    glUniformMatrix4fv(glGetUniformLocation(flatShader.id, "mvp"),  1, FALSE, reshape(projMatrix * model * shape.transformations, 16))
-    glUniform4f(glGetUniformLocation(flatShader.id, "Color"), shape.color...)
 
-    glEnableVertexAttribArray(glGetAttribLocation(flatShader.id, "position"))
-    glBindBuffer(ARRAY_BUFFER, shape.glContent.id)
-    glVertexAttribPointer(glGetAttribLocation(flatShader.id, "position"), 2, FLOAT, FALSE, 0, 0)
-    glDrawArrays(shape.glContent.format, 0, shape.glContent.size)
-    glBindBuffer(ARRAY_BUFFER, 0)
+function render(shape::Rectangle)
+    global projMatrix
+    glDisable(GL_DEPTH_TEST)
+
+    glUseProgram(RECTANGLE_VERT_ARRAY.program.id)
+    if shape.texture.id > 0
+        render(shape.texture, RECTANGLE_VERT_ARRAY.program.id, "Texture")
+    end
+    glUniformMatrix4fv(
+        glGetUniformLocation(RECTANGLE_VERT_ARRAY.program.id, "mvp"),  1, GL_FALSE, 
+        vec(orthographicProj * float32([shape.w 0 0 shape.x ; 0 shape.h 0 shape.y ; 0 0 1 0 ; 0 0 0 1])))
+    render(RECTANGLE_VERT_ARRAY)
 end
 
+function initGLShapes()
+
+    global flatShader = GLProgram("shader/flatShader")
+    global RECTANGLE_VERT_ARRAY = GLVertexArray(["position" => createQuad(0f0, 0f0, 1f0, 1f0), "uv" => createQuadUV()], flatShader, primitiveMode = GL_TRIANGLES)
+
+end
 
 end

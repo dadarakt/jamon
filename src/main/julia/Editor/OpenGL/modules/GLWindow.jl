@@ -10,9 +10,8 @@ global const RENDER_LIST        = Tuple[]
 global const orthographicProj   = eye(GLfloat, 4,4)
 global const perspectiveProj    = eye(GLfloat, 4,4)
 
-render(a::Any) = error("No method for this type: $(typeof(a))")
 function displayFunc()
-    glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     for elem in RENDER_LIST
        render(elem...)
     end
@@ -62,9 +61,8 @@ _displayFunc        = cfunction(displayFunc, Void, ())
 function createWindow(;
     name = "GLUT Window", 
     displayMode         = int32(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_ALPHA), 
-    windowPosition      = int32([100,100]), 
-    windowSize          = int32([500,500]))
-
+    windowPosition      = int32([2000,100]), 
+    windowSize          = int32([900,900]))
     glutReshapeWindow(windowSize...)
     glutPositionWindow(windowPosition...)
     glutSetWindowTitle(name)
