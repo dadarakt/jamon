@@ -1,7 +1,7 @@
 module GLMatrixMath
 global OpenGLver = "2.1"
 using OpenGL
-export computeFOVProjection, computeFOVProjection!, computeOrthographicProjection, computeOrthographicProjection!, translateXMatrix
+export computeFOVProjection, computeFOVProjection!, computeOrthographicProjection, computeOrthographicProjection!, translateXMatrix, translationMatrix
 
 
 computeFOVProjection(fov::GLfloat, aspect::GLfloat, nearDist::GLfloat, farDist::GLfloat) = computeFOVProjection!(zeros(GLfloat, 4, 4), fov, aspect, nearDist, farDist)
@@ -52,11 +52,9 @@ translateXMatrix(x::GLfloat) = translationMatrix( x, 0.0f0, 0.0f0)
 translateYMatrix(y::GLfloat) = translationMatrix( 0.0f0, y, 0.0f0)
 translateZMatrix(z::GLfloat) = translationMatrix( 0.0f0, 0.0f0, z)
 
-function translationMatrix(x::GLfloat, y::GLfloat, z::GLfloat)
+function translationMatrix(translation::Array{GLfloat,1})
     result      = eye(GLfloat, 4, 4)
-    result[1,4] = x
-    result[2,4] = y
-    result[3,4] = z
+    result[1:3,4] = translation
     return result
 end
 function glReshape(a::Matrix)

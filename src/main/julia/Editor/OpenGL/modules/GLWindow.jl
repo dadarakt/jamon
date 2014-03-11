@@ -39,6 +39,8 @@ function reshapeFunc(w::Csize_t, h::Csize_t)
     WINDOW_SIZE[2] = int(h)
     glViewport(0, 0, w, h)
     computeOrthographicProjection!(orthographicProj,0.0f0, float32(w), 0.0f0, float32(h), -10f0, 10f0)
+    ratio = (1.0f0 * w) / h
+    computeFOVProjection!(perspectiveProj, 53.13f0, ratio, 1.0f0, 30.0f0)
     publishEvent(WindowResized(int(w),int(h)))
     return nothing
 end
@@ -60,7 +62,7 @@ _displayFunc        = cfunction(displayFunc, Void, ())
 function createWindow(;
     name = "GLUT Window", 
     displayMode         = int32(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_ALPHA), 
-    windowPosition      = int32([2000,100]), 
+    windowPosition      = int32([100,100]), 
     windowSize          = int32([500,500]))
 
     glutReshapeWindow(windowSize...)

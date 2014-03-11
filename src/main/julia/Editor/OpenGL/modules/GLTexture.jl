@@ -7,17 +7,9 @@ export Texture
 
 function glimreadGray(filename::String)
     img = imread(filename)
-    w = size(img,2)
-    h = size(img,3)
-    img1D = Array(Uint8, w*h)
-    img1DIndex = 1
-    for hI=1:h
-        for wI=1:w
-            img1D[img1DIndex] = img[1, wI, hI]
-            img1DIndex = img1DIndex + 1
-        end
-    end
-    return img1D, w, h
+    w = size(img,1)
+    h = size(img,2)
+    return img.data, w, h
 end
 function glimread(filename::String)
     img = imread(filename)
@@ -31,6 +23,8 @@ function glimread(filename::String)
             end
         end
     end
+    println(count)
+    println(length(img1D))
     return img1D, w, h
 end
 
@@ -49,7 +43,6 @@ immutable Texture
 			error("Format not supported")
 		end
 		@assert length(img) > 0
-
 	    id = glGenTextures()
 	    glBindTexture(textureType, id)
 	    glTexParameteri( textureType, TEXTURE_WRAP_S, CLAMP_TO_EDGE )

@@ -37,7 +37,7 @@ function printShaderInfoLog(obj::GLuint)
         for elem in infoLog
             print(char(elem))
         end
-        print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         infoLog = 0
     end
     return errorOccured
@@ -57,7 +57,7 @@ function printProgramInfoLog(obj::GLuint)
         for elem in infoLog
             print(char(elem))
         end
-        print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        println("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         infoLog = 0
     end
     return errorOccured

@@ -1,4 +1,4 @@
-#version 130
+#version 420
 
 varying vec2 v_textureCoordinate;
 uniform vec4 textColor;
@@ -8,7 +8,7 @@ uniform sampler2D fontTexture;
 void main(){
 
 	// Output color = color of the texture at the specified UV
-	float alphaAbove	= (texture2D(fontTexture, v_textureCoordinate)).x;
+	float alphaAbove	= (texture(fontTexture, v_textureCoordinate)).x;
 
 	float alphaBelow 	= backgroundColor.a;
 
@@ -19,7 +19,7 @@ void main(){
 
 	vec3 color = textColor.rgb * textAlpha + backgroundColor.rgb * (1.0 - textAlpha);
 
-	gl_FragColor = vec4(0,0, 0, alphaAbove);
+	gl_FragColor = vec4(color, alphaAbove);
 
-	//gl_FragColor = vec4((textColor.rgb * (texture2D(fontTexture, v_textureCoordinate)).x) + (backgroundColor.rgb * backgroundColor.a) );
+	//gl_FragColor = vec4(alphaAbove,alphaAbovea,alphaAbove, 1);
 }

@@ -64,7 +64,6 @@ EVENT_ACTION_QUEUE 				= Dict{DataType, Array{EventAction, 1}}()
 function registerEvent{T}(eventAction::EventAction{T})
 	queue = get(EVENT_ACTION_QUEUE, T, EventAction{T}[])
 	push!(queue, eventAction)
-	println(EVENT_ACTION_QUEUE)
 	EVENT_ACTION_QUEUE[T] = queue
 end
 function publishEvent{T <: Event}(event::T)
@@ -75,9 +74,6 @@ function publishEvent{T <: Event}(event::T)
     	end
     end
 end
-
-
-
 
 
 #KeyDownMouseClicked Event generation 		##############################################################################
