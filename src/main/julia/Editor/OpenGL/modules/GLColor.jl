@@ -1,7 +1,7 @@
-export Color
-immutable Color
+export GLColor
+immutable GLColor
 	rgba::Array{Float32, 1}
-	function Color(c::Array{Float32, 1})
+	function GLColor(c::Array{Float32, 1})
 		if length(c) == 4
 			return new(c)
 		elseif length(c) == 3
@@ -12,5 +12,5 @@ immutable Color
 		error("Not a valid color")
 	end
 end
-Color{T}(c::Array{T, 1}) = Color(float32(c))
-Color(c...) = Color(float32(c))
+GLColor{T}(c::Array{T, 1}) = GLColor(float32(c))
+GLColor(c...) = GLColor(float32(c))

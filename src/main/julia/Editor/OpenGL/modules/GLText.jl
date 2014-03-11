@@ -38,7 +38,7 @@ type AsciiAtlas
 	        push!(uv, charUV...)
 	    end
 	    close(flStream)
-	    vertArray = GLVertexArray(["position" => verts, "uv" => uv], primitiveMode = GL_TRIANGLES)
+	    vertArray = GLVertexArray(["position" => verts, "uv" => uv], textShader, primitiveMode = GL_TRIANGLES)
 	    verts = 0
 	    uv = 0
 	    new(lineHeight, advance, texture, asciiDict, vertArray)
@@ -82,7 +82,5 @@ function render(text::ASCIIString, x::Float32, y::Float32, font::AsciiAtlas,
     glBindVertexArray(0)
 end
 
-function initTextRendering()
-    global textShader   = GLProgram("shader/textShader") 
-    global standardFont = AsciiAtlas("media/VeraMono")
-end
+textShader   = GLProgram("shader/textShader") 
+standardFont = AsciiAtlas("media/VeraMono")

@@ -23,7 +23,12 @@ immutable Texture
         h = 0
         if imgFormat == "ARGB"
             pixelDataFormat = GL_RGBA
-            glImgData1D = vec(permutedims(img.data, [2,3,1]))
+            tmp = img.data[1,1:end, 1:end]
+            img.data[1,1:end, 1:end] = img.data[2,1:end, 1:end]
+            img.data[2,1:end, 1:end] = img.data[3,1:end, 1:end]
+            img.data[3,1:end, 1:end] = img.data[4,1:end, 1:end]
+            img.data[4,1:end, 1:end] = tmp
+            glImgData1D  = img.data
             w = size(img, 2)
             h = size(img, 3)
     	elseif imgFormat == "RGB"
@@ -32,11 +37,11 @@ immutable Texture
             h = size(img, 3)
             glImgData1D = reshape(img.data, w, h * 3)
 
-		elseif imgFormat == "GRAY"
-            pixelDataFormat = GL_ALPHA
+		elseif imgFormat == "Gray"
+            pixelDataFormat = GL_DEPTH_COMPONENT
             glImgData1D = img.data
             w = size(img, 1)
-            h = size(img, 2)
+            h = size(img, 2)            
 		else 
 			error("Color Format $(imgFormat) not supported")
 		end
@@ -56,14 +61,19 @@ immutable Texture
 	    glTexParameteri( textureType, GL_TEXTURE_WRAP_T,       GL_CLAMP_TO_EDGE )
 	    glTexParameteri( textureType, GL_TEXTURE_MAG_FILTER,   GL_LINEAR )
 	    glTexParameteri( textureType, GL_TEXTURE_MIN_FILTER,   GL_LINEAR )
-	    glTexImage2D( textureType, 0,targetFormat  , w, h, 0, pixelDataFormat, glImgType, glImgData1D)
+	    glTexImage2D(textureType, 0, pixelDataFormat, w, h, 0, pixelDataFormat, glImgType, glImgData1D)
+	    @assert glGetError() == GL_NO_ERROR
 	    img = 0
 	    new(id, textureType, targetFormat, w, h)
     end
 end
-
+function convertImageData(image)
+	result = Array(eltype(image.data), size(image.data))
+end
 function render(t::Texture, programID::GLuint, attribName::ASCIIString)
+	glEnable(GL_BLEND)
     glActiveTexture(GL_TEXTURE0)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
     glBindTexture(t.textureType, t.id)
     glUniform1i(glGetUniformLocation(programID, attribName), 0)
 end

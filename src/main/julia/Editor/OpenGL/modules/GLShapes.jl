@@ -4,8 +4,8 @@ immutable Circle{T <: Real} <: Shape
     x::T
     y::T
     r::T
-    color::Color
-    function Circle(radius::Float32, middleX::Float32, middleY::Float32, color::Color)
+    color::GLColor
+    function Circle(radius::Float32, middleX::Float32, middleY::Float32, color::GLColor)
         new(middleX, middleY, radius, color)
     end
 end
@@ -15,25 +15,25 @@ immutable Rectangle <: Shape
     y::Float32
     w::Float32
     h::Float32
-    color::Color
+    color::GLColor
     texture::Texture
-    function Rectangle(x::Float32, y::Float32, width::Float32, height::Float32, color::Color, texture::Texture)
+    function Rectangle(x::Float32, y::Float32, width::Float32, height::Float32, color::GLColor, texture::Texture)
         new(x, y, width, height, color, texture)
     end
 end
 
 
-Rectangle{T <: Real}(x::T, y::T, width::T, height::T) = Rectangle(float32(x), float32(y), float32(width), float32(height), Color())
+Rectangle{T <: Real}(x::T, y::T, width::T, height::T) = Rectangle(float32(x), float32(y), float32(width), float32(height), GLColor(Float32[0,0,0]), Texture())
 
 function Rectangle(texture::ASCIIString)
     t = Texture(texture)
-    Rectangle(0f0, 0f0, float32(t.width), float32(t.height), Color([0,0,0]), t)
+    Rectangle(0f0, 0f0, float32(t.width), float32(t.height), GLColor([0,0,0]), t)
 end
 
 immutable Polygon{T} <: Shape
     boundingBox::Rectangle
-    color::Color
-    function Polygon(polygon::Array{T, 1}, color::Color)
+    color::GLColor
+    function Polygon(polygon::Array{T, 1}, color::GLColor)
         @assert length(polygon) % 2 == 0
         boundingBox = Rectangle(-Inf32, -Inf32, Inf32, Inf32)
         for i=1:length(polygon) - 1
@@ -120,9 +120,14 @@ function render(shape::Rectangle)
     global projMatrix
     glDisable(GL_DEPTH_TEST)
 
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
     glUseProgram(RECTANGLE_VERT_ARRAY.program.id)
     if shape.texture.id > 0
         render(shape.texture, RECTANGLE_VERT_ARRAY.program.id, "Texture")
+    else
+        glBindTexture(GL_TEXTURE_2D, 0)
     end
     glUniformMatrix4fv(
         glGetUniformLocation(RECTANGLE_VERT_ARRAY.program.id, "mvp"),  1, GL_FALSE, 
@@ -130,9 +135,7 @@ function render(shape::Rectangle)
     render(RECTANGLE_VERT_ARRAY)
 end
 
-function initGLShapes()
-    global flatShader = GLProgram("shader/flatShader")
-    global RECTANGLE_VERT_ARRAY = GLVertexArray(["position" => createQuad(0f0, 0f0, 1f0, 1f0), "uv" => createQuadUV()], flatShader, primitiveMode = GL_TRIANGLES)
-end
+flatShader              = GLProgram("shader/flatShader")
+RECTANGLE_VERT_ARRAY    = GLVertexArray(["position" => createQuad(0f0, 0f0, 1f0, 1f0), "uv" => createQuadUV()], flatShader, primitiveMode = GL_TRIANGLES)
 
 export Circle, Rectangle, Polygon, inside, createQuad, createUV, createCircle, createQuadStrip, render, initGLShapes

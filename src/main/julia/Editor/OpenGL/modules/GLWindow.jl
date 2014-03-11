@@ -5,6 +5,8 @@ global const orthographicProj   = eye(GLfloat, 4,4)
 global const perspectiveProj    = eye(GLfloat, 4,4)
 
 function displayFunc()
+    glClearColor(1f0, 1f0, 1f0, 1f0)
+    
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
     for elem in RENDER_LIST
        render(elem...)
@@ -56,12 +58,13 @@ _displayFunc        = cfunction(displayFunc, Void, ())
 function createWindow(;
     name = "GLUT Window", 
     displayMode         = int32(GLUT_DEPTH | GLUT_DOUBLE | GLUT_RGBA | GLUT_MULTISAMPLE | GLUT_ALPHA), 
-    windowPosition      = int32([2000,100]), 
+    windowPosition      = int32([100,100]), 
     windowSize          = int32([900,900]))
     glutReshapeWindow(windowSize...)
     glutPositionWindow(windowPosition...)
     glutSetWindowTitle(name)
     glutShowWindow()
+
 end
 
 function linkFunctions(;
