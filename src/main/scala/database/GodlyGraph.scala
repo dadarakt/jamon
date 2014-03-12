@@ -1,4 +1,5 @@
 /**
+ * @author dadarakt
  * Class which reproduces the tests for the graph of the god in scala for my purposes.
  * https://github.com/thinkaurelius/titan/blob/master/titan-core/src/main/java/com/thinkaurelius/titan/example/GraphOfTheGodsFactory.java
  */
@@ -19,19 +20,48 @@ import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration.
 
 object GodlyGraph {
 
+	// constant which defines the namespace
 	val INDEX_NAME = "search"
 
 	def main(args: Array[String]){
-		val graph = create("/home/jannis/database/wurst/")
 
-		Thread.sleep(10000)
+		// Get the graph representation
+		val graph = openGraph("/home/jannis/database/wurst/")
+		printGraph(graph)
 		graph.shutdown
 	}
 
 	/**
+	 * Prints out everthing in the beloved graph
+	 */
+	def printGraph(graph: TitanGraph) = {
+
+	}
+
+	/**
+	 * Opens a graph or creates it if it does not exist
+	 */
+	def openGraph(dir: String): TitanGraph = {
+
+		val graph = TitanFactory.open(dir)
+		if(graph.isOpen) println(s"Database $dir has been openend successfully")
+		else throw new RuntimeException("Dat ging schief!")
+		graph
+	}
+	/**
+	 * Setups-up a complete graph
+	 */
+	def initializeGraph(dir: String): TitanGraph = {
+		val graph = createGraph(dir)
+		load(graph)
+		graph
+	}
+
+
+	/**
 	 * Creates a graph at the given filename
 	 */
-	def create(dir: String): TitanGraph = {
+	def createGraph(dir: String): TitanGraph = {
 		val config = new BaseConfiguration
 		val storage = config.subset(GraphDatabaseConfiguration.STORAGE_NAMESPACE)
         // configuring local backend
@@ -44,11 +74,12 @@ object GodlyGraph {
         index.setProperty("client-only", false)
         index.setProperty(STORAGE_DIRECTORY_KEY, dir + File.separator + "es")
 
-		val graph = TitanFactory.open(config)
-		load(graph)
-		graph
+		TitanFactory.open(config)
 	}
 
+	/**
+	 * Loads a bunch of data into the graph. Static method, is this a good idea? TODO
+	 */
 	def load(graph: TitanGraph) = {
 		// Make some keys
 		graph.makeKey("name").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
