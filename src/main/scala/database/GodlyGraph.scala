@@ -13,6 +13,7 @@ import com.tinkerpop.blueprints.Edge
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.util.ElementHelper
 import java.io.File
+import scala.collection.JavaConversions._
 
 // Some constants which are used
 import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration.INDEX_BACKEND_KEY
@@ -24,32 +25,37 @@ object GodlyGraph {
 	val INDEX_NAME = "search"
 
 	def main(args: Array[String]){
-
 		// Get the graph representation
-		val graph = openGraph("/home/jannis/database/wurst/")
-		printGraph(graph)
-		graph.shutdown
+		//val g = initializeGraph("/home/jannis/database/wurst/")
+		val g = openGraph("/home/jannis/database/wurst/")
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> $g")
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> ${g.getFeatures}")
+		printGraph(g)
+		g.shutdown
 	}
 
 	/**
 	 * Prints out everthing in the beloved graph
 	 */
 	def printGraph(graph: TitanGraph) = {
-
+		// First just get all the vertices
+		val saturn = graph.getVertices("name", "saturn").iterator.next
+		println(s"~~~~~~~~~~~~~~~~~~> ${saturn}")
+		for(key <- saturn.getPropertyKeys) println(saturn.getProperty(key))
 	}
 
 	/**
-	 * Opens a graph or creates it if it does not exist
+	 * Opens a graph or creates it if it does not exist. Returns a handle for the graph
 	 */
 	def openGraph(dir: String): TitanGraph = {
-
 		val graph = TitanFactory.open(dir)
 		if(graph.isOpen) println(s"Database $dir has been openend successfully")
-		else throw new RuntimeException("Dat ging schief!")
+		else throw new RuntimeException("Problem while accessing database")
 		graph
 	}
+
 	/**
-	 * Setups-up a complete graph
+	 * Setups-up a complete new graph
 	 */
 	def initializeGraph(dir: String): TitanGraph = {
 		val graph = createGraph(dir)
@@ -59,7 +65,7 @@ object GodlyGraph {
 
 
 	/**
-	 * Creates a graph at the given filename
+	 * Creates a graph at the given filename using some configurtion TODO read from file
 	 */
 	def createGraph(dir: String): TitanGraph = {
 		val config = new BaseConfiguration
