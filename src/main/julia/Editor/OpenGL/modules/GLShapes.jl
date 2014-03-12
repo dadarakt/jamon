@@ -23,11 +23,11 @@ immutable Rectangle <: Shape
 end
 
 
-Rectangle{T <: Real}(x::T, y::T, width::T, height::T) = Rectangle(float32(x), float32(y), float32(width), float32(height), GLColor(Float32[0,0,0]), Texture())
+Rectangle{T <: Real}(x::T, y::T, width::T, height::T) = Rectangle(float32(x), float32(y), float32(width), float32(height), GLColor(Float32[0,0,0,0]), Texture())
 
 function Rectangle(texture::ASCIIString)
     t = Texture(texture)
-    Rectangle(0f0, 0f0, float32(t.width), float32(t.height), GLColor([0,0,0]), t)
+    Rectangle(0f0, 0f0, float32(t.width), float32(t.height), GLColor([0,0,0,0]), t)
 end
 
 immutable Polygon{T} <: Shape
@@ -132,6 +132,7 @@ function render(shape::Rectangle)
     glUniformMatrix4fv(
         glGetUniformLocation(RECTANGLE_VERT_ARRAY.program.id, "mvp"),  1, GL_FALSE, 
         vec(orthographicProj * float32([shape.w 0 0 shape.x ; 0 shape.h 0 shape.y ; 0 0 1 0 ; 0 0 0 1])))
+    glUniform4f(glGetUniformLocation(RECTANGLE_VERT_ARRAY.program.id, "Color"), shape.color.rgba...) 
     render(RECTANGLE_VERT_ARRAY)
 end
 

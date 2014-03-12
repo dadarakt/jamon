@@ -49,6 +49,7 @@ function render(char::Char, x::Float32, y::Float32)
     glUniformMatrix4fv(glGetUniformLocation(textShader.id, "mvp"),  1, GL_FALSE, reshape(orthographicProj * [1 0 0 x ; 0 1 0 y ; 0 0 1 0 ; 0 0 0 1], 16))
     glDrawArrays(GL_TRIANGLES, int(char) * 6, 6)
 end
+render{T <: Real}(text::ASCIIString, x::T, y::T, color::Array{Float32, 1}) = render(text, float32(x), float32(y), standardFont, color, zeros(Float32, 4))
 render{T <: Real}(text::ASCIIString, x::T, y::T) = render(text, float32(x), float32(y), standardFont, float32([0,0,0,1]), zeros(Float32, 4))
 function render(text::ASCIIString, x::Float32, y::Float32, font::AsciiAtlas, 
 	backgroundColor::Array{Float32,1}, textColor::Array{Float32,1})
@@ -66,8 +67,10 @@ function render(text::ASCIIString, x::Float32, y::Float32, font::AsciiAtlas,
 
     xStart = x
     for char in text
-        if isblank(char) && backgroundColor[4] == 0
+        if (isblank(char) || char == '\t' ) && backgroundColor[4] == 0
             x += font.advance
+        elseif char == '\t'
+        	x += font.advance * 2
         elseif char == '\r' || char == '\n'
         	y -= font.lineHeight
          	x = xStart

@@ -5,5 +5,6 @@ uniform vec4 Color;
 varying vec2 o_uv;
 
 void main(){
-	gl_FragColor = texture2D(Texture, o_uv);
+	vec4 tColor = texture2D(Texture, o_uv);
+	gl_FragColor = vec4(mix(tColor.rgb, Color.rgb, Color.a), tColor.a);
 }
