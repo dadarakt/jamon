@@ -14,10 +14,8 @@ import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.util.ElementHelper
 import java.io.File
 import scala.collection.JavaConversions._
-
-// Some constants which are used
-import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration.INDEX_BACKEND_KEY
-import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration.STORAGE_DIRECTORY_KEY
+import org.apache.commons.configuration.BaseConfiguration
+import com.typesafe.config._
 
 object GodlyGraph {
 
@@ -26,8 +24,8 @@ object GodlyGraph {
 
 	def main(args: Array[String]){
 		// Get the graph representation
-		//val g = initializeGraph("/home/jannis/database/wurst/")
-		val g = openGraph("/home/jannis/database/wurst/")
+		val g = initializeGraph("/home/jannis/database/wurstikus/")
+		//val g = openGraph("/home/jannis/database/wurst/")
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> $g")
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> ${g.getFeatures}")
 		printGraph(g)
@@ -58,29 +56,54 @@ object GodlyGraph {
 	 * Setups-up a complete new graph
 	 */
 	def initializeGraph(dir: String): TitanGraph = {
-		val graph = createGraph(dir)
+		println("~~~~~> Initializing graph...")
+		val graph = createGraph(readConfig())
 		load(graph)
 		graph
 	}
 
-
+	
 	/**
 	 * Creates a graph at the given filename using some configurtion TODO read from file
 	 */
-	def createGraph(dir: String): TitanGraph = {
-		val config = new BaseConfiguration
-		val storage = config.subset(GraphDatabaseConfiguration.STORAGE_NAMESPACE)
-        // configuring local backend
-        storage.setProperty(GraphDatabaseConfiguration.STORAGE_BACKEND_KEY, "local")
-        storage.setProperty(GraphDatabaseConfiguration.STORAGE_DIRECTORY_KEY, dir)
-        // configuring elastic search index
-        val index = storage.subset(GraphDatabaseConfiguration.INDEX_NAMESPACE).subset(INDEX_NAME)
-        index.setProperty(INDEX_BACKEND_KEY, "elasticsearch")
-        index.setProperty("local-mode", true)
-        index.setProperty("client-only", false)
-        index.setProperty(STORAGE_DIRECTORY_KEY, dir + File.separator + "es")
-
+	def createGraph(config: BaseConfiguration): TitanGraph = {
+		println("~~~~~~> Creating penis...")
 		TitanFactory.open(config)
+	}
+
+	/**
+	 * Reads the graph-related config from a config file. If none is given it will use the default
+	 * application.conf
+	 */
+	def readConfig(configFile: String = "application"): BaseConfiguration = {
+		// Import all the names used in the package to accomodate to later changes
+		import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE, 
+											STORAGE_BACKEND_KEY,
+											STORAGE_DIRECTORY_KEY,
+											HOSTNAME_KEY,
+											INDEX_BACKEND_KEY,
+											INDEX_NAMESPACE
+											}
+		val INDEX_NAME = "search"
+		// Create the configuration from file. Will throw errors if keys are not found
+		val globalConf = ConfigFactory.load
+
+		new BaseConfiguration {
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY"))
+			setProperty(s"$STORAGE_NAMESPACE.$HOSTNAME_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$HOSTNAME_KEY"))  
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY", 
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only")) 			
+		}	
 	}
 
 	/**
