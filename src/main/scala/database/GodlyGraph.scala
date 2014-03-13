@@ -1,0 +1,199 @@
+/**
+ * @author dadarakt
+ * Class which reproduces the tests for the graph of the god in scala for my purposes.
+ * https://github.com/thinkaurelius/titan/blob/master/titan-core/src/main/java/com/thinkaurelius/titan/example/GraphOfTheGodsFactory.java
+ */
+
+import com.thinkaurelius.titan.core._
+import org.apache.commons.configuration.BaseConfiguration
+import org.apache.commons.configuration.Configuration
+import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration
+import com.thinkaurelius.titan.core.attribute.Geoshape
+import com.tinkerpop.blueprints.Edge
+import com.tinkerpop.blueprints.Vertex
+import com.tinkerpop.blueprints.util.ElementHelper
+import java.io.File
+import scala.collection.JavaConversions._
+import org.apache.commons.configuration.BaseConfiguration
+import com.typesafe.config._
+
+object GodlyGraph {
+
+	// constant which defines the namespace
+	val INDEX_NAME = "search"
+
+	def main(args: Array[String]){
+		// Get the graph representation
+		val g = initializeGraph("/home/jannis/database/wurstikus/")
+		//val g = openGraph("/home/jannis/database/wurst/")
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> $g")
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> ${g.getFeatures}")
+		printGraph(g)
+		g.shutdown
+	}
+
+	/**
+	 * Prints out everthing in the beloved graph
+	 */
+	def printGraph(graph: TitanGraph) = {
+		// First just get all the vertices
+		val saturn = graph.getVertices("name", "saturn").iterator.next
+		println(s"~~~~~~~~~~~~~~~~~~> ${saturn}")
+		for(key <- saturn.getPropertyKeys) println(saturn.getProperty(key))
+	}
+
+	/**
+	 * Opens a graph or creates it if it does not exist. Returns a handle for the graph
+	 */
+	def openGraph(dir: String): TitanGraph = {
+		val graph = TitanFactory.open(dir)
+		if(graph.isOpen) println(s"Database $dir has been openend successfully")
+		else throw new RuntimeException("Problem while accessing database")
+		graph
+	}
+
+	/**
+	 * Setups-up a complete new graph
+	 */
+	def initializeGraph(dir: String): TitanGraph = {
+		println("~~~~~> Initializing graph...")
+		val graph = createGraph(readConfig())
+		load(graph)
+		graph
+	}
+
+	
+	/**
+	 * Creates a graph at the given filename using some configurtion TODO read from file
+	 */
+	def createGraph(config: BaseConfiguration): TitanGraph = {
+		println("~~~~~~> Creating penis...")
+		TitanFactory.open(config)
+	}
+
+	/**
+	 * Reads the graph-related config from a config file. If none is given it will use the default
+	 * application.conf
+	 */
+	def readConfig(configFile: String = "application"): BaseConfiguration = {
+		// Import all the names used in the package to accomodate to later changes
+		import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE, 
+											STORAGE_BACKEND_KEY,
+											STORAGE_DIRECTORY_KEY,
+											HOSTNAME_KEY,
+											INDEX_BACKEND_KEY,
+											INDEX_NAMESPACE
+											}
+		val INDEX_NAME = "search"
+		// Create the configuration from file. Will throw errors if keys are not found
+		val globalConf = ConfigFactory.load
+
+		new BaseConfiguration {
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY"))
+			setProperty(s"$STORAGE_NAMESPACE.$HOSTNAME_KEY", 
+						globalConf.getString(s"database.$STORAGE_NAMESPACE.$HOSTNAME_KEY"))  
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY", 
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode"))
+  			setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only",
+  						globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only")) 			
+		}	
+	}
+
+	/**
+	 * Loads a bunch of data into the graph. Static method, is this a good idea? TODO
+	 */
+	def load(graph: TitanGraph) = {
+		// Make some keys
+		graph.makeKey("name").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+	    graph.makeKey("age").dataType(classOf[Integer]).indexed("search", classOf[Vertex]).make
+	    graph.makeKey("type").dataType(classOf[String]).make
+	    val time 	= graph.makeKey("time").dataType(classOf[Integer]).make
+	    val reason 	= graph.makeKey("reason").dataType(classOf[String]).
+	    indexed("search", classOf[Edge]).make
+	    graph.makeKey("place").dataType(classOf[Geoshape]).indexed("search", classOf[Edge]).make
+
+	    // Make some labels
+	    graph.makeLabel("father").manyToOne.make
+	    graph.makeLabel("mother").manyToOne.make
+	    graph.makeLabel("battled").sortKey(time).make
+	    graph.makeLabel("lives").signature(reason).make
+	    graph.makeLabel("pet").make
+	    graph.makeLabel("brother").make
+
+	    // And write it to the graph
+	    graph.commit
+
+	    //Add some vertices
+	    val saturn = graph.addVertex(null)
+	    saturn.setProperty("name", "saturn")
+	    saturn.setProperty("age", 10000)
+	    saturn.setProperty("type", "titan")
+
+	    val sky = graph.addVertex(null)
+	    ElementHelper.setProperties(sky, "name", "sky", "type", "location")
+
+	    val sea = graph.addVertex(null)
+	    ElementHelper.setProperties(sea, "name", "sea", "type", "location")
+
+	    val jupiter = graph.addVertex(null)
+	    ElementHelper.setProperties(jupiter, "name", "jupiter", "age", new Integer(5000), "type", "god")
+
+	    val neptune = graph.addVertex(null)
+	    ElementHelper.setProperties(neptune, "name", "neptune", "age", new Integer(4500), "type", "god")
+
+	    val hercules = graph.addVertex(null)
+	    ElementHelper.setProperties(hercules, "name", "hercules", "age", new Integer(30), "type", "demigod")
+
+	    val alcmene = graph.addVertex(null)
+	    ElementHelper.setProperties(alcmene, "name", "alcmene", "age", new Integer(45), "type", "human")
+
+	    val pluto = graph.addVertex(null)
+	    ElementHelper.setProperties(pluto, "name", "pluto", "age", new Integer(4000), "type", "god")
+
+	    val nemean = graph.addVertex(null)
+	    ElementHelper.setProperties(nemean, "name", "nemean", "type", "monster")
+
+	    val hydra = graph.addVertex(null)
+	    ElementHelper.setProperties(hydra, "name", "hydra", "type", "monster")
+
+	    val cerberus = graph.addVertex(null)
+	    ElementHelper.setProperties(cerberus, "name", "cerberus", "type", "monster")
+
+	    val tartarus = graph.addVertex(null)
+	    ElementHelper.setProperties(tartarus, "name", "tartarus", "type", "location")
+
+	    // Add some edges
+	    jupiter.addEdge("father", saturn)
+	    jupiter.addEdge("lives", sky).setProperty("reason", "loves fresh breezes")
+	    jupiter.addEdge("brother", neptune)
+	    jupiter.addEdge("brother", pluto)
+
+	    neptune.addEdge("lives", sea).setProperty("reason", "loves waves")
+	    neptune.addEdge("brother", jupiter)
+	    neptune.addEdge("brother", pluto)
+
+	    hercules.addEdge("father", jupiter)
+	    hercules.addEdge("mother", alcmene)
+	    ElementHelper.setProperties(hercules.addEdge("battled", nemean), "time", new Integer(1), "place", Geoshape.point(38.1f, 23.7f))
+	    ElementHelper.setProperties(hercules.addEdge("battled", hydra), "time", new Integer(2), "place", Geoshape.point(37.7f, 23.9f))
+	    ElementHelper.setProperties(hercules.addEdge("battled", cerberus), "time", new Integer(12), "place", Geoshape.point(39f, 22f))
+
+	    pluto.addEdge("brother", jupiter)
+	    pluto.addEdge("brother", neptune)
+	    pluto.addEdge("lives", tartarus).setProperty("reason", "no fear of death")
+	    pluto.addEdge("pet", cerberus)
+
+	    cerberus.addEdge("lives", tartarus)
+
+	    // flush it into the graph
+	    graph.commit();
+	}
+
+}
