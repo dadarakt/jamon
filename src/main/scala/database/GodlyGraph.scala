@@ -1,7 +1,8 @@
+package database
+
 /**
  * @author dadarakt
- * Class which reproduces the tests for the graph of the god in scala for my purposes.
- * https://github.com/thinkaurelius/titan/blob/master/titan-core/src/main/java/com/thinkaurelius/titan/example/GraphOfTheGodsFactory.java
+ * Class used to open existing databases or create a new one, if desired.
  */
 
 import com.thinkaurelius.titan.core._
@@ -16,67 +17,106 @@ import java.io.File
 import scala.collection.JavaConversions._
 import org.apache.commons.configuration.BaseConfiguration
 import com.typesafe.config._
+// Error handling and logging
+import ch.qos.logback.classic.Logger
+import org.slf4j.LoggerFactory
+import ch.qos.logback.classic.Level
+import scala.util.{Try, Success, Failure}
+import grizzled.slf4j.Logging
+import scala.util.control.NonFatal
 
-object GodlyGraph {
 
-	// constant which defines the namespace
+
+object TitanDatabaseConnection extends Logging{
+
+	// Set the log level manually... TODO make this in a config xml file on the classpath
+	// val log = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger]
+	// log.setLevel(Level.OFF)
+	// defines the namespace for indexing
 	val INDEX_NAME = "search"
 
 	def main(args: Array[String]){
-		// Get the graph representation
-		val g = initializeGraph("/home/jannis/database/wurstikus/")
-		//val g = openGraph("/home/jannis/database/wurst/")
-		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> $g")
-		println(s"~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~> ${g.getFeatures}")
-		printGraph(g)
-		g.shutdown
+		val g = openGraphFromConfig()
+		g match {
+			case Success(graph) => {
+				printGraph(graph)
+				graph.shutdown	
+			}
+			case Failure(e) => {
+				error(e)
+			}
+		}		
 	}
 
-	/**
-	 * Prints out everthing in the beloved graph
+	/**adds a logger property that you can use to retrieve the Logger object
+	 * Prints out everything in a graph. Only used for testing. TODO only test BS
 	 */
-	def printGraph(graph: TitanGraph) = {
+	def printGraph(graph: TitanGraph): Unit = {
 		// First just get all the vertices
-		val saturn = graph.getVertices("name", "saturn").iterator.next
-		println(s"~~~~~~~~~~~~~~~~~~> ${saturn}")
-		for(key <- saturn.getPropertyKeys) println(saturn.getProperty(key))
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
+		val vertices  = graph.getVertices.map(v => Option(v.getProperty("name"))).flatten	
+		//vertices.foreach {(vertex: String) => println(vertex)}	
+		println(vertices)	
+
+		println(s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~")
+		val edges = graph.getEdges.map(e => Option(e.getLabel)).flatten
+		println(edges)
+
+		graph.commit
 	}
 
 	/**
-	 * Opens a graph or creates it if it does not exist. Returns a handle for the graph
+	 * Opens a graph using the directory.
 	 */
-	def openGraph(dir: String): TitanGraph = {
+	def openGraphFromDir(dir: String): Try[TitanGraph] = {
 		val graph = TitanFactory.open(dir)
-		if(graph.isOpen) println(s"Database $dir has been openend successfully")
-		else throw new RuntimeException("Problem while accessing database")
-		graph
+		if(graph.isOpen){
+			info(s"Database $dir has been openend successfully")	
+			Success(graph)
+		} else {
+			error("Could not access graph")
+			Failure(new NoSuchElementException("Could not find the graph"))
+		}	
 	}
 
 	/**
-	 * Setups-up a complete new graph
+	 * Opens a graph using a configuration file
 	 */
-	def initializeGraph(dir: String): TitanGraph = {
-		println("~~~~~> Initializing graph...")
-		val graph = createGraph(readConfig())
-		load(graph)
-		graph
+	def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
+		try {
+			val conf = readConfig(configFileName)
+			val graph = TitanFactory.open(conf)
+			Success(graph)
+		} catch {
+			case NonFatal(e) => {
+				error("Could not access the database")
+				Failure(e)
+			}
+		}
 	}
 
-	
+
 	/**
-	 * Creates a graph at the given filename using some configurtion TODO read from file
+	 * Setups-up a the complete graph of the gods using the provided configuration
 	 */
-	def createGraph(config: BaseConfiguration): TitanGraph = {
-		println("~~~~~~> Creating penis...")
-		TitanFactory.open(config)
+	def createGraphOfTheGods(configFileName: String): Try[TitanGraph] = {
+		info("Initializing graph...")
+		openGraphFromConfig(configFileName) match {
+			case Success(graph) => {
+				loadGodlyData(graph)
+				Success(graph)
+			}
+			case f@Failure(ex) => f
+		}
 	}
+
 
 	/**
 	 * Reads the graph-related config from a config file. If none is given it will use the default
 	 * application.conf
 	 */
 	def readConfig(configFile: String = "application"): BaseConfiguration = {
-		// Import all the names used in the package to accomodate to later changes
+		// Import all the names used in the package for safer handling of the namespaces
 		import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE, 
 											STORAGE_BACKEND_KEY,
 											STORAGE_DIRECTORY_KEY,
@@ -84,10 +124,8 @@ object GodlyGraph {
 											INDEX_BACKEND_KEY,
 											INDEX_NAMESPACE
 											}
-		val INDEX_NAME = "search"
 		// Create the configuration from file. Will throw errors if keys are not found
 		val globalConf = ConfigFactory.load
-
 		new BaseConfiguration {
 			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY", 
 						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
@@ -106,18 +144,20 @@ object GodlyGraph {
 		}	
 	}
 
+
 	/**
-	 * Loads a bunch of data into the graph. Static method, is this a good idea? TODO
+	 * Uses the data given in the getting started example and pumps them into my implementation
+	 * for some early tests. Makes keys and indexes as well as data points.
 	 */
-	def load(graph: TitanGraph) = {
-		// Make some keys
+	def loadGodlyData(graph: TitanGraph) = {
+		// Make some keys -> The important stuff
 		graph.makeKey("name").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 	    graph.makeKey("age").dataType(classOf[Integer]).indexed("search", classOf[Vertex]).make
 	    graph.makeKey("type").dataType(classOf[String]).make
 	    val time 	= graph.makeKey("time").dataType(classOf[Integer]).make
 	    val reason 	= graph.makeKey("reason").dataType(classOf[String]).
 	    indexed("search", classOf[Edge]).make
-	    graph.makeKey("place").dataType(classOf[Geoshape]).indexed("search", classOf[Edge]).make
+	    graph.makeKey("place").dataType(classOf[Geoshape]).indexed(INDEX_NAME, classOf[Edge]).make
 
 	    // Make some labels
 	    graph.makeLabel("father").manyToOne.make
@@ -135,37 +175,26 @@ object GodlyGraph {
 	    saturn.setProperty("name", "saturn")
 	    saturn.setProperty("age", 10000)
 	    saturn.setProperty("type", "titan")
-
 	    val sky = graph.addVertex(null)
 	    ElementHelper.setProperties(sky, "name", "sky", "type", "location")
-
 	    val sea = graph.addVertex(null)
 	    ElementHelper.setProperties(sea, "name", "sea", "type", "location")
-
 	    val jupiter = graph.addVertex(null)
 	    ElementHelper.setProperties(jupiter, "name", "jupiter", "age", new Integer(5000), "type", "god")
-
 	    val neptune = graph.addVertex(null)
 	    ElementHelper.setProperties(neptune, "name", "neptune", "age", new Integer(4500), "type", "god")
-
 	    val hercules = graph.addVertex(null)
 	    ElementHelper.setProperties(hercules, "name", "hercules", "age", new Integer(30), "type", "demigod")
-
 	    val alcmene = graph.addVertex(null)
 	    ElementHelper.setProperties(alcmene, "name", "alcmene", "age", new Integer(45), "type", "human")
-
 	    val pluto = graph.addVertex(null)
 	    ElementHelper.setProperties(pluto, "name", "pluto", "age", new Integer(4000), "type", "god")
-
 	    val nemean = graph.addVertex(null)
 	    ElementHelper.setProperties(nemean, "name", "nemean", "type", "monster")
-
 	    val hydra = graph.addVertex(null)
 	    ElementHelper.setProperties(hydra, "name", "hydra", "type", "monster")
-
 	    val cerberus = graph.addVertex(null)
 	    ElementHelper.setProperties(cerberus, "name", "cerberus", "type", "monster")
-
 	    val tartarus = graph.addVertex(null)
 	    ElementHelper.setProperties(tartarus, "name", "tartarus", "type", "location")
 
@@ -174,22 +203,18 @@ object GodlyGraph {
 	    jupiter.addEdge("lives", sky).setProperty("reason", "loves fresh breezes")
 	    jupiter.addEdge("brother", neptune)
 	    jupiter.addEdge("brother", pluto)
-
 	    neptune.addEdge("lives", sea).setProperty("reason", "loves waves")
 	    neptune.addEdge("brother", jupiter)
 	    neptune.addEdge("brother", pluto)
-
 	    hercules.addEdge("father", jupiter)
 	    hercules.addEdge("mother", alcmene)
 	    ElementHelper.setProperties(hercules.addEdge("battled", nemean), "time", new Integer(1), "place", Geoshape.point(38.1f, 23.7f))
 	    ElementHelper.setProperties(hercules.addEdge("battled", hydra), "time", new Integer(2), "place", Geoshape.point(37.7f, 23.9f))
 	    ElementHelper.setProperties(hercules.addEdge("battled", cerberus), "time", new Integer(12), "place", Geoshape.point(39f, 22f))
-
 	    pluto.addEdge("brother", jupiter)
 	    pluto.addEdge("brother", neptune)
 	    pluto.addEdge("lives", tartarus).setProperty("reason", "no fear of death")
 	    pluto.addEdge("pet", cerberus)
-
 	    cerberus.addEdge("lives", tartarus)
 
 	    // flush it into the graph
