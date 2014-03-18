@@ -13,7 +13,6 @@ import com.thinkaurelius.titan.core.attribute.Geoshape
 import com.tinkerpop.blueprints.Edge
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.util.ElementHelper
-import java.io.File
 import scala.collection.JavaConversions._
 import org.apache.commons.configuration.BaseConfiguration
 import com.typesafe.config._
@@ -54,12 +53,12 @@ object TitanDatabaseConnection extends Logging{
 	def printGraph(graph: TitanGraph): Unit = {
 		// First just get all the vertices
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val vertices  = graph.getVertices.map(v => Option(v.getProperty("name"))).flatten	
+		val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
 		//vertices.foreach {(vertex: String) => println(vertex)}	
 		println(vertices)	
 
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val edges = graph.getEdges.map(e => Option(e.getLabel)).flatten
+		val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
 		println(edges)
 
 		graph.commit
