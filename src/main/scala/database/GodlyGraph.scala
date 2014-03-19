@@ -5,33 +5,25 @@ package database
  * Class used to open existing databases or create a new one, if desired.
  */
 
-import com.thinkaurelius.titan.core._
-import org.apache.commons.configuration.BaseConfiguration
-import org.apache.commons.configuration.Configuration
+import com.thinkaurelius.titan.core.{TitanFactory, TitanGraph}
 import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration
 import com.thinkaurelius.titan.core.attribute.Geoshape
 import com.tinkerpop.blueprints.Edge
 import com.tinkerpop.blueprints.Vertex
 import com.tinkerpop.blueprints.util.ElementHelper
-import java.io.File
 import scala.collection.JavaConversions._
 import org.apache.commons.configuration.BaseConfiguration
-import com.typesafe.config._
+import com.typesafe.config.ConfigFactory
 // Error handling and logging
-import ch.qos.logback.classic.Logger
-import org.slf4j.LoggerFactory
-import ch.qos.logback.classic.Level
 import scala.util.{Try, Success, Failure}
 import grizzled.slf4j.Logging
 import scala.util.control.NonFatal
 
+import com.thinkaurelius.titan.core.attribute.Cmp._
 
 
 object TitanDatabaseConnection extends Logging{
 
-	// Set the log level manually... TODO make this in a config xml file on the classpath
-	// val log = LoggerFactory.getLogger(org.slf4j.Logger.ROOT_LOGGER_NAME).asInstanceOf[Logger]
-	// log.setLevel(Level.OFF)
 	// defines the namespace for indexing
 	val INDEX_NAME = "search"
 
@@ -45,7 +37,7 @@ object TitanDatabaseConnection extends Logging{
 			case Failure(e) => {
 				error(e)
 			}
-		}		
+		}
 	}
 
 	/**adds a logger property that you can use to retrieve the Logger object
@@ -54,15 +46,23 @@ object TitanDatabaseConnection extends Logging{
 	def printGraph(graph: TitanGraph): Unit = {
 		// First just get all the vertices
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val vertices  = graph.getVertices.map(v => Option(v.getProperty("name"))).flatten	
+		val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
 		//vertices.foreach {(vertex: String) => println(vertex)}	
 		println(vertices)	
 
 		println(s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val edges = graph.getEdges.map(e => Option(e.getLabel)).flatten
+		val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
 		println(edges)
 
 		graph.commit
+	}
+
+	/**
+	 * Returns a vertex with the given property to the key from the graph
+	 */
+	def retrieveVertex(graph: TitanGraph, key: String, property: String): Option[Vertex] = {
+		println(graph.query.has(key, EQUAL, property).vertices)
+		None
 	}
 
 	/**
@@ -113,7 +113,7 @@ object TitanDatabaseConnection extends Logging{
 
 	/**
 	 * Reads the graph-related config from a config file. If none is given it will use the default
-	 * application.conf
+	 * application.conf in the resources
 	 */
 	def readConfig(configFile: String = "application"): BaseConfiguration = {
 		// Import all the names used in the package for safer handling of the namespaces

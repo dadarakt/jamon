@@ -4,16 +4,39 @@
  * data and checks for eventual corruptions.
  */
 
-import database._
+import database.TitanDatabaseConnection._
 import org.scalatest.FunSuite
+import org.scalatest.BeforeAndAfterAll
+import scala.util.{Try, Success, Failure}
+import com.thinkaurelius.titan.core.TitanGraph
 
-class GodsTest extends FunSuite{
+class GodsTest extends FunSuite with BeforeAndAfterAll{
 
-	test("Print out the current classpath"){
-		val loader = ClassLoader.getSystemClassLoader
-		println(ClassLoader.getSystemClassLoader)
-		println(this.getClass.getClassLoader)
-		println(classOf[Object].getClassLoader)
+	var graph: Option[TitanGraph] = None
+
+	test("Connect to the graph") {
+		graph = openGraphFromConfig() match {
+			case Success(g) => {
+				println(s"Got the graph! $g")
+				Some(g)
+			}
+			case Failure(ex) => {
+				println(s"Could not open the graph!!")
+				throw ex
+			}
+		}
+	}
+
+	test("Retrieve a vertex") {
+		graph.foreach { (g: TitanGraph) =>
+
+			retrieveVertex(g, "name", "hercules")
+		}		
+	}
+
+
+	test("Shutdown the graph") {
+		graph.foreach{_.shutdown}
 	}
 	
 }
