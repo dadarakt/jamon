@@ -1,21 +1,16 @@
-include("dependencies/OGLUtil.jl")
-function resizeFunc(w::GLsizei, h::GLsizei)
-    global projMatrix
-    glViewport(0, 0, w, h)
-    projMatrix = computeOrthographicProjection( 0.0f0, float32(w), 0.0f0, float32(h), -10f0, 10f0)
-    return nothing
-end
+using GLGraphics, OpenGL, GLUT
 
-function displayFuncCallback()
-	global projMatrix, model, words, textField, mouseCursor
+createWindow(windowPosition=[2000,0])
+linkFunctions()
 
-    glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
+glClearColor(1f0, 1f0, 1f0, 1f0)
+gridx = [float32(x) for x=-100:1:100]
+gridy = [float32(y) for y=-100:1:100]
 
-    render(textField)
-    render(textField2)
+glDisplay(Grid(gridx, gridy))
+glDisplay(Rectangle(0f0,0f0,500f0,500f0, GLColor(Float32[0.4, 0,0,0.5]), Texture()))
+glDisplay(open("editor.jl"))
 
-    return nothing
-end
 
 
 function updateCursor(textField, x::Int, y::Int)
@@ -114,9 +109,6 @@ function registerStandartEvents(textField::TextField)
 	registerEvent(EventAction{MouseClicked}("", x->(x.key == 0) && ~inside(textField.area, x.x, x.y), (), looseFocus, (textField,)))
 end
 
-createWindow(name = "Moiiin", windowSize = [1000, 1000], windowPosition = [1950, 20])
-linkFunctions()
-initUtils()
 
 
 font 	= AsciiAtlas("dependencies/VeraMono")
@@ -136,5 +128,8 @@ registerEvent(EventAction{MouseMoved}("", x-> true, (), x -> (mouseCursor[1] = x
 
 
 glClearColor(0.2f0, 0.2f0, 0.2f0, 0.2f0)
+
+
+
 
 glutMainLoop()
