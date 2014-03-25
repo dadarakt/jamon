@@ -33,7 +33,7 @@ function exprToXML(x::Expr, node)
 	xNode = new_child(node, "expr")
 	set_attribute(xNode, "head", string(x.head))
 	for elem in x.args
-		exprToXML(elem, xNode)
+		exprToXML(elem, new_child(xNode, "args"))
 	end
 end
 
