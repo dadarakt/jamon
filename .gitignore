@@ -1,3 +1,4 @@
+# Builds, target, binaries etc...
 target/
 project/
 .idea/
@@ -5,3 +6,13 @@ res/
 .idea_modules/
 *.swp
 res/
+
+# All latex-related intermediate files
+*.aux
+*.toc
+*.log
+*.synctex.gz
+*.bbl
+*.blg
+*.dvi
+*.out

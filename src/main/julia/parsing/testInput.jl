@@ -6,18 +6,20 @@ function resizeFunc(w::GLsizei, h::GLsizei)
     return nothing
 end
 
-function displayFuncCallback()
-	global projMatrix, model, words, textField, mouseCursor
+# # noch ne funktion
+# function displayFuncCallback()
+# 	# noch ein kommentar
+# 	global projMatrix, model, words, textField, mouseCursor
 
-	glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
+# 	glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
 
-	render(textField)
-	render(textField2)
+# 	render(textField)
+# 	render(textField2)
 
-	return nothing
-end
+# 	return nothing
+# end
 
-glClearColor(0.2f0, 0.2f0, 0.2f0, 0.2f0)
+# glClearColor(0.2f0, 0.2f0, 0.2f0, 0.2f0)
 
 glutMainLoop()
 

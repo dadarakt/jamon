@@ -2,10 +2,11 @@
  * Tests the xml parsing
  */
 
-import database.TitanDatabaseConnection._
+import util.XMLParsing
 import org.scalatest.FunSuite
 import scala.util.{Try, Success, Failure}
 import com.thinkaurelius.titan.core.TitanGraph
+
 
 class XMLParsingTest extends FunSuite {
 
@@ -190,8 +191,12 @@ glutMainLoop()"""
 """
 
 	test("Open the xml and make sure everthing is right") {
-		val file = scala.io.Source.fromURL(getClass.getResource("testOutput.xml")).mkString
-		println(file)	
+		XMLParsing.readFromFile("testOutput.xml")	
 		
+	}
+
+
+	test("Dummy so far"){
+		println("done")
 	}
 }

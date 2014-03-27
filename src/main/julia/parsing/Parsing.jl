@@ -8,8 +8,22 @@ str = strip(readall(open("testInput.jl")))
 i = start(str)
 exprs = {}
 while !done(str,i)
-	ex, i = parse(str,i, raise=true)
-	push!(exprs,ex)
+	# try
+	if str[i] == '#' 
+		println("hier isn kommentar, $i")
+	end
+		ex, i = parse(str,i, raise=true)
+		push!(exprs, ex)
+	# catch y
+	# 	println("Feeeehler")
+	# 	if isa(y, Exception)
+	# 		# check if this line is a comment
+	# 		if contains(str, '#')
+	# 			println("dat is ne kommentar!")
+	# 		end
+	# 		println(y)
+	# 	end
+	# end
 end
 
 function lowerFirstChar(x::String)
