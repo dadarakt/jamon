@@ -1,7 +1,7 @@
 package util
 
 /**
- * Can be used when functioncalls need to be timed for testing
+ * Can be used when function calls need to be timed for testing
  */
 trait MeasureFunction {
   def measureCallWithResult[T](func: => T) : (T, Long) = {
