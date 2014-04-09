@@ -16,7 +16,7 @@ import scala.xml.Node
  * @param systemTimestamp Point in time the request was received by the system.
  * @param client          Name of the client/program which created the query.
  * @param user            Name of the user if he wishes to commit.
- * @param request         Description of the query made.
+ * @param requests         Description of the query made.
  * @param juliaVersion    Version of the language used.
  * @param juliaCode      The functions which are to be used for the query
  */
