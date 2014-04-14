@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <header>
-  <timestamp>2014-04-08T14:30:10-1:00</timestamp>
+  <timestamp>2014-04-08T14:30:10.888Z</timestamp>
   <sender>127.0.0.1</sender>
-  <client>editor</client>
+  <client>EDITOR</client>
   <user>simon</user>
   <juliaVersion>0.2.1</juliaVersion>
   <requests>InsertCode</requests>

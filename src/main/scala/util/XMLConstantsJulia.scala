@@ -6,14 +6,15 @@ package util
 
  object XMLConstantsJulia {
 
-  val Head          = "head"
+  val Header         = "header"
   val Body          = "body"
+  val JuliaTree     = "juliaTree"
   val Expr          = "expr"
   val Function      = "function"
   val Timestamp     = "timestamp"
   val User          = "user"
   val Client        = "client"
-  val Request       = "request"
+  val Request       = "requests"
   val JuliaVersion  = "juliaVersion"
 
 

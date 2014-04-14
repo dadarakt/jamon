@@ -28,7 +28,7 @@ case class Query( userTimestamp: Double = System.currentTimeMillis,
                   juliaVersion: String,
                   requests: Requests,
                   juliaCode: JuliaCode = JuliaFunctions()
-                  ) {}
+                  ){}
 
 
 /**
