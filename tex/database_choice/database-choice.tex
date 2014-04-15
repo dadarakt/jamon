@@ -1,0 +1,54 @@
+\documentclass[12pt]{scrartcl}
+
+\usepackage{ucs}
+\usepackage{inputenc}
+\usepackage{graphicx}
+\usepackage[automark]{scrpage2}
+\pagestyle{scrheadings}
+\usepackage{pgf}
+\usepackage{tikz}
+\usepackage{hyperref}
+
+% EDIT FORMATTING HERE-----
+%\usepackage{geometry}
+%\geometry{a4paper,left=25mm,right=25mm,top=30mm,bottom=20mm}
+
+
+% EDIT DATA HERE ----------
+\title{Documentation for the Bachelor's Thesis}
+\subtitle{}
+\author{Jannis Eichborn}
+\date{\today{},Onsabrueck}
+
+% EDIT FOOTNOTES HERE------
+%\ifoot{\emph{Jannis Eichborn} }
+%\cfoot{\hyperref[page1]{\tikz \fill[black] (1ex,1ex) circle (1ex);}}
+%\ofoot[]{\thepage}
+
+\hypersetup{linktoc=all}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\tableofcontents
+\end{titlepage}
+
+
+\section{Methodology}
+\subsection{What is the Idea?}
+Most modern software is ordered and distributed in libraries which contain reusable parts of code. Without libraries there would be no Java, no large software collaborations, no Open-Source movement possible. 
+For this project I will create a system that is able to digest the input of users which are independently from one another writing code in Julia for the library.
+\subsection{Choosing a Suitable Database}
+First step in the implementation phase is choosing a database which makes it possible for me to meet the requirements which are imposed on the system.
+
+\end{document}

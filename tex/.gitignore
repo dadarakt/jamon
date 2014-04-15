@@ -1,0 +1,6 @@
+*.pdf
+*.aux
+*.toc
+*.log
+*.synctex.gz
+*.out
