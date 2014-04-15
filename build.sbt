@@ -4,6 +4,10 @@ version := "0.1"
 
 scalaVersion := "2.10.3"
 
+sbtVersion := "0.13.0"
+
+resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+
 libraryDependencies ++= {
   val slf4jVersion = "1.7.6" 
   Seq(
@@ -14,7 +18,8 @@ libraryDependencies ++= {
     "org.slf4j" % "log4j-over-slf4j" % slf4jVersion,
     "org.clapper" %% "grizzled-slf4j" % "1.0.1",
     "ch.qos.logback" % "logback-classic" % "1.0.13",
-		"com.thinkaurelius.titan" % "titan-all" % "0.4.2" 
+		"com.thinkaurelius.titan" % "titan-all" % "0.4.2", 
+		"com.typesafe.akka" %% "akka-actor" % "2.3.2"
 	)
 }
 

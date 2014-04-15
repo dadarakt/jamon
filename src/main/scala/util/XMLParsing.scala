@@ -2,6 +2,9 @@ package util
 
 /**
  * Provides functionality to parse  XML to extract queries and functions.
+ *
+ * User: jannis
+ * Date: 03/20/14
  */
 
 import scala.xml.{XML,Node}
@@ -185,7 +188,7 @@ object XMLParsing extends Logging {
 
 
 /**
- * Used to validate an XML against the provided schema. Mostly java source
+ * Used to validate an XML against the provided schema. Mostly java sources.
  * @param schema The schema to test against
  */
 class SchemaAwareFactoryAdapter(schema: Schema) extends NoBindingFactoryAdapter {
