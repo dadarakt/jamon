@@ -18,7 +18,7 @@ import scala.xml.{TopScope, Elem}
 import javax.xml.parsers.{SAXParserFactory, SAXParser}
 import javax.xml.validation.{Schema, SchemaFactory}
 import javax.xml.XMLConstants
-import  javax.xml.transform.stream.StreamSource
+import javax.xml.transform.stream.StreamSource
 
 
 object XMLParsing extends Logging {

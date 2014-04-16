@@ -31,7 +31,7 @@ trait AkkaWorkManager extends Actor with Logging with PropagatedKill {
 
   ///////////////////////////////
 
-  //the known AsyncFbClients that can be used to do work, mapped to the work they are currently doing (and for whom that
+  //the known connections that can be used to do work, mapped to the work they are currently doing (and for whom that
   //work is being done)
   protected val workers = mutable.Map.empty[ActorRef, CurrentWork]
 
