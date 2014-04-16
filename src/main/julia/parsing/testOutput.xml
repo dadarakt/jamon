@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<JuliaTree>
+  <Expr Head="call" Symbol="glClearColor" Float32="1.0"/>
+</JuliaTree>

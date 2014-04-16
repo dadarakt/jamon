@@ -1,26 +1,19 @@
-include("dependencies/OGLUtil.jl")
-function resizeFunc(w::GLsizei, h::GLsizei)
-    global projMatrix
-    glViewport(0, 0, w, h)
-    projMatrix = computeOrthographicProjection( 0.0f0, float32(w), 0.0f0, float32(h), -10f0, 10f0)
-    return nothing
+using GLGraphics, OpenGL, GLUT
+
+createWindow(windowPosition=[2000,0])
+linkFunctions()
+
+
+immutable View{T}
+	cam::Camera
+	area::Shape
+	viewable::T
+	selection
+	representation
 end
-
-function displayFuncCallback()
-	global projMatrix, model, words, textField, mouseCursor
-
-    glClear(COLOR_BUFFER_BIT | DEPTH_BUFFER_BIT)
-
-    render(textField)
-    render(textField2)
-
-    return nothing
-end
-
 
 function updateCursor(textField, x::Int, y::Int)
-	println(y)
-	
+
 	advance 	= int(textField.font.advance)
 	lineHeight 	= int(textField.font.lineHeight)
 	scroll 		= int((_height(textField.area) + textField.scroll) / lineHeight)
@@ -114,9 +107,6 @@ function registerStandartEvents(textField::TextField)
 	registerEvent(EventAction{MouseClicked}("", x->(x.key == 0) && ~inside(textField.area, x.x, x.y), (), looseFocus, (textField,)))
 end
 
-createWindow(name = "Moiiin", windowSize = [1000, 1000], windowPosition = [1950, 20])
-linkFunctions()
-initUtils()
 
 
 font 	= AsciiAtlas("dependencies/VeraMono")
@@ -136,5 +126,8 @@ registerEvent(EventAction{MouseMoved}("", x-> true, (), x -> (mouseCursor[1] = x
 
 
 glClearColor(0.2f0, 0.2f0, 0.2f0, 0.2f0)
+
+
+
 
 glutMainLoop()
