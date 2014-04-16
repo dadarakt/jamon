@@ -1,0 +1,77 @@
+\documentclass[12pt]{scrartcl}
+
+\usepackage{ucs}
+\usepackage{inputenc}
+\usepackage{graphicx}
+\usepackage[automark]{scrpage2}
+\pagestyle{scrheadings}
+\usepackage{pgf}
+\usepackage{tikz}
+\usepackage{hyperref}
+
+% EDIT FORMATTING HERE-----
+%\usepackage{geometry}
+%\geometry{a4paper,left=25mm,right=25mm,top=30mm,bottom=20mm}
+
+
+% EDIT DATA HERE ----------
+\title{Documentation for the Bachelor's Thesis}
+\subtitle{}
+\author{Jannis Eichborn}
+\date{\today{},Onsabrueck}
+
+% EDIT FOOTNOTES HERE------
+%\ifoot{\emph{Jannis Eichborn} }
+%\cfoot{\hyperref[page1]{\tikz \fill[black] (1ex,1ex) circle (1ex);}}
+%\ofoot[]{\thepage}
+
+\hypersetup{linktoc=all}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+
+
+\begin{document}
+
+\begin{titlepage}
+\maketitle
+\tableofcontents
+\end{titlepage}
+
+
+\section{Methodology}
+\subsection{Elastic Search}
+The following is based on:
+\href{http://www.elasticsearch.org/webinars/getting-started-with-elasticsearch/?watch=1}{Elastic Search Webinar}\\
+
+\textbf{What is Elastic Search?}
+\begin{itemize}
+	\item Open source, distributed, RESTful search engine.
+	\item Can be used for data exploration.
+	\item Is highly configurable.
+	\item And it is fast. 
+\end{itemize}
+
+Elastic Search is run in the JVM with all the advantages to use your hardware in an easy manner. A node can be run in an JVM and functions as a full ES cluster if necessary. The default http-port is 9200ff.\\
+
+\textbf{In- \& Output}\\
+You can input data using http request containing JSONs easily. ES uses optimistic concurrency over versioning of the input data.\\
+ES is not schema-free! But it uses mapping which are generated over the data, which makes it very agnostic over the input. This can (And I guess sometimes has to be) overwritten manually.\\
+A \emph{Index} is used for all data. There are \emph{inversed indices} to quickly find documents in a database of millions of indices. In itself ES can be used as a key-value storage.\\
+When indexing ES buffers incoming data and writes it out every second to fasten things up.\\
+
+\textbf{Indexing \& Search}\\
+Once things are indexed they can be searched over the http-port in an easy and generic fashion. Bindings can be over indices or over JSONs provided. This can be useful to manipulate search terms automatically.\\
+Data is sharded over nodes with a given replication factor. There is an integrated health-check facility to see how many nodes are online and how many shards are thus unassigned. The cluster tries to be as resilient as possible over the given infrastructure so that search can continue even on a corrupted cluster. The health facility will indicate whether there is potential of data-loss due to insufficient sharding over the given nodes.\\
+
+\textbf{Faceted Search (Aggregations)}\\
+Can be used to retrieve data over all data-points. I.e. means over some fields of the data. Returned are sums, deviations, means, sum of squares etc...
+
+
+
+\end{document}

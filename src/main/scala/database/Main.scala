@@ -5,43 +5,127 @@ package database
  * This might be the entry point to the system but let's see.
  */
 
-import com.tinkerpop.rexster.client.RexsterClientFactory
-import scala.collection.JavaConversions._
 import grizzled.slf4j.Logging
+import org.apache.commons.configuration.BaseConfiguration
+import scala.util.Try
+import com.thinkaurelius.titan.core._
+import com.tinkerpop.blueprints.{Edge, Vertex}
+import scala.util.control.NonFatal
+import scala.collection.JavaConversions._
+import scala.io.Source
+import com.thinkaurelius.titan.graphdb.blueprints.TitanBlueprintsGraph
+import com.thinkaurelius.titan.graphdb.database.StandardTitanGraph
+import com.tinkerpop.blueprints.ThreadedTransactionalGraph
 
 object Main extends Logging{
+// Load a file and read all the lines for further processing
+  val lines = try{
+    Source.fromFile("res/Main.scala").getLines().toSeq
+  }
+
+  // Constants
+  val GraphName = "graph"
+
   def main(args: Array[String]){
-    println("Now here we go!")
 
-    val client = RexsterClientFactory.open("localhost", "graph")
+    // Setup configuration for the graph we want
+    val conf = new BaseConfiguration {
+      setProperty("storage.backend", "cassandra")
+      setProperty("storage.hostname", "127.0.0.1")
+      setProperty("storage.directory" ,"/tmp/titanuis")
+      setProperty("storage.enable-basic-metrics", "true")
+    }
 
-    val names: Seq[String] = client.execute("g.V.name").toSeq
-    debug("%d names: %s" format (names.size, names.mkString("[", ",", "]")))
+    // This should make the graph instance I wanna have
+    val g: TitanGraph = try {
+      TitanFactory.open(conf)
+    } catch{
+      case NonFatal(e) => {
+        error("Cannot connect to the database!", e)
+        return // Just get out of here for now
+      }
+    }
 
-    val simonLikes: Seq[String] =
-      client.execute("g.V('name',name).out('likes').name", Map("name" -> "Simon")).toSeq
+    GraphUtils.clearGraph(g)
+
+
+    // Print initial database
+    GraphUtils.printGraph(g)
+
+    // Just make sure the graph is there and ready
+    println(s"-------> ${g.isOpen}")
+    println(g.getClass)
+
+    // Start a transaction on the graph
+    val transaction = g.newTransaction
+    // And add ALL THE LINES
+    for(line <- lines) {
+      val vertex = transaction.addVertex(null)
+      vertex.setProperty("lineOfCode", line)
+    }
+    println(s"-----> ${transaction.hasModifications}")
+    transaction.commit
+
+
+    //Thread.sleep(1000)
+
+    // printDatabase(g)
+
+    //Read out all the vertices
+    println(s"Number of lines: ${lines.length}")
+
+    // Retrieve all vertices to a sequence
+    val vertices = g.getVertices
+    val verticesSeq = vertices.toSeq
+    println(vertices)
+    println(s"Number of vertices: ${verticesSeq.length}")
+    g.commit
+
+
+    // printDatabase(g)
+    // // Finally remove all vertices in the graph
+    // clearGraph(g)   
   }
 
 
-  /**
-   * Sets up a test instance of the database locally.
-   */
-  def setupDatabase = {
-
-  }
-
-  /**
-   * Adds a string in the database to see what happens
-   * @param s The string to be entered into the database
-   */
-  def addStringToDatabase(s: String) = {
-
-  }
-
-  /**
-   * Prints some kind of traversing over the database
-   */
-  def printDatabase = {
-
-  }
 }
+
+object GraphUtils {
+  /**
+     * Clears all data from a graph, should be handles with extreme caution!
+     */
+    def clearGraph(graph: ThreadedTransactionalGraph) = {
+      //info("Clearing out all data from the graph")
+      val transaction = graph.newTransaction
+      var counter = 0
+      for(vertex <- graph.getVertices){
+        counter += 1
+        vertex.remove
+      }
+      transaction.commit
+      //oinfo(s"Cleared $counter vertices from the graph $graph")
+    }
+
+  /**
+   * Prints the graph using the RexsterGraph instance provided
+   * @param graph
+   */
+  def printGraph(graph: ThreadedTransactionalGraph) = {
+    val transaction = graph.newTransaction
+    // Load everything into memory TODO this has to be dealt otherwise with in bigger DBs
+    val vertices  = transaction.getVertices.map(v => Option(v.getProperty("name"))).flatten
+    val edges     = transaction.getEdges
+
+    // Print everything
+    println("-"*80)
+    println("-->> Vertices: ")
+    println(vertices)
+    //for(vertex <- vertices) println(vertex)
+    println("-->> Edges:")
+    //println(edges)
+    for(edge <- edges) println(edge)
+    println("-"*80)
+    transaction.commit
+  }    
+}
+
