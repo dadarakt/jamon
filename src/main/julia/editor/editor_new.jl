@@ -5,7 +5,11 @@ scroll(event, t) = t.y += event.key == 4 ? -40 : 40
 
 
 function deleteChar(event::KeyDown, t::TextField)
-	i = (start(t.cursor))
+	i = first(t.selection)
+	println(i)
+	if length(t.selection) > 0
+		text = text[chr2ind(i):chr2ind(last(t.selection))]
+	end
 	Imin1 = chr2ind(t.text, i - 1)
 	I = Imin1 + (isascii(t.text[Imin1]) ? 1 : 2)
 
@@ -24,19 +28,21 @@ function deleteChar(event::KeyDown, t::TextField)
 		a = ""
 		b = ""
 	end
-	if t.text[I] == '\r' || t.text[I] == '\n'
-		t.lines -= 1
-	end
+	t.selection = i-1:1-2
 	t.text = a * b
-	t.cursor -= i > 0 ? 1 : 0
 	update(t)
 end
+function newLine(event::KeyDown, t::TextField)
+	addChar(event::KeyDown, t::TextField)
 
+end
 function addChar(event::KeyDown, t::TextField)
-	b = ""
 	a = ""
-	i = t.cursor
-
+	b = ""
+	i = first(t.selection)
+	if length(t.selection) > 0
+		text = text[chr2ind(i):chr2ind(last(t.selection))]
+	end
 	if i >= 1 && i < length(t.text)
 		lastI = chr2ind(t.text, i)
 		startI = lastI + (isascii(t.text[lastI]) ? 1 : 2)
@@ -49,99 +55,96 @@ function addChar(event::KeyDown, t::TextField)
 	end
 
 	t.text = a * string(event.key) * b
+	t.selection = i+1:i
 
-	t.cursor += 1
 	update(t)
 end
 
-
 function update(t::TextField)
-	defaultStyle 	= Dict{ASCIIString, Any}(["textColor" => Float32[0,0,0,1], "backgroundColor" => Float32[0,0,0,0]])
-	t.styles 		= [StyledTextSegment(1:length(t.text), defaultStyle)]
+	t.newLineIndexes 	= buildNewLineIndexes(t.text)
+	defaultStyle 		= Dict{ASCIIString, Any}(["textColor" => Float32[0,0,0,1], "backgroundColor" => Float32[0,0,0,0]])
+	t.styles 			= [StyledTextSegment(1:length(t.text), defaultStyle)]
 end
 
-function BoundingBox(t::TextField, f::FontProperties)
-	maxLineLength = 0
-	runner = 0
-	for elem in t.text
-		if elem == '\n' || elem == '\r'
-			if runner > maxLineLength
-				maxLineLength = runner
-			end
-			runner = 0
-		else
-			runner += 1
-		end
-	end
-	Rectangle(t.x, t.y, maxLineLength * f.advance, t.lines * f.lineHeight)
-end
 
 function select(event::MouseClicked, t::TextField, f::FontProperties)
-	
-	if t.y <= event.y && event.y <= t.y + f.lineHeight * length(t.newLineIndexes)
-		line = div(event.y - t.y, f.lineHeight) + 1
-		xPosCursor = div(event.x - t.x, f.advance)
-		lineCount = 1
-		state = start(t.text)
-		index = 0
-		index2 = 0
-		while !done(t.text, state)
-			elem, state = next(t.text, state)
-			if elem == '\n' || elem == '\r'
-				lineCount += 1
-			else
-				if lineCount < line
-					index += 1 
-				elseif lineCount == line
-					index2 += 1
-				else
-					break;
-				end
-			end
-		end
-		t.cursor = index2 > xPosCursor ? index + xPosCursor : index + index2
+	changed, newSelection = select(event.x, event.y, t, f)
+	if changed
+		t.selection = newSelection
 	end
 end
-function select(event::KeyUp, t::TextField, f::FontProperties)
-	currentLine
-	if event.key == GLUT_KEY_LEFT
-		if 
-	elseif event.key == GLUT_KEY_RIGHT
-	elseif event.key == GLUT_KEY_UP
-	elseif event.key == GLUT_KEY_DOWN
+function select(x::Real, y::Real, t::TextField, f::FontProperties)
+	# is x, y inside the textfield?
+	if t.y <= y && t.y + f.lineHeight * length(t.newLineIndexes) >= y
+		#convert into Glyph coordinates
+		lineIndex		= div(y - t.y, f.lineHeight)
+		line 			= t.newLineIndexes[lineIndex]
+		xPosCursor 		= min(div(x - t.x, f.advance) + first(line), last(line))
+		return (true, xPosCursor)
 	end
-	if t.y <= event.y && event.y <= t.y + f.lineHeight * t.lines
-		line = div(event.y - t.y, f.lineHeight) + 1
-		xPosCursor = div(event.x - t.x, f.advance)
-		lineCount = 1
-		state = start(t.text)
-		index = 0
-		index2 = 0
-		while !done(t.text, state)
-			elem, state = next(t.text, state)
-			if elem == '\n' || elem == '\r'
-				lineCount += 1
-			else
-				if lineCount < line
-					index += 1 
-				elseif lineCount == line
-					index2 += 1
-				else
-					break;
+	return (false, 1:0)
+end
+
+function select(event::KeyUp, t::TextField, f::FontProperties)
+	if event.key ==GLUT_KEY_LEFT
+		direction = "left"
+	elseif event.key == GLUT_KEY_RIGHT
+		direction = "right"
+	elseif event.key == GLUT_KEY_UP
+		direction = "up"
+	elseif event.key == GLUT_KEY_DOWN
+		direction = "down"
+	end
+	t.selection = select(direction, t, f)
+end
+
+
+
+
+function select(direction::ASCIIString, t::TextField, f::FontProperties)
+	if !isempty(t.text)
+		cursor = first(t.selection)
+		currentLineIndex, currentLine = findLine(t.newLineIndexes, cursor)
+		newLine 	= currentLineIndex
+		newIndex    = cursor - first(currentLine)
+
+		if direction == "left"
+			if newIndex < 1
+				newLine -= 1
+				if newLine < 1
+					newIndex = 1
 				end
 			end
+			newIndex -= 1
+		elseif direction == "right"
+			if newIndex >= length(currentLine)
+				newLine += 1
+				if newLine <= length(t.newLineIndexes)
+					newIndex = 0
+				end
+			end
+			newIndex += 1
+		elseif direction == "up"
+			newLine -= 1
+		elseif direction == "down"
+			newLine += 1
 		end
-		t.cursor = index2 > xPosCursor ? index + xPosCursor : index + index2
+		newLine 	= max(min(newLine, length(t.newLineIndexes)), 1)
+		currentLine = t.newLineIndexes[newLine]
+		newIndex	= max(min(newIndex + first(currentLine), last(currentLine)), 0)
+		return newIndex:newIndex-1
 	end
+	t.selection
 end
 createWindow()
 
 font 	= getFont()
-text 	= string(char(196))
+text 	= "asdökljaskjd\nasldkaslkd\jaskdjasd\nlsdkasdlkasd"
 t 		= TextField(text, 10, 500)
 
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && x.key == '\b', (), deleteChar, (t,)))
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && isprint(x.key), (), addChar, (t,)))
+registerEventAction(EventAction{KeyDown{0}}(x -> x.special && x.key == '\n' || x.key == '\r', (), newLine, (t,)))
 
 registerEventAction(EventAction{MouseClicked{0}}(x -> x.key == 0, (), select, (t, font.properties)))
 registerEventAction(EventAction{KeyUp{0}}(
