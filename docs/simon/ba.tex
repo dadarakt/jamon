@@ -1,0 +1,333 @@
+\documentclass[11p]{scrartcl}
+
+%%%%% General information %%%%%
+\title{Overview Over My Bachelor's Thesis}
+\author{Simon Danisch}
+
+%%%%%%%%%% Packages %%%%%%%%%%%
+\usepackage{color}
+\usepackage{cite}
+\usepackage{natbib}
+\usepackage{hyperref}
+\usepackage{float}
+\usepackage{graphicx}
+
+%%%%%%%%%% Settings %%%%%%%%%%%
+% No indents, should be unchecked later
+\setlength{\parindent}{0pt}  
+
+% Make all items in the contents chart clickable
+\hypersetup{linktoc=all}
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+% Set the style of figures
+\floatstyle{boxed}
+\restylefloat{figure}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% The actual work
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\begin{document}
+\begin{titlepage}
+\maketitle
+\textcolor{red}{*Things related to Usability later in the explanations}
+\tableofcontents
+\end{titlepage}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Introduction
+\section{Introduction \& Motivation}
+\label{sec:introduction}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{\textcolor{red}{Coding in an Open-Source Environment}}
+
+\textbf{Brief Description and History}\\
+Here I want to talk about how software is developed, give a brief history on how open-source developed over time and present different approaches of people working together on large problems. \\
+What are the main goals of this community and how are these goals expressed?\\
+
+\textbf{The Open-Source Community is Changing}\\
+What are recent developments, how is code shared, where do we want to go?
+Which ideals are fulfilled and which  things are still in a messy state?\\
+
+\textbf{What is the Problem with Current Integrated Development Environments?}\\
+\textcolor{red}{Introduction of usability in the context of working with IDEs}\\
+Description of problems in the workflow regarding spreading of code, packages in different forms and finding suitable discussion and documentation. Reuse of code is bad and tedious.
+
+
+\subsection{\textcolor{red}{Our Idea for Working on Large Projects in the Future}}
+Description of the idea of having more code in one place with interchangeable and competing solutions. Using crowd sourcing for evaluation...\\
+\textcolor{red}{How is the functionality of an online database for code integral part of the IDE's usability?}\\
+
+\subsection{My Work \& Goals - A Self-organizing Database for Code}
+What exactly will my work do in this context and what are my goals. 
+Description of the structure of my thesis. What usability criteria do I aim for?\\
+
+\subsection*{General notes - Abbreviations.}
+\begin{itemize}
+	\item I will use the term \textit{function} for anything that is a function, method, routine or subroutine in a given language. Maybe just talking about Julia here?
+\end{itemize}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Analysis and Formalisation of the Problem
+\section{Analysis \& Formalisation}
+\label{sec:analysis}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\subsection{\textcolor{red}{Description of Use-Cases - Client Requirements}}
+\label{sec:clientReq}
+\textit{\textcolor{red}{This part will include extensive formalisations with respect to usability. How can this be formalised, what metrics can be derived? How do I define the client in this scenario and what is important to this client?}\\
+I describe how people are going to use the client IDE and what requirements arise from this. I will talk about portability between different OSs, what performance clients want and other aspects which are important to the implementation. What are possible interfaces and how can I meet them?}
+
+% General thoughts
+First of all I will have to describe potential clients to my system. What kind of applications will make use of the database, how do they want to communicate and what does this interaction imply for the architecture of the database?
+
+Well to begin with is should be obvious, that I will not be concerned with any kind of graphical interface to the database. It would store millions of entries with several different versions of each entry. Of course one could think of means to make an interactive query interface which can display the database in it entirety but in my mind this is no use case. Users should always query the database in the context of a more elaborate system on top. If you wanted to search for documentation or code only there are already thousands of possibilities to do so on the internet (TODO quote).
+From my point of view the system is designed to be used by an IDE or something equivalent. It does not mean that other more 'traditional' use-cases are not possible, but I will not be concerned with those in this chapter. Also the aimed database-representation would probably perform suboptimal for these kind of uses (multiple rapid queries at a time over simple indices). For these tasks there are solutions (TODO quote) out there and they cannot be the target use-cases for my system.
+
+% Example in an IDE
+In my mind the focus of the system must be to aggregate over the contained data for more elaborate queries. For example a query in plain English would be something like this: "Give me all the function signatures which match this given set of parameters" or "Which functions have the same parameters and return the same type?".\\
+These queries result from using the a possible IDE or smart query system on top of the database. Let me stick with using an IDE for a more extensive example: A User writes a function from the top of his head. He does not refer to anything in the database (yet), but instead simply writes ahead. \\
+Right after he has entered the signature the system can check for the following: 
+\begin{enumerate}
+	\item Is there already a function with the exact \emph{same signature}?\\
+Should definitely be shown to the user. Maybe somebody has already done all the work he is going to do now. This might even be an expert in this area who has spend approximately 42 hours upon perfecting the runtime-behavior of this single function. In this case users might be happy to just plug-in the given function as is, or at least make use of the code to get ideas for his own improvements. I think this case might sound pretty uncommon but with thousands of users which roughly confirm to naming-standards of functions, this feature might work pretty fine right out of the box. Also users could then go ahead and write their own variants of this function an re-upload it. This way entering the desired signature alone can be seen as a means to search for functionalities using all the knowledge that you put into the signature.
+
+	\item Is there already a function with the \emph{same name}?\\
+Even if the signature is no a match, there might still be quite a lot of use in showing functions which have the same name. They might be different approaches to the same functionality - variations in the parameters might just be due to implementation details - or functions which are similar in their behavior and might need only slight changes to fulfil a new role. As it is the intention to make code reusable and having the database managing all the (sometimes rivalling) code-fragments.
+
+	\item Is there already a function with a very \emph{similar name}?\\
+Using some sort of similarity-measure, one could determine a class of function names which are similar enough to the given function name. Best case this is done using the general naming conventions of the language in question. There are two cases that are worthwhile to consider:
+	\begin{enumerate}
+		\item Are the parameters the same?\\
+Then it is most propable that the user will want to see these results. There is quite a lot of information already in the typed parameter to a function. If those correspond it is worth a look to see whether this function might actually what the user wants in this context.
+		\item Are the parameters - while not the same - at least similar\\
+If the parameters are completely different it will be highly unlikely that the function will do what the user wants to achieve. If however the parameters differ only marginally it might be interesting to see also these function in the database.
+	\end{enumerate}
+\end{enumerate}
+
+In general this all means that the database must be able to process these kinds of queries with reasonable results for all the given cases. While case 1) seems pretty straightforward, there might be problems when it comes to versioning of code pieces and finding the "best" functions which have the same signature. It is of no use for the user to find himself confronted with more than a dozen nightly-hacked matrix multiplications before the "standard" built-in matrix-multiplication is shown. \\
+For all cases in 2) and 3) there is some sort of ranking necessary to present the client with usable results. Also one must consider, that you don't ever want to return \emph{all} results as bandwidth would quickly become a limiting factor to the system, which makes ranking even more interesting.
+The system should make use of as much context-information as necessary, even drop down to comments in order to rank functions for a given query.\\
+
+\textbf{Possible queries}
+\begin{itemize}
+	\item Retrieval of functions:
+	\begin{itemize}
+		\item Finding matching code to  a signature.(might also include the return type of the function)
+		\item Find code to similar signatures or even without a name at all, just so you can see what would be possible with a set of arguments.
+		\item Finding matching code to a block of code. (Potentially hazardous)
+		\item Retrieving a newer version of code (maybe just the difference)
+		\item Retrieving a whole package/module with all functions
+		\item Retrieving meta-information to functions. Documentation, connections to other code, dependencies/using/requirements, variations, older version etc... 
+		\end{itemize}
+	\item Uploading functions:
+	\begin{itemize}
+		\item A completely new function, without any links. 
+		\item Upload an entire module/package
+		\item An update/extension to a function which the user wrote
+		\item A variant to a function.
+		\item Comments to a function
+		\item A rating for a function
+		\item A connection between code 
+	\end{itemize}		
+\end{itemize}
+
+	 
+
+\textbf{Defining the desired experience from a client's point of view}
+\begin{itemize}
+	\item Most obviously: Having a consistent, simple and well documented interface to the database. It is well defined what queries can be made (and how, maybe using DTD) as well as what one can expect as a response to those queries.
+	\item The most important criteria: Having fast response times for simple queries (meaning super-fast retrieval of single functions). Searches for larger sets should yield responses quickly as well. Initial guess < 500ms for first results to arrive.
+	\item Finding the most current version of a function
+	\item Finding the most relevant function if there are multiple implementations
+	\item If one searches for a set of functions or if a query has mutliple matching results, the client will expect some kind of order on the results. This order should feel natural and consistent as people have become used to by modern search engines. If the database fails to deliever at this level people are far less likely to interact with the code and make updates to the system. 
+	\item Up to this point I do not want to aim for auto-completion. The client should provide one query and expect a timely answer to it (no streaming yet). Later this feature might get interesting, especially once the database gets partitioned over several clusters and results are aggregated from different sub-graphs. For now my goal will be batched processing of one query after the other.
+	\item Having consistent results. The same query deliveres the same answers, similar queries lead to similar results. Priorization should be transparent to a client, or even configurable (using some sort of arguments for a search).
+	\item If a client updates information in the database or uploads new content, he will want to get feedback whether this was successful or not. Some auxiliary information might be interesting (what version, where, what size, how long etc...). If the transaction failed for whatever reason the client wants to know why.
+\end{itemize}
+
+\textbf{Required funtionalities derived from the desired experience and possible queries}
+\begin{itemize}
+	\item Fast (indexed) access to the data in various forms:
+		\begin{itemize}
+			\item function-names (some intelligent search like elastic search to be able to find similar names)
+			\item parameters (in combination with the name or without it)
+			\item return types in combination with the above.
+			\item metainformation (not a priority)
+		\end{itemize}		 
+	\item Using these finding mechanism the database must be able to return:\
+	\begin{itemize}
+		\item A whole function, if there is exactly one hit, in a protocolled and serialized manner.
+		\item Requested parts of functions (comments, ratings, documentation)
+		\item Being able to traverse the graph in order to find connections (versions, similar functions, parameters, usage links etc...). \textbf{This functionalality is very interesting but is also vast and sometimes difficult. Thus it is not a priority.}
+	\end{itemize}
+	\item Also the database must return sets of functions:
+	\begin{itemize}
+		\item If a client wants to see/retrieve a package.
+		\item If a client searches functions similar to a given signature.
+		\item If a client only provides parameters and wants to find matching functions.
+	\end{itemize}
+\end{itemize}
+
+
+\subsection{Non-functional (technical) Requirements to the System}
+This section focuses on things like scalability, robustness, the iteration speed of changes, whether and where changes to the design are possible and how security and safety standards can or have to be met. Which things are necessary and which ones are nice to have?\\
+
+\textbf{Building an interface}\\
+The first task is to provide the functionality of the database-system to a remote client. There must be a suitable protocol in place which can handle the transfer or queries and the responses. Criteria: Quick, secure, fail-safe, well-known and understood. The datastream needed should be minimal to avoid loss of data as well as reducing the time/bandwidth needed for the transactions. A client should be able to use the system without a top-notch internet connection.\\
+
+
+
+\textbf{Trying to minimize the time needed for the queries}\\
+This is a central requirement.. Making data accessible is what the database is all about. The client-acceptance of the system is dependent on quick response of the system. Having a neat interface (above) is the first step. Furthermore the system must exhibitthe following properties, which I will explain below:
+\begin{enumerate}
+	\item Consistency of the data in order to keep the amount of space needed for the data minimal.
+	\item Monitoring as a means to detect failures and bottlenecks in the system.
+	\item Scalability.
+	\item Ranking of results.
+	\item Feedback when things timeout or fail.
+\end{enumerate}
+
+
+\textbf{1) Consistency of the data}
+\begin{itemize}
+	\item Being able to produce a \emph{unique} ID for every entry which encodes name, signature and timestamp for the given function which was uploaded. This ID must be unique for every entry but still encode in an understandable manner. A function can be translated to an ID and it must be possible to retrieve a function from an ID. (Indexing or traversals) 
+	\item The database needs a valid scheme which represents structures in the data. Since I will use a graph-based system there has to be a graph-representation of the data, which is extendable and concise at the same time in order to prevent overhead in the data-representation while still having the means to extends functionalities in the system.
+	\item Items which are put into the database have to be addressable, properly connected and indexed, so that there is no zombie-data in the database. Transactions need to be atomic for retries, dispatchement over different threads and support of thousands of clients. 
+	\item One very important aspect is proper versioning of functions. Initially the database should be able to store as many version as the user likes. Over time it could be interesting to implement some garbage collection behavior to sort out unused nodes in the database to prevent the system from becoming overloaded in slow. There must be some way to monitor this behavior.
+	\item Having a proper indexing system.
+\end{itemize}
+
+\textbf{2) Monitoring}\\
+In order to assess the functionality of the database there have to be mechanism to generate and use simple metrics over the system. These metrics can then be used to optimize the behavior of the graph and to evaluate the success of different functionalities. Possible metrics are:
+\begin{itemize}
+	\item Number of transactions per second.
+	\item Overall size of the graph; number of nodes/edges.
+	\item Average number of connections between nodes. Distribution of types of connections.
+	\item Average number of versions for one function (or other means of central tendency).
+	\item How the client-access is distributed, how many calls of what category?
+	\item Average times for operations.
+	\item Error counts, failure statistics.
+\end{itemize}
+
+
+\textbf{3) Scalability}
+\begin{itemize}
+	\item The performance of the database must be consistent with growing input. One cannot assume constant behavior but linear would already be pretty bad. Mechanisms must be in place which allow efficient indexing and sorting of data.	
+	\item Vertical scalability: If a machine has more resources it should be able to make use of those. More cores mean more threads. Atomic transactions have to be distributed over all available threads using the  provided memory in the heap. That means the database will have to be designed for heavy concurrency in all possible places (reading, writing, garbage collection, metrics).
+	\item Horizontal scalability: With more and more data it is vital to be able to partition the data over multiple machines/drives. This should be considered from the start. The database should never be a monolithic process in a single JVM, or at least it must be possible to change that without rewriting the whole codebase. This includes considerations about the consistency of the data over multiple instances or partitions.
+\end{itemize}
+
+\textbf{4) Ranking of results} \\
+\begin{itemize}
+	\item Using some metrics to cap the search-space and the amount of data which has to be retrieved.
+	\item This also means not to squander with the number of individual transactions (possibly concurrent) to the database, but to make processing batched. This will help serving a lot of clients while still providing fast answering to every one of them.
+	\item There has to be a good understanding of the use-cases and distribution of usage to tune this system. Therefore the initial capabilities will be limited to rudimentary features.
+\end{itemize}
+  
+
+\subsection{\textcolor{red}{Goals of my Work}}
+Which derive from the requirements above. \textcolor{red}{Explicit goals with respect to usability.}
+
+
+\subsection{Structure of My Work}
+What comes first. How do I want to accomplish the goals and what is the prioritization.
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Relevant Basics
+\section{Relevant Basics}
+\label{sec:basics}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{JVM - Choice of Language and Context}
+Why it is still relevant in the context of large-scale distributed computation
+\subsection{SQL to NoSQL - Why Graph Databases?}
+What are recent developments in the requirements on databases and how are those met. New types of databases are emerging.
+\subsection{Distributed Databases}
+Distributed computations require new forms of data-management. Distributed systems lead to more scalability and robustness in the case of hardware-failures.
+\subsection{General Thoughts on Performance \& Scalability in Recent Software Design}
+What is the bottleneck in performance nowadays, how is that important to me.
+
+\subsection{\textcolor{red}{Usability in the Context of Technical Systems}}
+\textcolor{red}{Usability without interfaces. Including thoughts about usability in the structure of a program/package.}
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Evaluation and Verification
+\section{Evaluation \& Verification}
+\label{sec:evaluation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{\textcolor{red}{Why Thinking About Testing Right from the Start Is a Good Idea}}
+Test-driven design and other thoughts..\\
+\textcolor{red}{How do I test for the usability I introduced earlier?}
+\subsection{What I Need to Test}
+Description of formal aspects which have to be tested. Derivation of suitable measures for the problems.
+\subsection{How I Test}
+What are the principles in the implementation of my tests.\\
+\textcolor{red}{Implementation of usability measures}
+ 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Design and Implementation
+\section{Design \& Implementation}
+\label{sec:implementation}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{What Software I Use in Detail}
+software packages, bundles, tools etc...
+\subsection{First Sketch - Design of my Implementation}
+how do I tackle the problems and requirements?
+\subsection{More Detailed Description of the Implementation}
+To a necessary degree of precision that is.
+\subsection{Evaluation of the First Sketch}
+What is good, what needs to be done...
+\subsection{Description of the Iteration}
+\subsection{Further Evaluation}
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Conclusions
+\section{Conclusions}
+\label{sec:conclusions}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\subsection{State of the Implementation at the End of My Work}
+\subsection{\textcolor{red}{Comparison to Requirements and Goals}}
+What was fulfilled, what not and what might be critical. Can the application be extended? What have I achieved at what can people to with it at the time?\\
+\textcolor{red}{Is the code I wrote usable from the clients perspective?}
+\subsection{What to Come - Future from here on}
+What are the next steps and which people can get involved. How do I see the chances in the future. Concluding thoughts on performance and scalability.
+\subsection{Summary}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Appendix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{Testing features}
+This is a citation \cite{Chang2008}\\
+This is an image as a floating object with a ref to it: See Figure \ref{fig:fieseText} on page \pageref{fig:fieseText}
+\begin{figure}[h]		
+ 	\includegraphics[scale=0.3]{figures/grumpyCat.jpg}
+	\caption{Ne fiese text is dat}
+	\label{fig:fieseText}
+\end{figure}
+
+\section*{Appendix A - References}
+%%%%%%% Bibliographie %%%%%%%%%
+\bibliography{sources}
+\bibliographystyle{plain}
+
+\end{document}
