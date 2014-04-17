@@ -6,7 +6,6 @@ scroll(event, t) = t.y += event.key == 4 ? -40 : 40
 
 function deleteChar(event::KeyDown, t::TextField)
 	i = first(t.selection)
-	println(i)
 	if length(t.selection) > 0
 		text = text[chr2ind(i):chr2ind(last(t.selection))]
 	end
@@ -34,7 +33,6 @@ function deleteChar(event::KeyDown, t::TextField)
 end
 function newLine(event::KeyDown, t::TextField)
 	addChar(event::KeyDown, t::TextField)
-
 end
 function addChar(event::KeyDown, t::TextField)
 	a = ""
@@ -50,7 +48,7 @@ function addChar(event::KeyDown, t::TextField)
 		b = t.text[startI:end]
 	elseif i >= 1 && i == length(t.text)
 		a = t.text
-	elseif t.cursor == 0
+	elseif i == 0
 		b = t.text
 	end
 
@@ -75,12 +73,14 @@ function select(event::MouseClicked, t::TextField, f::FontProperties)
 end
 function select(x::Real, y::Real, t::TextField, f::FontProperties)
 	# is x, y inside the textfield?
-	if t.y <= y && t.y + f.lineHeight * length(t.newLineIndexes) >= y
+	if y <= t.y + f.lineHeight && y >= t.y - f.lineHeight * length(t.newLineIndexes)
 		#convert into Glyph coordinates
-		lineIndex		= div(y - t.y, f.lineHeight)
+		lineIndex		= max(min(div(t.y + f.lineHeight - y, f.lineHeight) + 1, length(t.newLineIndexes)), 1)
+		
+
 		line 			= t.newLineIndexes[lineIndex]
-		xPosCursor 		= min(div(x - t.x, f.advance) + first(line), last(line))
-		return (true, xPosCursor)
+		xPosCursor::Int	= max(min(div(x - t.x, f.advance) + first(line), last(line)), 0)
+		return (true, xPosCursor:xPosCursor-1)
 	end
 	return (false, 1:0)
 end
@@ -99,47 +99,58 @@ function select(event::KeyUp, t::TextField, f::FontProperties)
 end
 
 
-
-
 function select(direction::ASCIIString, t::TextField, f::FontProperties)
 	if !isempty(t.text)
 		cursor = first(t.selection)
 		currentLineIndex, currentLine = findLine(t.newLineIndexes, cursor)
+		currentLine = first(currentLine)-1:last(currentLine)
 		newLine 	= currentLineIndex
 		newIndex    = cursor - first(currentLine)
-
 		if direction == "left"
-			if newIndex < 1
-				newLine -= 1
-				if newLine < 1
-					newIndex = 1
+			if newIndex > 0
+				newIndex -= 1
+			else
+				if newLine > 1
+					newLine -= 1
+					newIndex = length(t.newLineIndexes[newLine])
 				end
 			end
-			newIndex -= 1
 		elseif direction == "right"
-			if newIndex >= length(currentLine)
-				newLine += 1
-				if newLine <= length(t.newLineIndexes)
+			
+			if newIndex < length(currentLine) - 1
+				newIndex += 1
+			else
+				if newLine < length(t.newLineIndexes)
+					newLine += 1
 					newIndex = 0
 				end
 			end
-			newIndex += 1
 		elseif direction == "up"
-			newLine -= 1
+			if newLine > 1
+				newLine -= 1
+				newIndex = min(newIndex, length(t.newLineIndexes[newLine]))
+			end
 		elseif direction == "down"
-			newLine += 1
+			if newLine < length(t.newLineIndexes)
+				newLine += 1
+				newIndex = min(newIndex, length(t.newLineIndexes[newLine]))
+			end
 		end
-		newLine 	= max(min(newLine, length(t.newLineIndexes)), 1)
 		currentLine = t.newLineIndexes[newLine]
-		newIndex	= max(min(newIndex + first(currentLine), last(currentLine)), 0)
+		newIndex 	= first(currentLine) - 1 + newIndex
 		return newIndex:newIndex-1
 	end
 	t.selection
 end
+
+
+
+
+
 createWindow()
 
 font 	= getFont()
-text 	= "asdökljaskjd\nasldkaslkd\jaskdjasd\nlsdkasdlkasd"
+text 	= (join([i for i=0:9],"")*"\n")^10
 t 		= TextField(text, 10, 500)
 
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && x.key == '\b', (), deleteChar, (t,)))
