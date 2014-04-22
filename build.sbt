@@ -1,27 +1,43 @@
-name := "Bachelorarbeit Simon und Jannis"
+name          := "Bachelorarbeit Simon und Jannis"
 
-version := "0.1"
+version       := "0.1"
 
-scalaVersion := "2.10.3"
+scalaVersion  := "2.10.3"
 
-sbtVersion := "0.13.0"
+sbtVersion    := "0.13.0"
 
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+resolvers ++= {
+  Seq(
+    "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
+    "spray repo"          at "http://repo.spray.io"
+  )
+}
 
 libraryDependencies ++= {
-  val slf4jVersion = "1.7.6"
-  val akkaVersion = "2.3.2"
+  val scalaTestVers = "2.1.0"
+  val configVers    = "1.2.0"
+  val slf4jVers     = "1.7.6"
+  val grizzledVers  = "1.0.1"
+  val akkaVers      = "2.3.2"
+  val logbackVers   = "1.0.13"
+  val titanVers     = "0.4.2"
+  val parboiledVers = "1.1.5"
+  val sprayVers     = "1.3.1"
   Seq(
-  	"org.scalatest" % "scalatest_2.10" % "2.1.0" % "test",
-    "com.typesafe" % "config" % "1.2.0",
-    "org.slf4j" % "slf4j-api" % slf4jVersion,
-    "org.slf4j" % "jcl-over-slf4j" % slf4jVersion,
-    "org.slf4j" % "log4j-over-slf4j" % slf4jVersion,
-    "org.clapper" %% "grizzled-slf4j" % "1.0.1",
-    "ch.qos.logback" % "logback-classic" % "1.0.13",
-		"com.thinkaurelius.titan" % "titan-all" % "0.4.2", 
-		"com.typesafe.akka" %% "akka-actor" % akkaVersion,
-    "com.typesafe.akka" %% "akka-testkit"  % akkaVersion % "test"
+  	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
+    "com.typesafe"            %   "config"                % configVers,
+    "org.slf4j"               %   "slf4j-api"             % slf4jVers,
+    "org.slf4j"               %   "jcl-over-slf4j"        % slf4jVers,
+    "org.slf4j"               %   "log4j-over-slf4j"      % slf4jVers,
+    "org.clapper"             %%  "grizzled-slf4j"        % grizzledVers,
+    "ch.qos.logback"          %   "logback-classic"       % logbackVers,
+		"com.thinkaurelius.titan" %   "titan-all"             % titanVers,
+		"com.typesafe.akka"       %%  "akka-actor"            % akkaVers,
+    "com.typesafe.akka"       %%  "akka-testkit"          % akkaVers        % "test",
+    "org.parboiled"           %   "parboiled-core"        % parboiledVers,
+    "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
+    "io.spray"                %   "spray-can"             % sprayVers,
+    "io.spray"                %   "spray-http"            % sprayVers
 	)
 }
 
@@ -34,6 +50,8 @@ scalacOptions ++= Seq(
   "-target:jvm-1.7",
   "-encoding", "UTF-8"
 )
+
+net.virtualvoid.sbt.graph.Plugin.graphSettings
 
 ivyXML := 
   <dependencies>
