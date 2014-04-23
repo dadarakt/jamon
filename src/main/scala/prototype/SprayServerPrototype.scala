@@ -6,7 +6,7 @@ package prototype
 
 import akka.actor.{ActorRef, ActorSystem, Actor, Props}
 import spray.can.Http
-import spray.http.{Uri, HttpResponse, HttpRequest}
+import spray.http.{HttpHeader, Uri, HttpResponse, HttpRequest}
 import spray.http.HttpMethods.GET
 import akka.io.{Tcp, IO}
 import akka.util.Timeout
@@ -31,6 +31,29 @@ object SprayServerPrototype extends App{
   IO(Http) ! bindMessage
 }
 
+/**
+ * Starts a http server which presents the functionality to the outside world.
+ * @param system The actor system in which the server is to run
+ * @param handleProps Contains the information for the actor which is to be used to process messages
+ */
+class HttpServer(handleProps: Props)(implicit val system: ActorSystem) extends Actor {
+  // Set up the listener connects to the desired port
+  val myListener: ActorRef = system.actorOf(Props[EchoHandlerSpray], "handler")
+
+
+  override def preStart = {
+    // Get the connection point for the system to the outside and create the bindMessage from the information
+    val conf        = ConfigFactory.load()
+    val ip          = conf.getString("connection.localIp")
+    val port        = conf.getInt("connection.port")
+    val bindMessage = new Bind(myListener, new InetSocketAddress(ip, port), 100, Nil, None)
+    IO(Http) ! bindMessage
+  }
+
+  def receive: Receive = {
+    case _ => println("wtf")
+  }
+}
 /**
  * A simple actor which just sends back a message. This is the so called "Handler actor" which takes in dispatched
  * HTTP requests from the HttpServerConnection
@@ -107,7 +130,7 @@ class EchoHandlerSpray extends Actor{
                            o@-    Y@@@ .            @$#$@@@@@$    ;$@?
                             @@  +#@@[               @@@v##@@@Z    @@r
                             i@@@@@@[                #@$#  n}      $@
-                              @@#@                  z@#@         @@x
+                              @@#@                  z@#@         @@xx
                                                      }@@@       @@]
                                                       @@#B     >@@
                                                       +@@@    }@@z
@@ -119,15 +142,25 @@ class EchoHandlerSpray extends Actor{
     // For the registration incoming from binding
     case _: Http.Connected => sender ! Http.Register(self)
 
-    case HttpRequest(GET, Uri.Path("/ping"),_,_,_) =>
+    case r @ HttpRequest(GET, Uri.Path("/ping"),header,_,_) =>
       sender() ! HttpResponse(entity = "PONG")
+      // Print everyting in the header
+      header.foreach((h: HttpHeader) => println(s"${h.name} -----> ${h.value}"))
+      println(r.uri)
 
-    case HttpRequest(GET, Uri.Path("/simon"),_,_,_) =>
+    case r @ HttpRequest(GET, Uri.Path("/simon"),header,entity,_) =>
+      sender() ! HttpResponse(entity = dickbutt)
+      header.foreach((h: HttpHeader) => println(s"${h.name} -----> ${h.value}"))
+      println(entity)
+
+    case HttpRequest(GET, Uri.Path("/fabian"),_,_,_) =>
       sender() ! HttpResponse(entity = dickbutt)
 
     case _: HttpRequest => sender ! HttpResponse(status = 404, entity = "Unknown resource!")
 
-    case _ => println("lol")
+      // TODO one case is the "PeerClosed" case here
+      // Also "Abort" case
+    case a => println(s"-------->$a")
   }
 }
 

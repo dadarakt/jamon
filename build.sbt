@@ -6,6 +6,8 @@ scalaVersion  := "2.10.3"
 
 sbtVersion    := "0.13.0"
 
+fork := true
+
 resolvers ++= {
   Seq(
     "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/",
