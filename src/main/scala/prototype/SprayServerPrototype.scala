@@ -14,21 +14,35 @@ import scala.concurrent.duration._
 import spray.can.Http.Bind
 import com.typesafe.config.ConfigFactory
 import java.net.InetSocketAddress
+import grizzled.slf4j.Logging
+import prototype.HttpServer.ShutdownServer
 
 /**
  * Opens up a simple HTTP server using the config information.
  */
 object SprayServerPrototype extends App{
   implicit val system = ActorSystem("ServerTest")
-  val myListener : ActorRef = system.actorOf(Props[EchoHandlerSpray], "handler")
+//  val myListener : ActorRef = system.actorOf(Props[EchoHandlerSpray], "handler")
+//
+//  // Get the connection point for the system to the outside and create the bindMessage from the information
+//  val conf        = ConfigFactory.load()
+//  val ip          = conf.getString("connection.localIp")
+//  val port        = conf.getInt("connection.port")
+//  val bindMessage = new Bind(myListener, new InetSocketAddress(ip, port), 100, Nil, None)
+//
+//  IO(Http) ! bindMessage
 
-  // Get the connection point for the system to the outside and create the bindMessage from the information
-  val conf        = ConfigFactory.load()
-  val ip          = conf.getString("connection.localIp")
-  val port        = conf.getInt("connection.port")
-  val bindMessage = new Bind(myListener, new InetSocketAddress(ip, port), 100, Nil, None)
+  // Fire up the server
+  val server = system.actorOf(HttpServer.props(EchoHandlerSpray.props), "httpServer")
 
-  IO(Http) ! bindMessage
+  Thread.sleep(50000)
+
+  server ! ShutdownServer
+
+  Thread.sleep(1000)
+
+  system.shutdown()
+
 }
 
 /**
@@ -36,24 +50,61 @@ object SprayServerPrototype extends App{
  * @param system The actor system in which the server is to run
  * @param handleProps Contains the information for the actor which is to be used to process messages
  */
-class HttpServer(handleProps: Props)(implicit val system: ActorSystem) extends Actor {
-  // Set up the listener connects to the desired port
-  val myListener: ActorRef = system.actorOf(Props[EchoHandlerSpray], "handler")
+class HttpServer(handleProps: Props)(implicit val system: ActorSystem)
+  extends Actor
+  with    Logging {
 
 
+
+  // On start setup the connection from the configuration and try to connect to the port
+  // Is also called on restart (default in 'postRestart')
   override def preStart = {
-    // Get the connection point for the system to the outside and create the bindMessage from the information
+    info("Firing up the Http-server")
+    // Set up the listener on the port as a child actor.
+    val portListener: ActorRef = context.actorOf(EchoHandlerSpray.props, "portListener")
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
-    val bindMessage = new Bind(myListener, new InetSocketAddress(ip, port), 100, Nil, None)
+    val bindMessage = new Bind(portListener, new InetSocketAddress(ip, port), 100, Nil, None)
     IO(Http) ! bindMessage
+    info("Done setting up the Http-server")
   }
 
+  // Some cleaning up
+  override def postStop = {
+    IO(Http) ! Http.Unbind
+    info("Server was shut down succesfully.")
+  }
+
+
+
+
+  // All the stuff which is important to consider coming from the spray framework
   def receive: Receive = {
-    case _ => println("wtf")
+    case Http.CommandFailed =>
+      error("Could not start the server! System not online!")
+
+    case b @ Http.Bound =>
+      info(s"Server is connected: $b")
+
+    case ShutdownServer =>
+      info("Shutting down the Http-server.")
+      context.unwatch(self)
+      context.stop(self)
   }
 }
+
+/**
+ * Compagnion object
+ */
+object HttpServer{
+  def props(handleProps: Props)(implicit system: ActorSystem): Props = Props(new HttpServer(handleProps))
+
+  // Can be used as a message to shutdown the server cleanly
+  case object ShutdownServer
+}
+
+
 /**
  * A simple actor which just sends back a message. This is the so called "Handler actor" which takes in dispatched
  * HTTP requests from the HttpServerConnection
@@ -162,6 +213,10 @@ class EchoHandlerSpray extends Actor{
       // Also "Abort" case
     case a => println(s"-------->$a")
   }
+}
+
+object EchoHandlerSpray {
+  def props: Props = Props(new EchoHandlerSpray)
 }
 
 

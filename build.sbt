@@ -25,6 +25,7 @@ libraryDependencies ++= {
   val titanVers     = "0.4.2"
   val parboiledVers = "1.1.5"
   val sprayVers     = "1.3.1"
+  val scalajVers    = "0.3.14"
   Seq(
   	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
     "com.typesafe"            %   "config"                % configVers,
@@ -32,7 +33,7 @@ libraryDependencies ++= {
     "org.slf4j"               %   "jcl-over-slf4j"        % slf4jVers,
     "org.slf4j"               %   "log4j-over-slf4j"      % slf4jVers,
     "org.clapper"             %%  "grizzled-slf4j"        % grizzledVers,
-    "ch.qos.logback"          %   "logback-classic"       % logbackVers,
+    "ch.qos.logback"          %   "logback-classic"       % logbackVers     % "runtime",
 		"com.thinkaurelius.titan" %   "titan-all"             % titanVers,
 		"com.typesafe.akka"       %%  "akka-actor"            % akkaVers,
     "com.typesafe.akka"       %%  "akka-testkit"          % akkaVers        % "test",
