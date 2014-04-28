@@ -4,7 +4,8 @@ package actors
  * Created by jannis on 4/25/14.
  */
 
-import akka.actor.{Props, Actor}
+import akka.actor.{Terminated, Props, Actor}
+import akka.actor.ActorRef
 import akka.util._
 import spray.can.Http
 import spray.http._
@@ -16,29 +17,79 @@ import akka.io.Tcp.{ConfirmedClosed, Aborted, PeerClosed}
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
 import spray.can.server.Stats
+import actors.HttpServerActor.ChangeHandler
+
+/**
+ * Listenes on the port for connections and dispatches them to the handling actors.
+ * For now there will be an actor spawned for every new connection but there is also the possibility to
+ * have a pool of actors for that, to limit load and evoke back-pressure. Could make this dispatcher stateful as well.
+ * @param handleProps The handler which handles the incoming connection.
+ */
+class RequestDispatcher(handleProps: Props)
+  extends Actor
+  with Logging {
+
+  import scala.collection.mutable.LinkedHashSet
+  // make this variable for possible later changes
+  var _handleProps = handleProps
+
+  // Holds all open Connections
+  var openConnections: LinkedHashSet[ActorRef] = LinkedHashSet[ActorRef]()
+
+  def receive: Receive = {
+    case c: Http.Connected =>
+      // Create a new handler and register it
+      val _sender = sender() // Capture this right away
+      val handler = context.actorOf(_handleProps)
+      context.watch(handler) //Put deathwatch on the handler to register a finished connection
+      openConnections += handler
+      info(s"------>Currently openend connections: ${openConnections.size }")
+      info(s"Incoming connection from: ${c.remoteAddress}") //TODO this should be debug in production
+      _sender ! Http.Register(handler)
+
+    case ChangeHandler(newHandler) =>
+      info(s"The listener changed behavior to ${newHandler}")
+      context.children.foreach(context.stop(_))
+      _handleProps = newHandler
+
+    case Terminated(handler) =>
+      info(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
+      if(openConnections.contains(handler)){
+        openConnections -= handler
+      } else {
+        error(s"There was a handler which was never created: $handler")
+      }
+  }
+}
+
+object RequestDispatcher {
+  def props(handleProps: Props) = Props(new RequestDispatcher(handleProps))
+}
+
 
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling messages
  */
-trait HandlerActor extends Actor with Logging {
+trait HandlerActor
+  extends Actor
+  with Logging {
   implicit val timeout: Timeout = 3.seconds
+
+  override def postStop() = {
+    sender() ! Http.Close
+  }
 
   // This has to be implemented by actors which mix in this trait
   def customReceive: Receive
 
   // Contains some common cases which every actor of this type should have
   def defaultReceive: Receive = {
-    // Messages which indicates that a connection was setup by the listener
-    case c: Http.Connected =>
-      info(s"Incoming connection from: ${c.remoteAddress}") //TODO this should be debug in production
-      sender ! Http.Register(self)
+    case PeerClosed => context.stop(self)
 
-    case PeerClosed => //do nothing
+    case Aborted =>  context.stop(self)
 
-    case Aborted => // do nothing
-
-    case ConfirmedClosed => // do nothing
+    case ConfirmedClosed => context.stop(self)
 
     // Fallback which simply shows the request from the user as a 404. This way actor which mix in this trait
     // just define their cases of interest and do not care about anything else
@@ -139,7 +190,6 @@ class PlayfulHandlerActor
         case x: Stats => client ! statsPresentation(x)
       }
 
-
     // TODO this is only to facilitate testing, should NEVER be in the code later
     case HttpRequest(GET, Uri.Path("/stopHammerTime"), _, _, _) =>
       sender ! HttpResponse(entity = "Shutting down in 1 second ...")
@@ -185,8 +235,16 @@ class DbDownHandlerActor
     with Logging {
 
   import DbDownHandlerActor._
+  import context.dispatcher
 
   def customReceive: Receive = {
+
+    // TODO this is only to facilitate testing, should NEVER be in the code later
+    case HttpRequest(GET, Uri.Path("/stopHammerTime"), _, _, _) =>
+      sender ! HttpResponse(entity = "Shutting down in 1 second ...")
+      sender ! Http.Close
+      context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
+
     // Just add a catch-all for all kinds of GETS and POSTS to display error
     case HttpRequest(GET,_,_,_,_) =>
       sender() ! displayDbOffline
