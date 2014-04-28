@@ -49,6 +49,13 @@ class HttpServerSpec extends FunSuite with ScalaFutures{
     println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
   }
 
+  test("Test some other page for time comparison") {
+    val url = "http://dict.cc"
+    val (response, time) = getResponse(url)
+    assert(response.status.intValue == 301)
+    println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
+  }
+
 
   //~~~~~~~~~~~~~~~~~~ HELPERS ~~~~~~~~~~~~~~~~~~~~~~~~~~//
 
@@ -65,19 +72,22 @@ class HttpServerSpec extends FunSuite with ScalaFutures{
     val response: Future[HttpResponse] =
       (IO(Http) ? HttpRequest(GET, Uri(url))).mapTo[HttpResponse]
 
-    val end = System.currentTimeMillis()
+
+
+//    var answer: (HttpResponse, Long) = (HttpResponse(), -1)
+//    response.onComplete{
+//      case Success(res) =>
+//        val stat = res.status.intValue
+//        answer = (res,duration)
+//      case Failure(ex) =>
+//        throw ex
+//    }
+
+    val answer = Await.result(response, waitTime)
+    val end = System.currentTimeMillis
     val duration = end - start
 
-    var answer: (HttpResponse, Long) = (HttpResponse(), -1)
-    response.onComplete{
-      case Success(res) =>
-        val stat = res.status.intValue
-        answer = (res,duration)
-      case Failure(ex) =>
-        throw ex
-    }
-
-    return (Await.result(response, waitTime), duration)
+    return (answer, duration)
   }
 
 }

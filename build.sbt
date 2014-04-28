@@ -54,7 +54,10 @@ scalacOptions ++= Seq(
   "-encoding", "UTF-8"
 )
 
-net.virtualvoid.sbt.graph.Plugin.graphSettings
+javaOptions := Seq(
+	"-Dmx=1024M",
+	"-Dconfig.resource=/dev.conf"
+ )
 
 ivyXML := 
   <dependencies>

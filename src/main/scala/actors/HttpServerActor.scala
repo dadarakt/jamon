@@ -8,7 +8,7 @@ import akka.actor.{ActorRef, ActorSystem, Actor, Props}
 import akka.io.{IO}
 import akka.util.Timeout
 import spray.can.Http
-import spray.can.Http.Bind
+import spray.can.Http.{Unbind, Bind}
 import spray.http._
 import HttpMethods._
 import scala.concurrent.duration._
@@ -19,25 +19,32 @@ import prototype.HttpServer.ShutdownServer
 import akka.io.Tcp.{ConfirmedClosed, Aborted, PeerClosed}
 import spray.http.HttpRequest
 import spray.http.HttpResponse
+import scala.util.{Failure, Success}
+import actors.HttpServerActor.ChangeHandler
 
 /**
  * Opens up a simple HTTP server using the config information.
  */
-object SprayServer extends App{
+object SprayServer extends App with Logging{
   
   // Create the actor system
   implicit val system = ActorSystem("ServerTest")
-
+  // Just some time to let the actor-system initialize before trying to do something in it
   Thread.sleep(1000)
 
-  // Fire up the server in the system
-  val server = system.actorOf(HttpServerActor.props(DatabaseHandlerActor.props), "httpServer")
+  // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
+  val graph = database.TitanDatabaseConnection.openGraphFromConfig()
+  graph match {
+    case Success(graph) =>
+      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
+      // Set up the server here
+    case Failure(ex) =>
+      error(s"Could not connect to the database, critical failure, server will go into error-mode")
+      // Set up the server with an actor, which only returns appropriate error messages.
+  }
 
-  // Let it run for some time and then bring it down
-//  Thread.sleep(50000)
-//  server ! ShutdownServer
-//  Thread.sleep(1000)
-//  system.shutdown()
+  // Fire up the server in the system
+  val server = system.actorOf(HttpServerActor.props(PlayfulHandlerActor.props), "httpServer")
 }
 
 /**
@@ -49,18 +56,11 @@ class HttpServerActor(handleProps: Props)(implicit val system: ActorSystem)
   extends Actor
   with    Logging {
 
+
   // On start setup the connection from the configuration and try to connect to the port
   // Is also called on restart (default in 'postRestart')
   override def preStart = {
-    info("Firing up the Http-server")
-    // Set up the listener on the port as a child actor.
-    val portListener: ActorRef = context.actorOf(handleProps, "portListener")
-    val conf        = ConfigFactory.load()
-    val ip          = conf.getString("connection.localIp")
-    val port        = conf.getInt("connection.port")
-    val bindMessage = new Bind(portListener, new InetSocketAddress(ip, port), 100, Nil, None)
-    IO(Http) ! bindMessage
-    info("Done setting up the Http-server")
+    bindListener(PlayfulHandlerActor.props)
   }
 
   // Some cleaning up
@@ -81,6 +81,32 @@ class HttpServerActor(handleProps: Props)(implicit val system: ActorSystem)
       info("Shutting down the Http-server.")
       context.unwatch(self)
       context.stop(self)
+
+    case ChangeHandler(handlerProps) =>
+      implicit val timeout = Timeout(3.seconds)
+      import system.dispatcher
+      import akka.pattern.ask
+      val unboundMessage = (IO(Http) ? Unbind(3 seconds)).mapTo[Http.Unbound.type]
+      unboundMessage.onComplete{
+        case Success(mess) =>
+          info("Changing the handler")
+      }
+
+  }
+
+  def bindListener(handler: Props) = {
+    info("Firing up the Http-server")
+    // Set up the listener on the port as a child actor.
+    val portListener: ActorRef = context.actorOf(handleProps, "portListener")
+    val conf        = ConfigFactory.load()
+    val ip          = conf.getString("connection.localIp")
+    val port        = conf.getInt("connection.port")
+
+    info(s"~~~~~~~~~~~~~~> Trying to bind to port $port at IP-address $ip")
+
+    val bindMessage = new Bind(portListener, new InetSocketAddress(ip, port), 100, Nil, None)
+    IO(Http) ! bindMessage
+    info("Done setting up the Http-server")
   }
 }
 
@@ -92,6 +118,8 @@ object HttpServerActor{
 
   // Can be used as a message to shutdown the server cleanly
   case object ShutdownServer
+  // A message which is used to change the behavior of the server on runtime
+  case class  ChangeHandler(handlerProps: Props)
 }
 
 

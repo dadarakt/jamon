@@ -169,6 +169,50 @@ class PlayfulHandlerActor
   )
 }
 
-object DatabaseHandlerActor {
+object PlayfulHandlerActor {
   def props: Props = Props(new PlayfulHandlerActor)
 }
+
+
+/**
+ * This actor comes into play when the backend to the service is unreachable for any reason.
+ * It is supposed to show an appropriate error message and return any requests immediately so that there is
+ * no load on the server due to connections timing out.
+ */
+class DbDownHandlerActor
+    extends Actor
+    with HandlerActor
+    with Logging {
+
+  import DbDownHandlerActor._
+
+  def customReceive: Receive = {
+    // Just add a catch-all for all kinds of GETS and POSTS to display error
+    case HttpRequest(GET,_,_,_,_) =>
+      sender() ! displayDbOffline
+    case HttpRequest(POST,_,_,_,_) =>
+      sender() ! displayDbOffline
+  }
+}
+
+
+object DbDownHandlerActor {
+  def props = Props(new DbDownHandlerActor)
+
+  def displayDbOffline : HttpResponse = {
+    HttpResponse(status = 500, entity = HttpEntity(`text/html`,
+      <html>
+        <body>
+          <h1> The database is currently down. Please try again later.</h1>
+          <img src = "http://i.imgur.com/728GirQ.jpg"
+                     alt="WatDatDenn?"
+                     title ="Nosey Fucker!"
+                     width="200"
+                     height="200"
+                     align="right"/>
+        </body>
+      </html>.toString
+    ))
+  }
+}
+

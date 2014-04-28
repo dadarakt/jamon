@@ -27,12 +27,12 @@ object TitanDatabaseConnection extends Logging{
 	// defines the namespace for indexing
 	val INDEX_NAME = "search"
 
-	def main(args: Array[String]){
+	def main(args: Array[String]) = {
 		val g = openGraphFromConfig()
 		g match {
 			case Success(graph) => {
 				printGraph(graph)
-				graph.shutdown	
+				graph.shutdown
 			}
 			case Failure(e) => {
 				error(e)
@@ -40,22 +40,33 @@ object TitanDatabaseConnection extends Logging{
 		}
 	}
 
-	/**adds a logger property that you can use to retrieve the Logger object
-	 * Prints out everything in a graph. Only used for testing. TODO only test BS
-	 */
-	def printGraph(graph: TitanGraph): Unit = {
-		// First just get all the vertices
-		println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
-		//vertices.foreach {(vertex: String) => println(vertex)}	
-		println(vertices)	
+//  def main(args: Array[String]) = {
+//    val g = openGraphFromConfig()
+//    g match {
+//      case Success(graph) =>
+//        loadGodlyData(graph)
+//        print(graph)
+//      case Failure(e) =>
+//        error(e)
+//    }
+//  }
 
-		println(s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~")
-		val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
-		println(edges)
+  /**
+   * Opens a graph using a configuration file
+   */
+  def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
+    try {
+      val conf = readConfig(configFileName)
+      val graph = TitanFactory.open(conf)
+      Success(graph)
+    } catch {
+      case NonFatal(e) => {
+        error("Could not access the database")
+        Failure(e)
+      }
+    }
+  }
 
-		graph.commit
-	}
 
 	/**
 	 * Returns a vertex with the given property to the key from the graph
@@ -65,33 +76,18 @@ object TitanDatabaseConnection extends Logging{
 		None
 	}
 
+
 	/**
 	 * Opens a graph using the directory.
 	 */
 	def openGraphFromDir(dir: String): Try[TitanGraph] = {
 		val graph = TitanFactory.open(dir)
 		if(graph.isOpen){
-			info(s"Database $dir has been openend successfully")	
+			info(s"Database $dir has been openend successfully")
 			Success(graph)
 		} else {
-			error("Could not access graph")
-			Failure(new NoSuchElementException("Could not find the graph"))
-		}	
-	}
-
-	/**
-	 * Opens a graph using a configuration file
-	 */
-	def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
-		try {
-			val conf = readConfig(configFileName)
-			val graph = TitanFactory.open(conf)
-			Success(graph)
-		} catch {
-			case NonFatal(e) => {
-				error("Could not access the database")
-				Failure(e)
-			}
+			error("Could not access graph, will create the graph now.")
+      Failure(new NoSuchElementException(s"Could not open the given graph at dir $dir"))
 		}
 	}
 
@@ -106,7 +102,8 @@ object TitanDatabaseConnection extends Logging{
 				loadGodlyData(graph)
 				Success(graph)
 			}
-			case f@Failure(ex) => f
+			case f@Failure(ex) =>
+        f // Just push the exception
 		}
 	}
 
@@ -125,7 +122,7 @@ object TitanDatabaseConnection extends Logging{
 											INDEX_NAMESPACE
 											}
 		// Create the configuration from file. Will throw errors if keys are not found
-		val globalConf = ConfigFactory.load
+		val globalConf = ConfigFactory.load()
 		new BaseConfiguration {
 			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY", 
 						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
@@ -221,4 +218,21 @@ object TitanDatabaseConnection extends Logging{
 	    graph.commit();
 	}
 
+
+  /**adds a logger property that you can use to retrieve the Logger object
+    * Prints out everything in a graph. Only used for testing. TODO only test BS
+    */
+  def printGraph(graph: TitanGraph): Unit = {
+    // First just get all the vertices
+    println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
+    val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
+    //vertices.foreach {(vertex: String) => println(vertex)}
+    println(vertices)
+
+    println(s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~")
+    val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
+    println(edges)
+
+    graph.commit
+  }
 }
