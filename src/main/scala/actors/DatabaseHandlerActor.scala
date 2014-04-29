@@ -18,33 +18,39 @@ import scala.concurrent.duration._
 import grizzled.slf4j.Logging
 import spray.can.server.Stats
 import actors.HttpServerActor.ChangeHandler
+import akka.io.IO
+import com.thinkaurelius.titan.core.TitanGraph
 
 /**
  * Listenes on the port for connections and dispatches them to the handling actors.
- * For now there will be an actor spawned for every new connection but there is also the possibility to
- * have a pool of actors for that, to limit load and evoke back-pressure. Could make this dispatcher stateful as well.
- * @param handleProps The handler which handles the incoming connection.
+ * For now there will be an actor spawned for every new connection but it is also possible to
+ * have a pool of actors for that, to limit load and evoke back-pressure.
+ * It tracks the actors which handle connections in order to kill all connections when the behavior changes.
+ * This might not be optimal in all cases but for now the behavior should only change when there are drastical
+ * changes somewhere else wich render all open connections useless anyways.
+ * @param handlerProps The type of handler which handles the incoming connection.
  */
-class RequestDispatcher(handleProps: Props)
+class ListenerActor(handlerProps: Props)
   extends Actor
   with Logging {
 
-  import scala.collection.mutable.LinkedHashSet
+  import scala.collection.mutable
+
   // make this variable for possible later changes
-  var _handleProps = handleProps
+  var _handleProps = handlerProps
 
   // Holds all open Connections
-  var openConnections: LinkedHashSet[ActorRef] = LinkedHashSet[ActorRef]()
+  var openConnections: mutable.LinkedHashSet[ActorRef] = mutable.LinkedHashSet[ActorRef]()
 
   def receive: Receive = {
     case c: Http.Connected =>
-      // Create a new handler and register it
-      val _sender = sender() // Capture this right away
+      val _sender = sender()
+      // Create a new handler, put deathwatch on it and register the connection     
       val handler = context.actorOf(_handleProps)
-      context.watch(handler) //Put deathwatch on the handler to register a finished connection
+      context.watch(handler) 
       openConnections += handler
+      debug(s"Incoming connection from: ${c.remoteAddress}")
       info(s"------>Currently openend connections: ${openConnections.size }")
-      info(s"Incoming connection from: ${c.remoteAddress}") //TODO this should be debug in production
       _sender ! Http.Register(handler)
 
     case ChangeHandler(newHandler) =>
@@ -62,41 +68,42 @@ class RequestDispatcher(handleProps: Props)
   }
 }
 
-object RequestDispatcher {
-  def props(handleProps: Props) = Props(new RequestDispatcher(handleProps))
+object ListenerActor {
+  def props(handlerProps: Props) = Props(new ListenerActor(handlerProps))
 }
 
 
-
 /**
- * A trait which is to be mixed into all actors that serve the http server for handling messages
+ * A trait which is to be mixed into all actors that serve the http server for handling messages.
+ * Implements all the common behavior which is necessary for this type of actor to work in the system.
  */
 trait HandlerActor
   extends Actor
   with Logging {
   implicit val timeout: Timeout = 3.seconds
-
-  override def postStop() = {
-    sender() ! Http.Close
-  }
+  implicit val system           = context.system
 
   // This has to be implemented by actors which mix in this trait
   def customReceive: Receive
 
-  // Contains some common cases which every actor of this type should have
+  // Contains some common cases which every actor of this type should have. They are at least priority, meaning they
+  // represent a comfortable fallback if an implementing class does not want to handle certain messages.
   def defaultReceive: Receive = {
-    case PeerClosed => context.stop(self)
 
-    case Aborted =>  context.stop(self)
+    // This will stop the actor once the connection breaks. Works only as long every connection has its own worker
+    case PeerClosed =>
+      context.stop(self)
 
-    case ConfirmedClosed => context.stop(self)
+    case Aborted =>
+      context.stop(self)
 
-    // Fallback which simply shows the request from the user as a 404. This way actor which mix in this trait
-    // just define their cases of interest and do not care about anything else
+    case ConfirmedClosed =>
+      context.stop(self)
+
     case r @ HttpRequest(GET, uri, header, entity, protocol) =>
       // Unpack the headers for display (make a html list)
-    val headers = header.map((h: HttpHeader) => s"<li>${h.name} -----> ${h.value}</li>").mkString("\n")
-      val wurst = s"""<html>
+      val headers = header.map((h: HttpHeader) => s"<li>${h.name} -----> ${h.value}</li>").mkString("\n")
+        val enty = s"""<html>
                       |          <head>
                       |            <title> 404 - Resource not found.</title>
                       |          </head>
@@ -122,9 +129,7 @@ trait HandlerActor
                       |
                       |          </body>
                       |        </html>""".stripMargin
-
-      val ent = HttpEntity(`text/html`, wurst)
-      sender() ! HttpResponse(status = 404, entity = ent)
+      sender() ! HttpResponse(status = 404, entity = HttpEntity(`text/html`, enty))
   }
 
   // The actual receive function will first check the cases defined by the classes which mix in the trait and otherwise
@@ -226,8 +231,8 @@ object PlayfulHandlerActor {
 
 /**
  * This actor comes into play when the backend to the service is unreachable for any reason.
- * It is supposed to show an appropriate error message and return any requests immediately so that there is
- * no load on the server due to connections timing out.
+ * It is the null-handler which just returns a static error code.
+ *
  */
 class DbDownHandlerActor
     extends Actor
@@ -273,4 +278,53 @@ object DbDownHandlerActor {
     ))
   }
 }
+
+/**
+ * First prototype for a handler which takes incoming requests and tries to interact with the Titan-Database.
+ * @param graph The (Titan) graph-database
+ */
+class TitanDbHandlerActor(graph: TitanGraph)
+  extends Actor
+  with    DbHandlerActor
+  with    Logging {
+
+
+  import database.TitanDatabaseConnection.graphToString
+
+  def dbDependendReceive = {
+    case HttpRequest(GET, Uri.Path("/dbRequest"),_,_,_) =>
+      info("Somebody wants something from the database!")
+      val start = System.currentTimeMillis()
+      sender() ! HttpResponse(entity = graphToString(graph))
+      info(s"Work on this request took: ${System.currentTimeMillis - start} ms.")
+  }
+
+}
+
+object TitanDbHandlerActor {
+  def props(graph: TitanGraph): Props = Props(new TitanDbHandlerActor(graph))
+
+}
+
+
+/**
+ * Defines a set of possible interactions with the database. Implementing classes can then be interchanged to swap
+ * the logics of interaction and also the implementation underneath. This level of abstraction is introduced in order
+ * to allow the backend to be interchangeable from what the http-server does. Could also be used as a simple marker
+ * interface.
+ */
+trait DbHandlerActor extends HandlerActor{
+
+  def dbDependendReceive: Receive
+
+  // All general behavior of an data-base
+  def dbGeneralReceive: Receive = {
+    case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
+      sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
+  }
+
+  def customReceive = dbDependendReceive orElse dbGeneralReceive
+}
+
+
 

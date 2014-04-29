@@ -219,9 +219,9 @@ object TitanDatabaseConnection extends Logging{
 	}
 
 
-  /**adds a logger property that you can use to retrieve the Logger object
-    * Prints out everything in a graph. Only used for testing. TODO only test BS
-    */
+  /**
+   * Prints out everything in a graph. Only used for testing. TODO only test BS
+   */
   def printGraph(graph: TitanGraph): Unit = {
     // First just get all the vertices
     println(s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~")
@@ -235,4 +235,22 @@ object TitanDatabaseConnection extends Logging{
 
     graph.commit
   }
+
+  /**
+   * Prints out everything in a graph. Only used for testing. TODO only test BS
+   */
+  def graphToString(graph: TitanGraph): String = {
+    // First just get all the vertices
+    val verticesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~"
+    val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
+    //vertices.foreach {(vertex: String) => println(vertex)}
+
+    val edgesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
+    val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
+
+    graph.commit
+    (verticesHeader, vertices, edgesHeader, edges).productIterator.mkString("\n")
+  }
+
+
 }

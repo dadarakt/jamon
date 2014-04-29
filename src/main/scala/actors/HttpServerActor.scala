@@ -34,26 +34,30 @@ object SprayServer extends App with Logging{
   Thread.sleep(1000)
 
   // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
-//  val graph = database.TitanDatabaseConnection.openGraphFromConfig()
-//  graph match {
-//    case Success(graph) =>
-//      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
-//      // Set up the server here
-//    case Failure(ex) =>
-//      error(s"Could not connect to the database, critical failure, server will go into error-mode")
-//      // Set up the server with an actor, which only returns appropriate error messages.
-//  }
+  val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
+
+  // Get all the props we need for building the actor system:
+  val handlerProps = graphTry match {
+    case Success(graph) =>
+      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
+      TitanDbHandlerActor.props(graphTry.get)
+    case Failure(ex) =>
+      error(s"Could not connect to the database, critical failure, server will go into error-mode")
+      DbDownHandlerActor.props
+  }
+  val listenerProps = ListenerActor.props(handlerProps)
+  val serverProps   = HttpServerActor.props(listenerProps)
 
   // Fire up the server in the system
-  val server = system.actorOf(HttpServerActor.props(RequestDispatcher.props(PlayfulHandlerActor.props)), "httpServer")
+  val server = system.actorOf(serverProps, "httpServer")
 
   //This is just BS
-  while(true){
-    Thread.sleep(30000)
-    server ! ChangeHandler(DbDownHandlerActor.props)
-    Thread.sleep(30000)
-    server ! ChangeHandler(PlayfulHandlerActor.props)
-  }
+//  while(true){
+//    Thread.sleep(30000)
+//    server ! ChangeHandler(DbDownHandlerActor.props)
+//    Thread.sleep(30000)
+//    server ! ChangeHandler(PlayfulHandlerActor.props)
+//  }
 }
 
 /**
