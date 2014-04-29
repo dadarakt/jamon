@@ -7,7 +7,7 @@ scroll(event, t) = t.y += event.key == 4 ? -40 : 40
 function deleteChar(event::KeyDown, t::TextField)
 	i = first(t.selection)
 	if length(t.selection) > 0
-		text = text[chr2ind(i):chr2ind(last(t.selection))]
+		t.text = t.text[chr2ind(t.text, i):chr2ind(t.text, last(t.selection))]
 	end
 	Imin1 = chr2ind(t.text, i - 1)
 	I = Imin1 + (isascii(t.text[Imin1]) ? 1 : 2)
@@ -39,7 +39,7 @@ function addChar(event::KeyDown, t::TextField)
 	b = ""
 	i = first(t.selection)
 	if length(t.selection) > 0
-		text = text[chr2ind(i):chr2ind(last(t.selection))]
+		t.text = t.text[chr2ind(t.text, i):chr2ind(t.text, last(t.selection))]
 	end
 	if i >= 1 && i < length(t.text)
 		lastI = chr2ind(t.text, i)
@@ -64,11 +64,18 @@ function update(t::TextField)
 	t.styles 			= [StyledTextSegment(1:length(t.text), defaultStyle)]
 end
 
-
 function select(event::MouseClicked, t::TextField, f::FontProperties)
 	changed, newSelection = select(event.x, event.y, t, f)
 	if changed
 		t.selection = newSelection
+	end
+end
+
+function select(event::MouseDragged, t::TextField, f::FontProperties)
+	changed, startSelection = select(event.start.x, event.start.y, t, f)
+	changed, endSelection 	= select(event.x, event.y, t, f)
+	if changed
+		t.selection = min(first(startSelection),first(endSelection)):max(first(startSelection),first(endSelection))
 	end
 end
 function select(x::Real, y::Real, t::TextField, f::FontProperties)
@@ -76,8 +83,6 @@ function select(x::Real, y::Real, t::TextField, f::FontProperties)
 	if y <= t.y + f.lineHeight && y >= t.y - f.lineHeight * length(t.newLineIndexes)
 		#convert into Glyph coordinates
 		lineIndex		= max(min(div(t.y + f.lineHeight - y, f.lineHeight) + 1, length(t.newLineIndexes)), 1)
-		
-
 		line 			= t.newLineIndexes[lineIndex]
 		xPosCursor::Int	= max(min(div(x - t.x, f.advance) + first(line), last(line)), 0)
 		return (true, xPosCursor:xPosCursor-1)
@@ -157,10 +162,12 @@ registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && x.key == '\b', ()
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && isprint(x.key), (), addChar, (t,)))
 registerEventAction(EventAction{KeyDown{0}}(x -> x.special && x.key == '\n' || x.key == '\r', (), newLine, (t,)))
 
-registerEventAction(EventAction{MouseClicked{0}}(x -> x.key == 0, (), select, (t, font.properties)))
+registerEventAction(EventAction{MouseClicked{0}}(x -> x.key == 0 && x.status == 0, (), select, (t, font.properties)))
 registerEventAction(EventAction{KeyUp{0}}(
 	x -> x.special && (x.key == GLUT_KEY_UP || x.key == GLUT_KEY_DOWN || x.key == GLUT_KEY_RIGHT || x.key == GLUT_KEY_LEFT),
 	(), select, (t, font.properties)))
+
+registerEventAction(EventAction{MouseDragged{0}}(x -> true, (), select, (t, font.properties)))
 
 
 function DisplayTextField(t::TextField, f::GLFont)
