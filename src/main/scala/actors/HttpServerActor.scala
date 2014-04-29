@@ -78,7 +78,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
   // On start setup the connection from the configuration and try to connect to the port
   // Is also called on restart (default in 'postRestart')
   override def preStart = {
-    bindListener(PlayfulHandlerActor.props)
+    bindListener(listenerProps)
   }
 
   // Some cleaning up
