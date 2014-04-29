@@ -21,6 +21,7 @@ class TitanDbHandlerActor(graph: TitanGraph)
 
   import database.TitanDatabaseConnection.graphToString
 
+  // All special cases we want to capture
   def dbDependendReceive = {
     case HttpRequest(GET, Uri.Path("/dbRequest"),_,_,_) =>
       info("Somebody wants something from the database!")

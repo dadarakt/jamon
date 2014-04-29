@@ -187,6 +187,9 @@ object DbDownHandlerActor {
  */
 trait DbHandlerActor extends HandlerActor{
 
+  // Implementing classes need to mixin this trait to have the functionality to connect to an underlying database.
+  this: DataBaseInteractions =>
+
   def dbDependendReceive: Receive
 
   // All general behavior of an data-base
@@ -196,6 +199,13 @@ trait DbHandlerActor extends HandlerActor{
   }
 
   def customReceive = dbDependendReceive orElse dbGeneralReceive
+}
+
+/**
+ * Defines the interface to the database, makes connections interchangeable
+ */
+trait DataBaseInteractions {
+
 }
 
 
