@@ -10,7 +10,6 @@ import java.net.{InetSocketAddress, Socket}
 import akka.actor.{Kill, ActorSystem, Props, Actor}
 import akka.io.{IO, Tcp}
 import com.typesafe.config.ConfigFactory
-import java.net.InetAddress
 import grizzled.slf4j.Logging
 
 /**

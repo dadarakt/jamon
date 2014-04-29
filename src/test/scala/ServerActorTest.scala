@@ -3,12 +3,13 @@
  */
 
 import akka.testkit.TestKit
+import org.scalatest.FunSuite
 
 /**
  * Tests if the server can handle some simple requests as expected.
  * This is not a load test but a mere proof of concept!!!
  */
-class ServerActorTest extends TestKit {
+class ServerActorTest extends FunSuite {
 
 
 }
