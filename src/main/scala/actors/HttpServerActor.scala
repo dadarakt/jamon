@@ -37,14 +37,16 @@ object SprayServer extends App with Logging{
   val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
 
   // Get all the props we need for building the actor system:
-  val handlerProps = graphTry match {
-    case Success(graph) =>
-      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
-      TitanDbHandlerActor.props(graphTry.get)
-    case Failure(ex) =>
-      error(s"Could not connect to the database, critical failure, server will go into error-mode")
-      DbDownHandlerActor.props
-  }
+//  val handlerProps = graphTry match {
+//    case Success(graph) =>
+//      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
+//      DbHandler.props(graphTry.get)
+//    case Failure(ex) =>
+//      error(s"Could not connect to the database, critical failure, server will go into error-mode")
+//      DbDownHandlerActor.props
+//  }
+
+  val handlerProps   = DbHandlerActor.titanProps
   val listenerProps = ListenerActor.props(handlerProps)
   val serverProps   = HttpServerActor.props(listenerProps)
 
@@ -108,6 +110,12 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
       }
   }
 
+  /**
+   * Binds a (new) listener to the port (depending on already having one or not).
+   *
+   * @param handlerProps The kind of handler which is supposed to be used by the listener on startup.
+   *                     Could be changed later using the 'ChangeHandler(newHandlerProps: Props)' message.
+   */
   def bindListener(handlerProps: Props) = {
     // If there is an active listener kill it first
     if(portListener.isDefined) {
@@ -118,7 +126,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
     }
 
     // Set up the listener on the port as a child actor.
-    portListener    = Some(context.actorOf(listenerProps, "portListener"))
+    portListener    = Some(context.actorOf(handlerProps, "portListener"))
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
@@ -136,7 +144,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
 }
 
 /**
- * Compagnion object
+ * Compagnion object for the server.
  */
 object HttpServerActor{
   def props(listenerProps: Props)(implicit system: ActorSystem): Props =
@@ -146,46 +154,6 @@ object HttpServerActor{
   case object ShutdownServer
   // A message which is used to change the behavior of the server on runtime
   case class  ChangeHandler(handlerProps: Props)
-}
-
-
-
-//~~~~~ Simple echo handler for future-reference, not meant for production in any sense! ~~~~~//
-/**
- * A simple actor which just sends back a message. This is the so called "Handler actor" which takes in dispatched
- * HTTP requests from the HttpServerConnection
- */
-class EchoHandlerActor extends Actor with Logging{
-  implicit val timeout: Timeout = 1.second // for the actor 'asks'
-
-  def receive = {
-
-    // This means the actor will take the task. Could react to server-overload here with checks.
-    case c: Http.Connected =>
-      info(s"Incoming connection from: ${c.remoteAddress}")
-      sender ! Http.Register(self)
-
-    // Fallback which simply shows the request from the user
-    case r @ HttpRequest(GET, uri, header, entity, protocol) =>
-      // Send the query back to the user
-      val headers = header.map((h: HttpHeader) => s"${h.name} -----> ${h.value}").mkString("\n")
-      val response = s"Here is the query made: \n GET REQUEST \n $uri \n $headers \n $entity \n $protocol"
-      sender() ! HttpResponse(status = 200, entity = response)
-
-    // All HttpRequests which are unknown
-    case _: HttpRequest =>
-      sender ! HttpResponse(status = 404, entity = "Unknown resource!")
-
-    case PeerClosed => //do nothing
-
-    case Aborted => // do nothing
-
-    case ConfirmedClosed => // do nothing
-  }
-}
-
-object EchoHandlerActor {
-  def props: Props = Props(new EchoHandlerActor)
 }
 
 

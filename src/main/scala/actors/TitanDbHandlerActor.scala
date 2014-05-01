@@ -15,23 +15,21 @@ import spray.http.HttpMethods._
  * @param graph The (Titan) graph-database
  */
 class TitanDbHandlerActor(graph: TitanGraph)
-  extends Actor
-  with    DbHandlerActor
-  with    Logging {
+  extends  Logging {
 
-  import database.TitanDatabaseConnection.graphToString
-
-  // All special cases we want to capture
-  def dbDependendReceive = {
-    case HttpRequest(GET, Uri.Path("/dbRequest"),_,_,_) =>
-      info("Somebody wants something from the database!")
-      val start = System.currentTimeMillis()
-      sender() ! HttpResponse(entity = graphToString(graph))
-      info(s"Work on this request took: ${System.currentTimeMillis - start} ms.")
-  }
+//  import database.TitanDatabaseConnection.graphToString
+//
+//  // All special cases we want to capture
+//  def dbDependendReceive = {
+//    case HttpRequest(GET, Uri.Path("/dbRequest"),_,_,_) =>
+//      info("Somebody wants something from the database!")
+//      val start = System.currentTimeMillis()
+//      //sender() ! HttpResponse(entity = graphToString(graph))
+//      info(s"Work on this request took: ${System.currentTimeMillis - start} ms.")
+//  }
 }
 
 object TitanDbHandlerActor {
-  def props(graph: TitanGraph): Props = Props(new TitanDbHandlerActor(graph))
+  //def props(graph: TitanGraph): Props = Props(new TitanDbHandlerActor(graph))
 
 }

@@ -16,10 +16,12 @@ import spray.can.server.Stats
 
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
+import database.TitanDbInteractions
 
 /**
- * A trait which is to be mixed into all actors that serve the http server for handling messages.
- * Implements all the common behavior which is necessary for this type of actor to work in the system.
+ * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
+ * Implements all the common behavior which is necessary for an actor to handle requests. These are mostly fall-back
+ * responses.
  */
 trait HandlerActor
   extends Actor
@@ -104,7 +106,7 @@ trait HandlerActor
       sender ! Http.Close
       context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
 
-    // The general fallback - 404
+    // The general fallback - 404 TODO this returns the http request for debugging, should be simplified later
     case r @ HttpRequest(GET, uri, header, entity, protocol) =>
       // Unpack the headers for display (make a html list)
       val headers = header.map((h: HttpHeader) => s"<li>${h.name} -----> ${h.value}</li>").mkString("\n")
@@ -141,10 +143,11 @@ trait HandlerActor
 /**
  * This actor comes into play when the backend to the service is unreachable for any reason.
  * It is the null-handler which just returns a static error code.
+ * Can be seen as an example of changing the server's behavior to something that does not connect to any kind of
+ * database at all
  */
 class DbDownHandlerActor
-    extends Actor
-    with HandlerActor
+    extends HandlerActor
     with Logging {
 
   import DbDownHandlerActor._
@@ -180,33 +183,37 @@ object DbDownHandlerActor {
 
 
 /**
- * Defines a set of possible interactions with the database. Implementing classes can then be interchanged to swap
- * the logics of interaction and also the implementation underneath. This level of abstraction is introduced in order
- * to allow the backend to be interchangeable from what the http-server does. Could also be used as a simple marker
- * interface.
+ * Defines a set of possible interactions with the database.
+ * It needs to extend some trait 'DatabaseInteractions', wich implements the logics of interacting with the desired
+ * backend. Thus the actor only defines the actions which are performed based on requests, but the implementation is
+ * in another trait, which makes it possible to create actors which talk to different databases on the fly.
+ *
+ * This level of abstraction is introduced in order to allow the backend to be interchangeable from what the
+ * http-server does.
  */
-trait DbHandlerActor extends HandlerActor{
+class DbHandlerActor extends HandlerActor{
 
-  // Implementing classes need to mixin this trait to have the functionality to connect to an underlying database.
-  this: DataBaseInteractions =>
+  // On instantiation a trait of this kind has to be mixed in, which contains the implementations for the logics
+  // defined below.
+  this : database.DataBaseInteractions =>
 
-  def dbDependendReceive: Receive
+  // All the logics on how to handle requests.
+  def customReceive: Receive = {
+    case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
+      sender() ! HttpResponse(entity = dbToString)
 
-  // All general behavior of an data-base
-  def dbGeneralReceive: Receive = {
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
   }
 
-  def customReceive = dbDependendReceive orElse dbGeneralReceive
 }
 
-/**
- * Defines the interface to the database, makes connections interchangeable
- */
-trait DataBaseInteractions {
-
+object DbHandlerActor {
+  // TODO this is just a bit sluggish
+  def titanProps: Props = Props(new DbHandlerActor with TitanDbInteractions)
 }
+
+
 
 
 
