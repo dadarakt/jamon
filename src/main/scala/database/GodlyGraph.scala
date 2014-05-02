@@ -61,7 +61,7 @@ object TitanDatabaseConnection extends Logging{
       Success(graph)
     } catch {
       case NonFatal(e) => {
-        error("Could not access the database")
+        error(s"Could not access the database.")
         Failure(e)
       }
     }

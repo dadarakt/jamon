@@ -72,17 +72,6 @@ class HttpServerSpec extends FunSuite with ScalaFutures{
     val response: Future[HttpResponse] =
       (IO(Http) ? HttpRequest(GET, Uri(url))).mapTo[HttpResponse]
 
-
-
-//    var answer: (HttpResponse, Long) = (HttpResponse(), -1)
-//    response.onComplete{
-//      case Success(res) =>
-//        val stat = res.status.intValue
-//        answer = (res,duration)
-//      case Failure(ex) =>
-//        throw ex
-//    }
-
     val answer = Await.result(response, waitTime)
     val end = System.currentTimeMillis
     val duration = end - start

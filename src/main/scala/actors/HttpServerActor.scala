@@ -8,17 +8,12 @@ import akka.actor.{ActorRef, ActorSystem, Actor, Props}
 import akka.io.{IO}
 import akka.util.Timeout
 import spray.can.Http
-import spray.can.Http.{Unbind, Bind}
-import spray.http._
-import HttpMethods._
+import spray.can.Http.{Bind}
 import scala.concurrent.duration._
 import com.typesafe.config.ConfigFactory
 import java.net.InetSocketAddress
 import grizzled.slf4j.Logging
 import prototype.HttpServer.ShutdownServer
-import akka.io.Tcp.{ConfirmedClosed, Aborted, PeerClosed}
-import spray.http.HttpRequest
-import spray.http.HttpResponse
 import scala.util.{Failure, Success}
 import actors.HttpServerActor.ChangeHandler
 import akka.pattern.ask
@@ -34,19 +29,9 @@ object SprayServer extends App with Logging{
   Thread.sleep(1000)
 
   // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
-  val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
+  // val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
 
-  // Get all the props we need for building the actor system:
-//  val handlerProps = graphTry match {
-//    case Success(graph) =>
-//      info(s"The graph was found and the server sets up connections to it. ${graph.toString}}")
-//      DbHandler.props(graphTry.get)
-//    case Failure(ex) =>
-//      error(s"Could not connect to the database, critical failure, server will go into error-mode")
-//      DbDownHandlerActor.props
-//  }
-
-  val handlerProps   = DbHandlerActor.titanProps
+  val handlerProps  = DbHandlerActor.titanProps
   val listenerProps = ListenerActor.props(handlerProps)
   val serverProps   = HttpServerActor.props(listenerProps)
 
@@ -130,7 +115,8 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
-    val bindMessage = new Bind(portListener.get, new InetSocketAddress(ip, port), 100, Nil, None)
+    val options     = Nil
+    val bindMessage = new Bind(portListener.get, new InetSocketAddress(ip, port), 100, options, None)
     val bound = (IO(Http) ? bindMessage).mapTo[Http.Bound]
     bound.onComplete {
       case Success(bound) =>
