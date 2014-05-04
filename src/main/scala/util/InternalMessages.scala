@@ -40,7 +40,7 @@ trait JuliaCode
  * A set of Functions which could have been extracted from a XML file. Could also be none
  * @param functions
  */
-case class JuliaFunctions(functions: List[Node] = List[Node]()) extends JuliaCode
+case class JuliaFunctions(functions: List[Node] = List[xml.Node]()) extends JuliaCode
 
 /**
  * The general use is to have a list of requests. Could also be just one or none.
@@ -48,6 +48,8 @@ case class JuliaFunctions(functions: List[Node] = List[Node]()) extends JuliaCod
  */
 case class Requests(requests: List[String] = List[String]())
 
+case class JuliaSignature(name: String,)
+case class JuliaFunction extends JuliaCode()
 
 ///////////// Exceptions ////////////////
 

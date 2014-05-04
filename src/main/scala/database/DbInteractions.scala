@@ -20,6 +20,7 @@ import scala.util.control.NonFatal
 trait DataBaseInteractions {
   def dbToString : String
   def getNode(name: String): String
+  def getFunction(name: String, params: JuliaParameter)
 }
 
 /**

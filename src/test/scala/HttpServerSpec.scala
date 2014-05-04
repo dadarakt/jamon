@@ -28,32 +28,28 @@ class HttpServerSpec extends FunSuite with ScalaFutures{
 
   test("First get some random page to see if there is an internet connection possible.") {
     val url = "http://google.com"
-    val (response,time) = getResponse(url)
+    val (response,_) = getResponse(url)
     assert( response.status.intValue >= 200 && response.status.intValue < 400,
       s"The page returned an undesired status: ${response.status.intValue}")
-    println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
   }
 
   test("See if the server is online for testing. Retrieve the index page and check the status."){
     val url = "http://jannis-server.no-ip.biz"
-    val (response,time) = getResponse(url)
+    val (response,_) = getResponse(url)
     assert( response.status.intValue >= 200 && response.status.intValue < 400,
             s"The page returned an undesired status: ${response.status.intValue}")
-    println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
   }
 
   test("Test if the server outputs a 404 for a wrong query.") {
     val url = "http://jannis-server.no-ip.biz/test"
-    val (response, time) = getResponse(url)
+    val (response, _) = getResponse(url)
     assert(response.status.intValue == 404)
-    println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
   }
 
   test("Test some other page for time comparison") {
     val url = "http://dict.cc"
-    val (response, time) = getResponse(url)
+    val (response, _) = getResponse(url)
     assert(response.status.intValue == 301)
-    println(s"Got the desired page $url in $time mS with status-code ${response.status.intValue}")
   }
 
 

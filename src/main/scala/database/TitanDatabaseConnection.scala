@@ -142,6 +142,16 @@ object TitanDatabaseConnection extends Logging{
 	}
 
 
+  /**
+   * Loads some simple example-data into the database. Follows the defined structure
+   */
+  def instantiateExampleGraph(graph: TitanGraph) = {
+    // Create the primary index over the name of functions
+    graph.makeKey("functionName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+
+  }
+
+
 	/**
 	 * Uses the data given in the getting started example and pumps them into my implementation
 	 * for some early tests. Makes keys and indexes as well as data points.

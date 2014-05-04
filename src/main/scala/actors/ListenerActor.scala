@@ -33,8 +33,7 @@ class ListenerActor(handlerProps: Props)
       val handler = context.actorOf(_handleProps)
       context.watch(handler)
       openConnections += handler
-      debug(s"Incoming connection from: ${c.remoteAddress}")
-      info(s"------>Currently openend connections: ${openConnections.size }")
+      debug(s"Incoming connection from: ${c.remoteAddress}. Currently openend connections: ${openConnections.size}")
       _sender ! Http.Register(handler)
 
     case ChangeHandler(newHandler) =>
@@ -43,7 +42,7 @@ class ListenerActor(handlerProps: Props)
       _handleProps = newHandler
 
     case Terminated(handler) =>
-      info(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
+      debug(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
       if(openConnections.contains(handler)){
         openConnections -= handler
       } else {
