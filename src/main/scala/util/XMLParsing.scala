@@ -19,15 +19,14 @@ import javax.xml.parsers.{SAXParserFactory, SAXParser}
 import javax.xml.validation.{Schema, SchemaFactory}
 import javax.xml.XMLConstants
 import javax.xml.transform.stream.StreamSource
+import util.JuliaTypes._
 
 
 object XMLParsing extends Logging {
-
   // The schema which is to be used for the queries to the system
   val factory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
   val inputSchema = factory.newSchema(new StreamSource(getClass.getResourceAsStream("/inputSchema.xsd")))
 
-  
 	/**
 	 * Opens and XML from file or takes the string as the xml
    * @param input A string which can either be a filename or a complete xml structure
@@ -134,7 +133,7 @@ object XMLParsing extends Logging {
             user,
             juliaVersion,
             Requests((requests map {_.text}).toList),
-            JuliaFunctions(juliaCode)
+            juliaCode
     )
   }
 
@@ -152,38 +151,181 @@ object XMLParsing extends Logging {
 	 * or just from the toplevel.. TODO This might eventually lead to the case, that functions that are nested
 	 * into one another which means that the output will be nested at well.
 	 */
- 	def getFunctions(xml: Node, allLevels: Boolean = false): List[Node] = {
-    //  Recursive helper to find all expression which have the head 'function'.
-    //  Tries to find functions on all nested levels.
- 		def getFunAcc(node: Node, allLevels: Boolean, acc: List[Node]): List[Node] = {
- 			// First find the julieTree and from there all the expressions in there
+ 	def getFunctions(xml: Node, allLevels: Boolean = false): JuliaFunctions = {
+    //  Recursive helper to find all expression which have the head 'function'. Can find nested functions.
+ 		def getFunAcc(node: Node, allLevels: Boolean, acc: List[Node]): List[JuliaFunction] = {
  			val expressions = node \ Expr
- 			var newAcc = collection.mutable.MutableList[Node]()
-      // Find all functions on this level and descent recursively
- 			expressions foreach {
- 				elem => {
- 					elem.attribute("head") match {
- 						case Some(content) => {
- 							if(content.toString == Function){
- 								//Add this element to the list of functions we found
- 								newAcc += elem	
- 							}	
- 						}
- 						case None => {
- 							error("There were parts in the XML that cannot be parsed.")
- 						}
- 					}			
+ 			var newAcc = collection.mutable.MutableList[JuliaFunction]()
+      // Find all functions on this level add them to the accumulator and descent recursively
+ 			expressions foreach { elem => {
+        elem.attribute("head") match {
+          case Some(heads) => 
+            if(heads.toString == Function){
+              // The first arg of an xml-function is always the signature, the second the body. Parse them.
+              val args          = elem \ Args
+              val signature     = parseSignature(args(0))
+              val body          = args(1)
+              val juliaFunction = new JuliaFunction(signature, body)
+              newAcc += juliaFunction
+            }
+
+          case None => {
+            throw new MalformedXMLException(s"The delivered XML was not correct. Could not parse $elem")
+          }
+        }
  				}
  				newAcc ++ getFunAcc(elem, allLevels, acc)
  			}		
  			newAcc.toList
  		}
-
-    // First find all the juliaTrees given in the xml
+    // First find all the juliaTrees given in the xml and find all the functions in them
     val juliaTrees = xml \\ JuliaTree
-    // And then find all the functions included in the trees
-    juliaTrees.flatMap(getFunAcc(_, allLevels, List[Node]())).toList
- 	}	
+    JuliaFunctions(juliaTrees.flatMap(getFunAcc(_, allLevels, List[Node]())).toList)
+ 	}
+
+  /**
+   * Reads the signature from a node which holds it.
+   * @param node The node which contains a function's signature
+   */
+  def parseSignature(node: Node): JuliaSignature = {
+    val sig = node \ Expr
+    val sigArgs = sig \ Args
+
+    val name = sigArgs(0).attribute(Symbol) match {
+      case Some(name) =>
+        name.toString
+      case None =>
+        throw new MalformedXMLException("Function name could not be read, cannot process function!")
+    }
+
+    // The arguments are then a list of all args after the function name
+    val allArguments = sigArgs.drop(1)
+    // if there are arguments at all, parse them, else return an empty list
+    val (arguments, keywordArguments) = if (allArguments.length > 0){
+      // Decide whether this function has parameters (with default values where order does not matter)
+      val maybeKeywordArguments = (allArguments(0) \ Expr)(0)
+      val keywordArguments: List[(String, String, String)] = maybeKeywordArguments.attribute("head") match {
+        case Some(heads) =>
+          if (heads.toString == Parameters) {
+            val params = maybeKeywordArguments \ Args
+            (for{
+              param <- params
+              line = param \ Expr \ Args
+              name = line(0).attribute(Symbol) match {
+                case Some(n) => n.toString
+                case None => throw new MalformedXMLException("Could not read parameter!")
+              }
+              str = line(1).toString
+              typeValue = line(1).attributes.toString.filterNot(_ == ' ').split('=').toList
+              typy = typeValue(0)
+              default = typeValue(1).filterNot(_ == '\"')
+
+
+              //typeValueRegex(typy,value) = line(1).toString // TODO get away from this regex, make it via split
+            } yield (name, typy, default)).toList
+          } else {
+            println("~~~~~~> did not get any params :(")
+            List()
+          }
+
+        case None =>
+          println("there was something else here.")
+          List()
+      }
+      // Check if we found parameters. The rest of the list will then be arguments to the function
+      val arguments = if(keywordArguments.length > 0){
+        allArguments.drop(1)
+      } else {
+        allArguments
+      }
+      // Finally parse the arguments.
+      val finalArguments: List[(String, String, String)] = (for {
+        expr <- arguments \ Expr
+      }yield parseArgument(expr)).toList
+
+      (finalArguments, keywordArguments)
+    } else {
+      (List(), List())
+    }
+    JuliaSignature(name, arguments, keywordArguments.toSet)
+  }
+
+  /**
+   * Reads an xml node which holds one argument.
+   * Covers all appearing cases which there are:
+   * - just a symbol with no type
+   * - a symbol::type contruct
+   * - a symbol = defaultValue construct
+   * - a symbol::type = defaultValue construct
+   *@param node
+   * @return The signature for the argument
+   */
+  def parseArgument(node:Node): (String, String, String) = {
+    // Might be just a single args or an expression of multiple args
+    if(node.child.isEmpty){
+      node.attribute("symbol") match {
+        case Some(name) => (name.toString, "", "")
+        case _ => throw new MalformedXMLException(s"Not a correct paramter name at $node")
+      }
+    } else {
+      val args = node \ Args
+      node.attribute("head") match {
+
+        // case for an argument with default value
+        case Some(kw) if kw.toString == "kw" =>
+          // This is the case where we have a symbol::type = default
+          if(! args(0).child.isEmpty) {
+            val (name,typy,_) = parseArgument((args(0) \ Expr)(0))
+            val typeValue = args(1).attributes.toString.filterNot(_ == ' ').split('=').toList
+
+            //val typy = typeValue(0)
+            val default = if(typeValue.length < 2){
+              args(1).text.toString
+            } else{
+              typeValue(1).filterNot(_ == '\"')
+            }
+            (name, typy, default)
+          } else {
+            // First get the name of the parameter
+            val name = args(0).attribute(Symbol) match {
+              case Some(name) => name.toString
+              case _ => throw new MalformedXMLException(s"Not a correct parameter name at $node")
+            }
+            // Check if this is only a string node
+            val (typy, default) = if(args(1).text != "") {
+              ("String",args(1).text)
+            } else {
+              val str = args(1).toString
+              val typeValue = args(1).attributes.toString.filterNot(_ == ' ').split('=').toList
+              val typy = typeValue(0)
+              val default = typeValue(1).filterNot(_ == '\"')
+              (typy, default)
+            }
+            (name, typy, default)
+          }
+
+        // Case for an argument with a type definition but no default value
+        case Some(colons) if colons.toString == "::"  =>
+          val name = args(0).attribute(Symbol) match {
+            case Some(name) => name.toString
+            case _ => throw new MalformedXMLException(s"Not a correct parameter name at $node")
+          }
+          val typy = args(1).attribute(Symbol) match {
+            case Some(typy) => typy.toString
+            case _ => throw new MalformedXMLException(s"Not a correct parameter name at $node")
+          }
+          (name,typy,"")
+
+        // Case for an argument which has only a name
+        case None =>
+          val name = args(0).attribute(Symbol) match {
+            case Some(name) => name.toString
+            case _ => throw new MalformedXMLException(s"Not a correct parameter name at $node")
+          }
+          (name, "", "")
+      }
+    }
+  }
  }
 
 
@@ -209,6 +351,29 @@ class SchemaAwareFactoryAdapter(schema: Schema) extends NoBindingFactoryAdapter 
     factory.setFeature("http://xml.org/sax/features/namespace-prefixes", true)
     factory.newSAXParser()
   }
+}
+
+
+/**
+ * A needed constants to parse the xml
+ */
+object XMLConstantsJulia {
+  val Header         = "header"
+  val Body          = "body"
+  val JuliaTree     = "juliaTree"
+  val Expr          = "expr"
+  val Function      = "function"
+  val Timestamp     = "timestamp"
+  val User          = "user"
+  val Client        = "client"
+  val Request       = "requests"
+  val JuliaVersion  = "juliaVersion"
+  val Parameters    = "parameters"
+  val Args          = "args"
+  val Symbol        = "symbol"
+
+  // Only to be used on a single xml-line!
+  val typeValueRegex = """<args\s+(\.+)="(\.+)".*""".r
 }
 
 

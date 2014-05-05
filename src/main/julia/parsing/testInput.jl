@@ -1,1 +1,3 @@
-glClearColor(0.9f0, 0.9f0, 0.9f0, 1.0f0)
+function f(v :: String, w :: Int = 12, x :: Number, y = 11, z ; a = "chae", b = 2)
+  x + y
+end

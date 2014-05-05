@@ -6,6 +6,7 @@ import grizzled.slf4j.Logging
 import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
+import util.JuliaTypes.JuliaSignature
 
 /**
  * Created by Jannis on 5/1/14.
@@ -18,9 +19,10 @@ import scala.util.control.NonFatal
  * transactions with the databsae.
  */
 trait DataBaseInteractions {
+
   def dbToString : String
   def getNode(name: String): String
-  def getFunction(name: String, params: JuliaParameter)
+  def getFunction(signature: JuliaSignature)
 }
 
 /**
@@ -51,6 +53,7 @@ trait TitanDbInteractions
 
   def getNode(name: String): String = ???
 
+  def getFunction(signature: JuliaSignature) = ???
 }
 
 /**

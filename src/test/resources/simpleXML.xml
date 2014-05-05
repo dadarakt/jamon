@@ -9,7 +9,7 @@
             <args>
               <expr head="kw">
                 <args symbol="a"/>
-                <args>chae</args>
+                <args int64="1"/>
               </expr>
             </args>
             <args>
@@ -18,23 +18,6 @@
                 <args int64="2"/>
               </expr>
             </args>
-          </expr>
-        </args>
-        <args>
-          <expr head="::">
-            <args symbol="v"/>
-            <args symbol="String"/>
-          </expr>
-        </args>
-        <args>
-          <expr head="kw">
-            <args>
-              <expr head="::">
-                <args symbol="w"/>
-                <args symbol="Int"/>
-              </expr>
-            </args>
-            <args int64="12"/>
           </expr>
         </args>
         <args>
