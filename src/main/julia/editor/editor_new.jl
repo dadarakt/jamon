@@ -4,7 +4,7 @@ import GLText.select
 createWindow()
 
 
-scroll(event, t) = t.y += event.key == 4 ? -40 : 40
+scroll(event, t) = t.y += event.key == 4 ? -30 : 30
 
 
 function select(event::KeyUp, t::TextField, f::FontProperties)
@@ -21,22 +21,18 @@ function select(event::KeyUp, t::TextField, f::FontProperties)
 end
 
 
-function select(event::DoubleClick, t::TextField, f::FontProperties)
-	selection = select(event.x, event.y, t, f)
-end
-
-
-
-
 font 	= getfont()
-text 	= (join([i for i=0:9],"")*"\n")^10
-t 		= TextField(text, 10, 500)
+text 	= replace(readall(open("editor_new.jl")), "\t", "   ")
+t 		= TextField(text, 50, 950)
 
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && x.key == '\b', (), delete, (t,)))
 registerEventAction(EventAction{KeyDown{0}}(x -> !x.special && isprint(x.key), (), addchar, (t,)))
 registerEventAction(EventAction{KeyDown{0}}(x -> x.special  && x.key == '\n' || x.key == '\r', (), newline, (t,)))
 
 registerEventAction(EventAction{MouseClicked{0}}(x -> x.key == 0 && x.status == 0, (), select, (t, font.properties)))
+registerEventAction(EventAction{MouseClicked{0}}(x -> x.key == 4 || x.key == 3, (), scroll, (t,)))
+
+
 registerEventAction(EventAction{KeyUp{0}}(
 	x -> x.special && (x.key == GLUT_KEY_UP || x.key == GLUT_KEY_DOWN || x.key == GLUT_KEY_RIGHT || x.key == GLUT_KEY_LEFT),
 	(), select, (t, font.properties)))

@@ -10,7 +10,11 @@ uniform float border;
 uniform vec4 borderColor;
 
 void main(){
-	if(textureon > 0.5)
+	if(border > o_uv.x || border > 1.0 - o_uv.x || border > o_uv.y || border > 1.0 - o_uv.y)
+	{
+		gl_FragColor = borderColor;
+	}
+	else if(textureon > 0.5)
 	{
 		vec4 tColor = texture2D(bgtexture, o_uv);
 		float alpha = o_vcolor.a + tColor.a - o_vcolor.a * tColor.a;
