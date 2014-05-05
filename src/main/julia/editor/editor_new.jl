@@ -1,6 +1,8 @@
 using GLWindow, ModernGL, GLUtil, Events, GLText, GLUT
 import GLUtil.render
 import GLText.select
+createWindow()
+
 
 scroll(event, t) = t.y += event.key == 4 ? -40 : 40
 
@@ -22,7 +24,9 @@ end
 function select(event::DoubleClick, t::TextField, f::FontProperties)
 	selection = select(event.x, event.y, t, f)
 end
-createWindow()
+
+
+
 
 font 	= getfont()
 text 	= (join([i for i=0:9],"")*"\n")^10
@@ -45,7 +49,8 @@ function DisplayTextField(t::TextField, f::GLFont)
 	render(t, f)
 end
 
-
 glDisplay(FuncWithArgs(DisplayTextField, (t, font)))
+
+
 
 glutMainLoop()
