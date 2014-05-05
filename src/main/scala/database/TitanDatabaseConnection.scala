@@ -148,6 +148,10 @@ object TitanDatabaseConnection extends Logging{
   def instantiateExampleGraph(graph: TitanGraph) = {
 
     import util.JuliaTypes._
+
+    // The key which determines the type of a node in a graph
+    graph.makeKey("type").dataType(classOf[String])
+
     // The key for the toplevel of the graph. There are only three vertices which never change.
     graph.makeKey("topLevelName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
     val functions = graph.addVertex(null)
@@ -158,16 +162,29 @@ object TitanDatabaseConnection extends Logging{
     ElementHelper.setProperties(arguments, "topLevelName", "arguments")
 
     // keys and labels for function metadata (not the leaves)
-    graph.makeKey("funcName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
-    graph.makeKey("methName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+    graph.makeKey("funcName").dataType(classOf[JuliaFunctionName]).indexed(classOf[Vertex]).unique.make
+    graph.makeKey("methName").dataType(classOf[JuliaSignature]).indexed(classOf[Vertex]).unique.make
+    // This should be a unique ID for each implementation entered
     graph.makeKey("implName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+    // This will be the ID of the implementation together with a timestamp for the leaves
+    graph.makeKey("implNameWithVersion").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 
+    // The labels used to set functions in relation to one another
     graph.makeLabel("funcOf")
     graph.makeLabel("methOf")
     graph.makeLabel("implOf")
 
+    //keys to store data in
+    graph.makeKey("author")
+    graph.makeKey("timestamp")
+    graph.makeKey("documentation")
+    graph.makeKey("code")
+    graph.makeKey("metadata")
+
     // keys and labels for argument metadata
     //graph.makeKey("arg").dataType(classOf[JuliaArguments])
+
+
   }
 
 

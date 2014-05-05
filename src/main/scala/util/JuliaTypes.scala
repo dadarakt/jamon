@@ -54,6 +54,21 @@ object JuliaTypes {
    */
   type JuliaCodeBody = xml.Node
 
+  type JuliaFunctionName = String
+
+  type JuliaMethodName = String
+
+  type Metadata = String // TODO should become something more meaningful
+
+  /**
+   * Defines the arguments which a function can get. Has ordered arguments and unordered keywordArguments.
+   * @param arguments
+   * @param keywordArguments
+   */
+  case class JuliaArguments(arguments: List[JuliaArguments], keywordArguments: Set[JuliaArguments])
+
+
+
   /**
    * Defines the signature which is to be used for classification of the function.
    * @param name The symbol for the function.
