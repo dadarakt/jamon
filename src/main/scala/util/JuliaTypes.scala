@@ -50,6 +50,11 @@ object JuliaTypes {
   type JuliaArgument = (String, String, String)
 
   /**
+   * Represents a julia argument which does not have a name anymore as a tuple of the type and default value
+   */
+  type JuliaAbstractArgument = (String, String)
+
+  /**
    * Represents a body of a function as an AST parsed into XML
    */
   type JuliaCodeBody = xml.Node
@@ -67,6 +72,12 @@ object JuliaTypes {
    */
   case class JuliaArguments(arguments: List[JuliaArguments], keywordArguments: Set[JuliaArguments])
 
+
+  /**
+   * Arguments without (symbol-)names.
+   * @param arguments
+   */
+  case class JuliaAbstractArguments(arguments: List[JuliaAbstractArguments], keywordArguments: Set[JuliaArguments])
 
 
   /**
