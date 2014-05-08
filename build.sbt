@@ -2,7 +2,7 @@ name          := "Bachelorarbeit Simon und Jannis"
 
 version       := "0.1"
 
-scalaVersion  := "2.10.3"
+scalaVersion  := "2.10.4"
 
 sbtVersion    := "0.13.0"
 
@@ -25,7 +25,7 @@ libraryDependencies ++= {
   val titanVers     = "0.4.2"
   val parboiledVers = "1.1.5"
   val sprayVers     = "1.3.1"
-  val scalajVers    = "0.3.14"
+  val picklingVers  = "0.8.0"
   Seq(
   	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
     "com.typesafe"            %   "config"                % configVers,
@@ -40,7 +40,8 @@ libraryDependencies ++= {
     "org.parboiled"           %   "parboiled-core"        % parboiledVers,
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
-    "io.spray"                %   "spray-http"            % sprayVers
+    "io.spray"                %   "spray-http"            % sprayVers,
+    "org.scala-lang"          %%  "scala-pickling"        % picklingVers
 	)
 }
 
@@ -55,7 +56,7 @@ scalacOptions ++= Seq(
 )
 
 javaOptions := Seq(
-	"-Dmx=1024M",
+	"-Dmx=2048M",
 	"-Dconfig.resource=/dev.conf"
  )
 

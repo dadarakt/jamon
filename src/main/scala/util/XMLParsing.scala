@@ -203,34 +203,36 @@ object XMLParsing extends Logging {
     // if there are arguments at all, parse them, else return an empty list
     val (arguments, keywordArguments) = if (allArguments.length > 0){
       // Decide whether this function has parameters (with default values where order does not matter)
-      val maybeKeywordArguments = (allArguments(0) \ Expr)(0)
-      val keywordArguments: List[(String, String, String)] = maybeKeywordArguments.attribute("head") match {
-        case Some(heads) =>
-          if (heads.toString == Parameters) {
-            val params = maybeKeywordArguments \ Args
-            (for{
-              param <- params
-              line = param \ Expr \ Args
-              name = line(0).attribute(Symbol) match {
-                case Some(n) => n.toString
-                case None => throw new MalformedXMLException("Could not read parameter!")
-              }
-              str = line(1).toString
-              typeValue = line(1).attributes.toString.filterNot(_ == ' ').split('=').toList
-              typy = typeValue(0)
-              default = typeValue(1).filterNot(_ == '\"')
-
-
+      val maybeKeywordArguments = (allArguments(0) \ Expr)
+      val keywordArguments: List[(String, String, String)] = if (maybeKeywordArguments.length > 0) {
+        maybeKeywordArguments(0).attribute("head") match {
+          case Some(heads) =>
+            if (heads.toString == Parameters) {
+              val params = maybeKeywordArguments \ Args
+              (for {
+                param <- params
+                line = param \ Expr \ Args
+                name = line(0).attribute(Symbol) match {
+                  case Some(n) => n.toString
+                  case None => throw new MalformedXMLException("Could not read parameter!")
+                }
+                str = line(1).toString
+                typeValue = line(1).attributes.toString.filterNot(_ == ' ').split('=').toList
+                typy = typeValue(0)
+                default = typeValue(1).filterNot(_ == '\"')
               //typeValueRegex(typy,value) = line(1).toString // TODO get away from this regex, make it via split
-            } yield (name, typy, default)).toList
-          } else {
-            println("~~~~~~> did not get any params :(")
-            List()
-          }
+              } yield (name, typy, default)).toList
+            } else {
+              println("~~~~~~> did not get any params.")
+              List()
+            }
 
-        case None =>
-          println("there was something else here.")
-          List()
+          case None =>
+            println("there was something else here.")
+            List()
+        }
+      } else {
+        List()
       }
       // Check if we found parameters. The rest of the list will then be arguments to the function
       val arguments = if(keywordArguments.length > 0){

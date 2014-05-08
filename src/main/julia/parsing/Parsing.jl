@@ -1,7 +1,11 @@
 using LightXML 
 
+# Use the files provided
+filename = ARGS[1]
+outputFile = ascii(ARGS[2] * ".xml")
+
 #Read from file and remove trailing \n\r and spaces
-str = strip(readall(open("testInput.jl")))
+str = strip(readall(open(filename)))
 #parse file, does not check if the program is correct or not!
 #Just linewise check.
 i = start(str)
@@ -53,4 +57,4 @@ for expr in exprs
 	exprToXML(expr, xroot)
 end
 
-save_file(xdoc, "testOutput.xml")
+save_file(xdoc, outputFile)
