@@ -1,12 +1,12 @@
 package database
 
 import com.thinkaurelius.titan.core.TitanGraph
-import scala.util._
+
 import grizzled.slf4j.Logging
 import scala.util.Failure
 import scala.util.Success
 import scala.util.control.NonFatal
-import util.JuliaTypes.JuliaSignature
+import util.JuliaTypes._
 
 /**
  * Created by Jannis on 5/1/14.
@@ -19,10 +19,14 @@ import util.JuliaTypes.JuliaSignature
  * transactions with the databsae.
  */
 trait DataBaseInteractions {
-
+  // TODO these are just a first sketch of what could be done
   def dbToString : String
   def getNode(name: String): String
-  def getFunction(signature: JuliaSignature)
+  def getFunction(signature: JuliaSignature) // With a precise match
+  def find : JuliaFunctions // Should be overloaded multiple times for seach with different paramaters.
+  def retrieve: JuliaFunctions // Returnes the whole function, could be separated later with just returning meta-info
+  // first and after that give back the whle function if desired.
+
 }
 
 /**
