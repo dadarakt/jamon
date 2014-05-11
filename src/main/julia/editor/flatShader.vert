@@ -12,7 +12,7 @@ uniform mat4 model;
 
 
 void main(){
-	gl_Position = mvp * model * vec4(position, 0f, 1f);	
+	gl_Position = mvp * model * vec4(position, 0.0, 1.0);	
 	o_uv = uv;
 	o_vcolor = vcolor;
 }
