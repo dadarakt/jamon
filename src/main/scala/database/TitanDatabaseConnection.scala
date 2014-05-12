@@ -127,7 +127,7 @@ object TitanDatabaseConnection extends Logging{
 	 */
 	def readConfig(configFile: String = "application"): BaseConfiguration = {
 		// Import all the names used in the package for safer handling of the namespaces
-		import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE, 
+		import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE,
 											STORAGE_BACKEND_KEY,
 											STORAGE_DIRECTORY_KEY,
 											HOSTNAME_KEY,
@@ -137,11 +137,11 @@ object TitanDatabaseConnection extends Logging{
 		// Create the configuration from file. Will throw errors if keys are not found
 		val globalConf = ConfigFactory.load()
 		new BaseConfiguration {
-			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY", 
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY",
 						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
-			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY", 
+			setProperty(s"$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY",
 						globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY"))
-			setProperty(s"$STORAGE_NAMESPACE.$HOSTNAME_KEY", 
+			setProperty(s"$STORAGE_NAMESPACE.$HOSTNAME_KEY",
 						globalConf.getString(s"database.$STORAGE_NAMESPACE.$HOSTNAME_KEY"))
       setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY",
             globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY"))
@@ -151,7 +151,7 @@ object TitanDatabaseConnection extends Logging{
             globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode"))
       setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only",
             globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only"))
-		}	
+		}
 	}
 
 
@@ -294,7 +294,9 @@ object TitanDatabaseConnection extends Logging{
 
 
   /**
-   * Prints out everything in a graph. Only used for testing. TODO only test BS
+   * Prints out everything in a graph. Only used for testing, does not retrieve
+   * any useful information but just prints out the names of the nodes and
+   * edges.
    */
   def printGraph(graph: TitanGraph): Unit = {
     // First just get all the vertices

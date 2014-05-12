@@ -150,7 +150,7 @@ a = Float32[0.8, 0.1, 0.0, 1]
 style1 = 
 [
 	:vcolor 		=> Float32[a..., a..., a..., a...],
-	:bgtexture		=> Texture("test2.jpg"),
+	:bgtexture		=> Texture("test.jpg"),
 	:textureon		=> 1f0,
 	:border			=> 0f0,
 	:borderColor	=> Float32[0,0,0,1]
@@ -159,7 +159,7 @@ style1 =
 style2 = 
 [
 	:vcolor 		=> Float32[a..., 0,1,0,1, 0,1,0,1, a...],
-	:bgtexture		=> Texture("test.jpg"),
+	:bgtexture		=> Texture("test2.jpg"),
 	:textureon		=> 1f0,
 	:border			=> 0.01f0, 
 	:borderColor	=> Float32[0,1,0,1]

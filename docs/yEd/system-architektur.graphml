@@ -20,7 +20,7 @@
           <y:Geometry height="278.65341892087156" width="286.82709866033474" x="89.75597535111774" y="530.6318639981544"/>
           <y:Fill color="#3366FF" transparent="false"/>
           <y:BorderStyle color="#000000" type="line" width="2.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="31.9375" modelName="custom" textColor="#000000" visible="true" width="131.1015625" x="77.86276808016737" y="123.35795946043572">Welt von möglichen  
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="custom" textColor="#000000" visible="true" width="125.845703125" x="80.49069776766737" y="123.19389696043572">Welt von möglichen  
 Clients<y:LabelModel>
               <y:SmartNodeLabelModel distance="4.0"/>
             </y:LabelModel>
@@ -35,15 +35,14 @@ Clients<y:LabelModel>
     </node>
     <node id="n1" yfiles.foldertype="group">
       <data key="d4"/>
-      <data key="d5"/>
       <data key="d6">
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="543.3671875" width="809.9282557557262" x="429.0830740114525" y="359.4084339596087"/>
+              <y:Geometry height="544.064453125" width="809.9282557557262" x="429.0830740114525" y="358.7111683346087"/>
               <y:Fill color="#F5F5F5" transparent="false"/>
               <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="809.9282557557262" x="0.0" y="0.0">Online Datenbank</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="809.9282557557262" x="0.0" y="0.0">Online Datenbank</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
@@ -53,7 +52,7 @@ Clients<y:LabelModel>
               <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
               <y:Fill color="#F5F5F5" transparent="false"/>
               <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="65.201171875" x="-7.6005859375" y="0.0">Folder 3</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="63.75830078125" x="-6.879150390625" y="0.0">Folder 3</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
               <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
@@ -69,7 +68,7 @@ Clients<y:LabelModel>
               <y:Geometry height="437.0" width="546.8565115114525" x="480.2613297671787" y="445.7756214596087"/>
               <y:Fill color="#C0C0C0" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="1.0"/>
-              <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="eight_pos" modelPosition="n" textColor="#000000" visible="true" width="133.392578125" x="206.73196669322624" y="-49.90625">Actor-basiertes
+              <y:NodeLabel alignment="left" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="46.3984375" modelName="eight_pos" modelPosition="n" textColor="#000000" visible="true" width="127.80859375" x="209.52395888072624" y="-50.3984375">Actor-basiertes
 paralleles Framework
 für Requests</y:NodeLabel>
               <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" hasText="false" height="4.0" modelName="custom" textColor="#000000" visible="true" width="4.0" x="271.42825575572624" y="216.5">
@@ -90,7 +89,7 @@ für Requests</y:NodeLabel>
               <y:Geometry height="143.75" width="150.0" x="510.3330740114525" y="602.4585734585902"/>
               <y:Fill color="#FFCC00" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="2.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="87.8125" modelName="custom" textColor="#000000" visible="true" width="115.8671875" x="17.06640625" y="27.96875">Akka Spray Http
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="88.796875" modelName="custom" textColor="#000000" visible="true" width="112.146484375" x="18.9267578125" y="27.4765625">Akka Spray Http
 
 Definiert Listener, 
 der eingehende 
@@ -108,13 +107,12 @@ verteilt<y:LabelModel>
           </data>
         </node>
         <node id="n1::n2">
-          <data key="d5"/>
           <data key="d6">
             <y:ShapeNode>
               <y:Geometry height="81.25" width="81.25" x="444.0830740114525" y="629.3335734585902"/>
               <y:Fill color="#999999" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="2.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="58.08203125" x="11.583984375" y="31.640625">Http Port<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.1328125" modelName="custom" textColor="#000000" visible="true" width="56.546875" x="12.3515625" y="31.55859375">Http Port<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -132,7 +130,7 @@ verteilt<y:LabelModel>
               <y:Geometry height="437.0" width="150.0" x="1069.0113297671787" y="445.7756214596087"/>
               <y:Fill color="#FF9900" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="2.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="45.90625" modelName="custom" textColor="#000000" visible="true" width="122.541015625" x="13.7294921875" y="195.546875">Datenbank
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="46.3984375" modelName="custom" textColor="#000000" visible="true" width="117.14453125" x="16.427734375" y="195.30078125">Datenbank
 
 Blueprints Interface<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
@@ -148,15 +146,14 @@ Blueprints Interface<y:LabelModel>
         </node>
         <node id="n1::n4" yfiles.foldertype="group">
           <data key="d4"/>
-          <data key="d5"/>
           <data key="d6">
             <y:ProxyAutoBoundsNode>
               <y:Realizers active="0">
                 <y:GroupNode>
-                  <y:Geometry height="203.83464585197612" width="223.07709866033474" x="761.689585522905" y="458.80355558655174"/>
+                  <y:Geometry height="204.03972397697612" width="223.07709866033474" x="761.689585522905" y="458.59847746155174"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="2.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="223.07709866033474" x="0.0" y="0.0">Connection Actors</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="223.07709866033474" x="0.0" y="0.0">Connection Actors</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
@@ -166,7 +163,7 @@ Blueprints Interface<y:LabelModel>
                   <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="65.201171875" x="-7.6005859375" y="0.0">Folder 2</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="63.75830078125" x="-6.879150390625" y="0.0">Folder 2</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
@@ -182,7 +179,7 @@ Blueprints Interface<y:LabelModel>
                   <y:Geometry height="105.02225674611401" width="150.0" x="776.689585522905" y="495.26449308655174"/>
                   <y:Fill color="#FFCC00" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="119.1484375" x="15.42578125" y="15.589253373056977">ConnectionHandler
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="115.685546875" x="17.1572265625" y="15.179097123056977">ConnectionHandler
 
 Event-Driven
 Nicht blockierend
@@ -204,7 +201,7 @@ Unabhängig<y:LabelModel>
                   <y:Geometry height="105.02225674611401" width="150.0" x="788.6291710458099" y="511.7789861731035"/>
                   <y:Fill color="#FFCC00" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="119.1484375" x="15.42578125" y="15.589253373056977">ConnectionHandler
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="115.685546875" x="17.1572265625" y="15.179097123056977">ConnectionHandler
 
 Event-Driven
 Nicht blockierend
@@ -226,7 +223,7 @@ Unabhängig<y:LabelModel>
                   <y:Geometry height="105.02225674611401" width="150.0" x="800.5083420916199" y="525.057972346207"/>
                   <y:Fill color="#FFCC00" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="119.1484375" x="15.42578125" y="15.589253373056977">ConnectionHandler
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="115.685546875" x="17.1572265625" y="15.179097123056977">ConnectionHandler
 
 Event-Driven
 Nicht blockierend
@@ -248,7 +245,7 @@ Unabhängig<y:LabelModel>
                   <y:Geometry height="105.02225674611401" width="150.0" x="814.7666841832397" y="537.6159446924139"/>
                   <y:Fill color="#FFCC00" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="119.1484375" x="15.42578125" y="15.589253373056977">ConnectionHandler
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="115.685546875" x="17.1572265625" y="15.179097123056977">ConnectionHandler
 
 Event-Driven
 Nicht blockierend
@@ -268,15 +265,14 @@ Unabhängig<y:LabelModel>
         </node>
         <node id="n1::n5" yfiles.foldertype="group">
           <data key="d4"/>
-          <data key="d5"/>
           <data key="d6">
             <y:ProxyAutoBoundsNode>
               <y:Realizers active="0">
                 <y:GroupNode>
-                  <y:Geometry height="195.6785891956058" width="223.07709866033474" x="761.689585522905" y="672.6382014385279"/>
+                  <y:Geometry height="195.8836673206058" width="223.07709866033474" x="761.689585522905" y="672.4331233135279"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="2.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="223.07709866033474" x="0.0" y="0.0">Datenbank Actors</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="223.07709866033474" x="0.0" y="0.0">Datenbank Actors</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
@@ -286,7 +282,7 @@ Unabhängig<y:LabelModel>
                   <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="65.201171875" x="-7.6005859375" y="0.0">Folder 3</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="63.75830078125" x="-6.879150390625" y="0.0">Folder 3</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
@@ -302,7 +298,7 @@ Unabhängig<y:LabelModel>
                   <y:Geometry height="89.64458262407561" width="150.0" x="776.689585522905" y="709.0991389385279"/>
                   <y:Fill color="#339966" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="128.505859375" x="10.7470703125" y="7.900416312037805">Database-Actors
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="122.798828125" x="13.6005859375" y="7.490260062037805">Database-Actors
 
 Verwaltung
 Garbage Collection
@@ -324,7 +320,7 @@ Statistiken aufbauen<y:LabelModel>
                   <y:Geometry height="89.64458262407561" width="150.0" x="788.6291710458099" y="726.002434520175"/>
                   <y:Fill color="#339966" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="128.505859375" x="10.7470703125" y="7.900416312037805">Database-Actors
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="122.798828125" x="13.6005859375" y="7.490260062037805">Database-Actors
 
 Verwaltung
 Garbage Collection
@@ -346,7 +342,7 @@ Statistiken aufbauen<y:LabelModel>
                   <y:Geometry height="89.64458262407561" width="150.0" x="800.5083420916199" y="740.3090256834694"/>
                   <y:Fill color="#339966" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="128.505859375" x="10.7470703125" y="7.900416312037805">Database-Actors
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="122.798828125" x="13.6005859375" y="7.490260062037805">Database-Actors
 
 Verwaltung
 Garbage Collection
@@ -368,7 +364,7 @@ Statistiken aufbauen<y:LabelModel>
                   <y:Geometry height="89.64458262407561" width="150.0" x="814.7666841832397" y="758.6722080100581"/>
                   <y:Fill color="#339966" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="73.84375" modelName="custom" textColor="#000000" visible="true" width="128.505859375" x="10.7470703125" y="7.900416312037805">Database-Actors
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="74.6640625" modelName="custom" textColor="#000000" visible="true" width="122.798828125" x="13.6005859375" y="7.490260062037805">Database-Actors
 
 Verwaltung
 Garbage Collection
@@ -387,24 +383,6 @@ Statistiken aufbauen<y:LabelModel>
           </graph>
         </node>
       </graph>
-    </node>
-    <node id="n2">
-      <data key="d5"/>
-      <data key="d6">
-        <y:ShapeNode>
-          <y:Geometry height="30.0" width="30.0" x="153.96668418323964" y="391.9194993220958"/>
-          <y:Fill color="#FFCC00" transparent="false"/>
-          <y:BorderStyle color="#000000" type="line" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="19.26953125" x="5.365234375" y="6.015625">17<y:LabelModel>
-              <y:SmartNodeLabelModel distance="4.0"/>
-            </y:LabelModel>
-            <y:ModelParameter>
-              <y:SmartNodeLabelModelParameter labelRatioX="0.0" labelRatioY="0.0" nodeRatioX="0.0" nodeRatioY="0.0" offsetX="0.0" offsetY="0.0" upX="0.0" upY="-1.0"/>
-            </y:ModelParameter>
-          </y:NodeLabel>
-          <y:Shape type="ellipse"/>
-        </y:ShapeNode>
-      </data>
     </node>
     <edge id="n1::e0" source="n1::n1" target="n1::n1">
       <data key="d10">
@@ -561,7 +539,6 @@ Statistiken aufbauen<y:LabelModel>
       </data>
     </edge>
     <edge id="e2" source="n0" target="n1::n2">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -716,7 +693,6 @@ Statistiken aufbauen<y:LabelModel>
       </data>
     </edge>
     <edge id="n1::e7" source="n1::n1" target="n1::n4">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0"/>
@@ -727,7 +703,6 @@ Statistiken aufbauen<y:LabelModel>
       </data>
     </edge>
     <edge id="n1::e8" source="n1::n4" target="n1::n3">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="23.883201482821278" ty="-106.05474294706892"/>
@@ -738,7 +713,6 @@ Statistiken aufbauen<y:LabelModel>
       </data>
     </edge>
     <edge id="n1::e9" source="n1::n5" target="n1::n3">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="0.0" sy="0.0" tx="-34.86679851717872" ty="103.70187457672205"/>
