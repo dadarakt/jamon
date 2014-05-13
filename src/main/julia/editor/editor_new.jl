@@ -8,7 +8,7 @@ scroll(event, t) = t.y += event.key == 4 ? -30 : 30
 
 
 function select(event::KeyUp, t::TextField, f::FontProperties)
-	if event.key ==GLUT_KEY_LEFT
+	if event.key == GLUT_KEY_LEFT
 		direction = "left"
 	elseif event.key == GLUT_KEY_RIGHT
 		direction = "right"
