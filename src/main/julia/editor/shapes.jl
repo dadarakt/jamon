@@ -1,3 +1,6 @@
+
+import GLUtil.render
+
 type RenderObject
 	uniforms::Dict{Symbol, Any}
 	buffers::Dict{Symbol, GLBuffer}
@@ -10,9 +13,12 @@ type RenderObject
 	end
 end
 
-type Styled{T <: Shape}
+type Styled{T <: Shape} <: Renderable
 	shape::T
 	styles::Dict{Symbol, Any}
+end
+function Styled{S, T}(shape::S, styles::Dict{Symbol, T})
+	Styled(shape, Dict{Symbol, Any}(styles))
 end
 
 function update(buffer::GLBuffer, data::Array)
@@ -22,6 +28,7 @@ function update(buffer::GLBuffer, data::Array)
 	glBindBuffer(buffer.bufferType, buffer.id)
 	glBufferSubData(buffer.bufferType, 0, sizeof(data), data)
 end
+
 
 
 function render(renderObject::RenderObject; data...)
@@ -72,10 +79,31 @@ global const SHAPE_DATA 	= RenderObject(shape_style, GLProgram("flatShader"))
 
 
 
-
+function render2(renderObject::RenderObject)
+	glViewport(0,0,1000,495)
+	glEnable(GL_DEPTH_TEST)
+	programID = renderObject.vertexArray.program.id
+	if programID!= glGetIntegerv(GL_CURRENT_PROGRAM)
+		glUseProgram(programID)
+	end
+	render(:mvp, renderObject.uniforms[:mvp], programID)
+	glBindVertexArray(renderObject.vertexArray.id)
+	glDrawArrays(GL_POINTS, 0, renderObject.vertexArray.length)
+	glViewport(0,0,1000,1000)
+	glDisable(GL_DEPTH_TEST)
+end
 function render(x::Styled{Rectangle{Int64}})
 	#create transformation matrix
 	x.styles[:model] = Float32[x.shape.w 0 0 x.shape.x ; 0 x.shape.h 0 x.shape.y ; 0 0 1 0 ; 0 0 0 1]
 	render(SHAPE_DATA; x.styles...)
 end
 
+function render(x::Rectangle{Int64})
+	#create transformation matrix
+	styles = 
+	[
+		:model => Float32[x.w 0 0 x.x ; 0 x.h 0 x.y ; 0 0 1 0 ; 0 0 0 1],
+		:vcolor => Float32[0,0,0,1, 0,0,0,1, 0,0,0,1, 0,0,0,1]
+	]
+	render(SHAPE_DATA; styles...)
+end
