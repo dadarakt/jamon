@@ -27,17 +27,15 @@ object TitanDatabaseConnection extends Logging{
 	// defines the namespace for indexing
 	val INDEX_NAME = "search"
 
-	def main(args: Array[String]) = {
-		val g = openGraphFromConfig()
-		g match {
-			case Success(graph) => {
-				printGraph(graph)
-				graph.shutdown
-			}
-			case Failure(e) => {
-				error(e)
-			}
-		}
+  /**
+   * This main is only called to intantiate a new version of the database.
+   * Nothing else!
+   * @param args
+   */
+	def main(args: Array[String]): Unit = {
+    val g = openGraphFromConfig("dev")
+//    val g = createPrototypeGraph("dev")
+    println(graphToString(g.get))
 	}
 
 //  def main(args: Array[String]) = {
@@ -91,6 +89,22 @@ object TitanDatabaseConnection extends Logging{
 		}
 	}
 
+  /**
+   * Uses the given (empty) graph to build the structure for the graph
+   * @param configFileName The config from which to read the settings.
+   * @return The loaded graph
+   */
+  def createPrototypeGraph(configFileName: String): Try[TitanGraph] = {
+    info("Trying to setup the prototype graph...")
+    openGraphFromConfig(configFileName) match {
+      case Success(graph) =>
+        info("found the graph, now instantiating it.")
+        instantiateGraphFramework(graph)
+        Success(graph)
+      case f @ Failure(ex) =>
+        f
+    }
+  }
 
 	/**
 	 * Setups-up a the complete graph of the gods using the provided configuration
@@ -98,11 +112,10 @@ object TitanDatabaseConnection extends Logging{
 	def createGraphOfTheGods(configFileName: String): Try[TitanGraph] = {
 		info("Initializing graph...")
 		openGraphFromConfig(configFileName) match {
-			case Success(graph) => {
+			case Success(graph) =>
 				loadGodlyData(graph)
 				Success(graph)
-			}
-			case f@Failure(ex) =>
+			case f @ Failure(ex) =>
         f // Just push the exception
 		}
 	}
@@ -143,23 +156,31 @@ object TitanDatabaseConnection extends Logging{
 
 
   /**
-   * Loads some simple example-data into the database. Follows the defined structure
+   * Sets up the framework for the first prototype of the database. Simple structure to retrieve and add functions and
+   * nothing more at the moment.
+   * Loads some simple example-data into the database. Follows the defined structure.
    */
-  def instantiateExampleGraph(graph: TitanGraph) = {
+  def instantiateGraphFramework(graph: TitanGraph): Unit = {
 
     import util.JuliaTypes._
+    info(s"Instantiating the graph ${graph.getType("name")}")
+
+    // ID TODO --> There should be an algorithm to generate and decode ID's
+    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
 
     // The key which determines the type of a node in a graph
     graph.makeKey("type").dataType(classOf[String])
 
-    // The key for the toplevel of the graph. There are only three vertices which never change.
+    // The key for the toplevel of the graph. There are only three vertices which never change. Add them!
     graph.makeKey("topLevelName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+
+    info("adding the principal vertices to the graph:")
     val functions = graph.addVertex(null)
-    ElementHelper.setProperties(functions, "topLevelName", "functions")
+    ElementHelper.setProperties(functions, "topLevelName", "functions", "iid", "top:1")
     val packages = graph.addVertex(null)
-    ElementHelper.setProperties(packages, "topLevelName", "packages")
+    ElementHelper.setProperties(packages, "topLevelName", "packages", "iid", "top:2")
     val arguments = graph.addVertex(null)
-    ElementHelper.setProperties(arguments, "topLevelName", "arguments")
+    ElementHelper.setProperties(arguments, "topLevelName", "arguments", "iid", "top:3")
 
     // keys and labels for function metadata (not the leaves)
     graph.makeKey("funcName").dataType(classOf[JuliaFunctionName]).indexed(classOf[Vertex]).unique.make
@@ -170,21 +191,29 @@ object TitanDatabaseConnection extends Logging{
     graph.makeKey("implNameWithVersion").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 
     // The labels used to set functions in relation to one another
-    graph.makeLabel("funcOf")
-    graph.makeLabel("methOf")
-    graph.makeLabel("implOf")
+    graph.makeLabel("funcOf").manyToOne.make
+    graph.makeLabel("methOf").manyToOne.make
+    graph.makeLabel("implOf").manyToOne.make
 
-    //keys to store data in
-    graph.makeKey("author")
-    graph.makeKey("timestamp")
-    graph.makeKey("documentation")
-    graph.makeKey("code")
-    graph.makeKey("metadata")
+    //keys for the leafs to store data in
+    graph.makeKey("author").dataType(classOf[String])
+    graph.makeKey("timestamp").dataType(classOf[String])
+    graph.makeKey("documentation").dataType(classOf[String])
+    graph.makeKey("code").dataType(classOf[String])
+    graph.makeKey("metadata").dataType(classOf[String])
 
+    graph.commit
     // keys and labels for argument metadata
     //graph.makeKey("arg").dataType(classOf[JuliaArguments])
+  }
 
 
+  /**
+   * Generates the identifier for the element in the database. Should be timestamped and contain basic information
+   * about the type of element used. TODO this is just prototyping
+   */
+  def generateID(elemType: String): String = {
+    elemType + ":" + System.currentTimeMillis.toString
   }
 
 
@@ -289,7 +318,9 @@ object TitanDatabaseConnection extends Logging{
   def graphToString(graph: TitanGraph): String = {
     // First just get all the vertices
     val verticesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~"
-    val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("name"))).flatten
+    //val vertices  = graph.getVertices.map((v: Vertex) => Option(v.getProperty("id"))).flatten
+    println(s"There are ${graph.getVertices.size} vertices in the graph.")
+    val vertices = graph.getVertices.toList
 
     val edgesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
     val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
