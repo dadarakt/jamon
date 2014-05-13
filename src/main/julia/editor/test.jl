@@ -160,6 +160,32 @@ imgRect = Styled(untenRect, imgStyle1)
 
 
 
+
+function TextFieldNoEdit(id::String, text::String, x, y, area::Shape)
+	font 	= getfont()
+
+	text 	= replace(text, r"\n|\r", "")
+	t 		= TextField(id, text, x, y, area)
+	registerEventAction(EventAction{WindowResized{2}}(x -> true, (), rect_textfield_constraint, (t, area)))
+
+	t
+end
+textType = TextFieldNoEdit("unten", "", 0,0, untenRect)
+
+
+
+function reprType(x::DataType)
+	tname = isimmutable(x) ? "immutable" : "type"
+	name = string(x)
+	params = isempty(x.parameters) ? "" : "{"*string(x.parameters)*"}"
+	super = "<: " * string(x.super)
+	fields = ""
+	for elem in zip(x.names, x.types)
+		fields *= "   " * string(elem[1]) * "::" * string(elem[2]) * "\n"
+	end
+	utf8(tname * " " * name * " " * params * " " * super * "\n" * fields * "end")
+end
+
 function change_pictures(event)
 	var = split(event.textfield.text, r"\n|\r|(:>)| ")[end]
 	if IS3D
@@ -173,6 +199,10 @@ function change_pictures(event)
 			glDisplay("unten", (imgRect,))
 		elseif isa(texture, RenderObject)
 			glDisplay("unten", (FuncWithArgs(render2, (texture, untenRect)),))
+		elseif isa(texture, DataType)
+			textType.text = (reprType(texture))
+			update(textType)
+			glDisplay("unten", (textType, getfont()))
 		end
 	end
 end

@@ -1,4 +1,5 @@
 import GLUtil.render
+import GLText.update
 
 type RenderObject
 	uniforms::Dict{Symbol, Any}
