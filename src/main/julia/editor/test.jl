@@ -1,8 +1,7 @@
-using GLWindow, ModernGL, GLUtil, Events, GLText, GLUT
-import Images.imread
-import Images.Image
+using GLWindow, ModernGL, GLUtil, Events, GLText, GLUT, Images
+import GLUtil.resize
 
-createWindow()
+createWindow(windowSize          = Cint[1000,800])
 
 include("shapes.jl")
 
@@ -28,48 +27,162 @@ style3 =
 
 testRect  = Styled(Rectangle(0,500,1000,30), style1)
 glDisplay(FuncWithArgs(render, (testRect,)))
-t = TextField1D("test", "Projects :> IDE", 20, 505, testRect.shape)
+t = TextField1D("test", "Projects :> image1", 20, 505, testRect.shape)
 
 
 
 
 testRect3 = Styled(Rectangle(0, 535, 1000, 1000 - 535), style1)
 glDisplay(FuncWithArgs(render, (testRect3,)))
-t2 = TextField("test2", readall(open("test.jl")), 20, 970, testRect3.shape)
+t2 = TextField2D("test2", readall(open("example_code.jl")), 20, 970, testRect3.shape)
 registerEventAction(EventAction{MouseClicked{0}}(left_click_down, (), (event, t, rect) -> t.hasFocus = inside(rect, event.x, event.y), (t2, testRect3.shape)))
 
 
 
-
-testRect4 = Styled(Rectangle(0, 0, 1000, 495), style3)
+untenRect = Rectangle(0, 0, 1000, 495)
+testRect4 = Styled(untenRect, style3)
 glDisplay(FuncWithArgs(render, (testRect4,)))
 
-perspectiveCam = PerspectiveCamera(horizontalAngle = 10f0, verticalAngle = -10f0, position = [0f0, 200f0, 0f0])
+perspectiveCam = PerspectiveCamera(horizontalAngle = deg2rad(180f0), verticalAngle = deg2rad(0f0), position = Float32[600, 600, 800])
 registerEventAction(EventAction{WindowResized{1}}(x -> true, (), resize, (perspectiveCam,)))
 publishEvent(WindowResized{1}(500,500))
 registerEventAction(EventAction{MouseDragged{0}}(middle_click_down_inside, (testRect4.shape,), move, (perspectiveCam,)))
 registerEventAction(EventAction{MouseDragged{0}}(right_click_down_inside, (testRect4.shape,), mouseToRotate, (perspectiveCam,)))
 
-texture = imread("test.jpg")
 
-const verts  = zeros(Float32,  size(texture)[2]* size(texture)[3] * 3)
-const vcolor = zeros(Float32,  size(texture)[2]* size(texture)[3] * 3)
-index = 1
-for i = 1:size(texture)[2] , j= 1:size(texture)[3]
-	verts[index:index+2]  = [i , j , texture.data[1, i, j] ]
-	vcolor[index:index+2] = [texture.data[:, i, j] / 255]
-	index += 3
+
+imgStyle2 = 
+[
+	:vcolor => Float32[gray1..., gray1..., gray2..., gray2...],
+	:bgtexture		=> Texture("settings.png"),
+	:textureon		=> 1f0
+]
+settings = Styled(Rectangle(0,0,500,500), imgStyle2)
+
+global IS3D = false
+
+function updaterender(event, t)
+	global IS3D
+	IS3D = !IS3D
+	change_pictures(TextFieldUpdated{0}(t))
 end
 
-image3d_style =
+
+registerEventAction(EventAction{MouseClicked{0}}((event, rect) -> inside(rect, event.x, event.y) && event.status == 0, (settings.shape, ), updaterender, (t, )))
+
+glDisplay(FuncWithArgs(render, (settings,)))
+
+
+
+
+function create3DImage(texture)
+
+	const verts  = zeros(Float32,  size(texture)[2]* size(texture)[3] * 3)
+	const vcolor = zeros(Float32,  size(texture)[2]* size(texture)[3] * 3)
+
+	r = reshape(texture.data[1,:,:], size(texture)[2:end]...)
+	g = reshape(texture.data[2,:,:], size(texture)[2:end]...)
+	b = reshape(texture.data[3,:,:], size(texture)[2:end]...)
+	index = 1
+	for y= 1:size(texture)[2]
+		tmpR = reverse(vec(r[y,:]))
+		tmpG = reverse(vec(g[y,:]))
+		tmpB = reverse(vec(b[y,:]))
+
+		for x= 1:length(tmpR)
+			verts[index:index+2]  = [y , x * 2, tmpR[x]]
+			vcolor[index:index+2] = float32([tmpR[x], tmpG[x], tmpB[x]] / 255)
+			index += 3
+		end
+	end
+
+	image3d_style =
+	[
+		:position		=> GLBuffer(verts, 3),
+		:vcolor			=> GLBuffer(vcolor, 3),
+		:mvp  			=> perspectiveCam
+	]
+
+	RenderObject(image3d_style, GLProgram("gridshader"))
+end
+
+function rect_percent_constraint(event, rect, x, y, w, h)
+	rect.x = int(event.w * x)
+	rect.y = int(event.h * y)
+
+	rect.w = int(event.w * w)
+	rect.h = int(event.h * h)
+	republishEvent(event, 2)
+end
+
+function rect_textfield_constraint(event, t, rect)
+	t.x = rect.x + 20
+	t.y = rect.y + rect.h - 40
+end
+
+
+
+registerEventAction(EventAction{WindowResized{0}}(x -> true, (), rect_percent_constraint, (testRect3.shape, 0, 0.6, 1, 0.4)))
+registerEventAction(EventAction{WindowResized{0}}(x -> true, (), rect_percent_constraint, (testRect.shape, 0, 0.51, 1, 0.08)))
+registerEventAction(EventAction{WindowResized{0}}(x -> true, (), rect_percent_constraint, (untenRect, 0, 0, 1, 0.5)))
+registerEventAction(EventAction{WindowResized{0}}(x -> true, (), rect_percent_constraint, (settings.shape, 1-0.08, 0.51, 0.08, 0.08)))
+
+
+registerEventAction(EventAction{WindowResized{2}}(x -> true, (), rect_textfield_constraint, (t, testRect.shape)))
+registerEventAction(EventAction{WindowResized{2}}(x -> true, (), rect_textfield_constraint, (t2, testRect3.shape)))
+
+
+
+img = imread("test.jpg")
+img1 = copy(img, uint8(imfilter_gaussian(img, [0,3,3]).data))
+img2 = imfilter(img1, [0 1 0; 1 -4 1; 0 1 0])
+img2 = copy(img, uint8(255 .+ img2))
+img3 = copy(img, uint8(imfilter_gaussian(img2, [0,6,6]).data))
+
+
+image1 = Texture(img)
+image2 = Texture(img1)
+image3 = Texture(img2)
+image4 = Texture(img3)
+
+image1d = create3DImage(img)
+image2d = create3DImage(img1)
+image3d = create3DImage(img2)
+image4d = create3DImage(img3)
+
+
+imgStyle1 = 
 [
-	:position		=> GLBuffer(verts, 3),
-	:vcolor			=> GLBuffer(vcolor, 3),
-	:mvp  			=> perspectiveCam
+	:bgtexture		=> Texture("settings.png"),
+	:textureon		=> 1f0
 ]
+imgRect = Styled(untenRect, imgStyle1)
 
-img3d	= RenderObject(image3d_style, GLProgram("gridshader"))
 
-glDisplay("unten", (FuncWithArgs(render2, (img3d,)),))
+
+function change_pictures(event)
+	var = split(event.textfield.text, r"\n|\r|(:>)| ")[end]
+	if IS3D
+		var = var * "d"
+	end
+	var = symbol(var)
+	if isdefined(var)
+		texture = eval(parse(string(var)))
+		if isa(texture, Texture)
+			imgRect.styles[:bgtexture] = texture
+			glDisplay("unten", (imgRect,))
+		elseif isa(texture, RenderObject)
+			glDisplay("unten", (FuncWithArgs(render2, (texture, untenRect)),))
+		end
+	end
+end
+
+glDisplay("unten", (FuncWithArgs(render2, (image3d, untenRect)),))
+
+registerEventAction(EventAction{TextFieldUpdated{0}}(x -> x.textfield.id == "test", (), change_pictures, ()))
+
+
+publishEvent(TextFieldUpdated{0}(t))
+
 
 glutMainLoop()

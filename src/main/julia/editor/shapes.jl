@@ -1,4 +1,3 @@
-
 import GLUtil.render
 
 type RenderObject
@@ -64,7 +63,7 @@ shape_style =
 [
 	:indexes 		=> GLBuffer(GLuint[0, 1, 2,  2, 3, 0], 1, bufferType = GL_ELEMENT_ARRAY_BUFFER),
 	:position		=> GLBuffer(GLfloat[0,0,  1,0,  1,1,  0,1], 2),
-	:uv				=> GLBuffer(GLfloat[1,1,  0,1,  0,0,  1,0], 2),
+	:uv				=> GLBuffer(GLfloat[0,1,  1,1,  1,0, 0,0], 2),
 	:vcolor 		=> GLBuffer([0f0 for i=1:16], 4),
 
 	:bgtexture		=> Texture("test.jpg"),
@@ -79,8 +78,8 @@ global const SHAPE_DATA 	= RenderObject(shape_style, GLProgram("flatShader"))
 
 
 
-function render2(renderObject::RenderObject)
-	glViewport(0,0,1000,495)
+function render2(renderObject::RenderObject, rect::Rectangle)
+	glViewport(rect.x, rect.x, rect.w, rect.h)
 	glEnable(GL_DEPTH_TEST)
 	programID = renderObject.vertexArray.program.id
 	if programID!= glGetIntegerv(GL_CURRENT_PROGRAM)
@@ -89,11 +88,12 @@ function render2(renderObject::RenderObject)
 	render(:mvp, renderObject.uniforms[:mvp], programID)
 	glBindVertexArray(renderObject.vertexArray.id)
 	glDrawArrays(GL_POINTS, 0, renderObject.vertexArray.length)
-	glViewport(0,0,1000,1000)
+	glViewport(0,0, glutGet(GLUT_WINDOW_WIDTH), glutGet(GLUT_WINDOW_HEIGHT))
 	glDisable(GL_DEPTH_TEST)
 end
 function render(x::Styled{Rectangle{Int64}})
 	#create transformation matrix
+	enableTransparency()
 	x.styles[:model] = Float32[x.shape.w 0 0 x.shape.x ; 0 x.shape.h 0 x.shape.y ; 0 0 1 0 ; 0 0 0 1]
 	render(SHAPE_DATA; x.styles...)
 end
