@@ -12,6 +12,7 @@
 \usepackage{float}
 \usepackage{graphicx}
 
+
 %%%%%%%%%% Settings %%%%%%%%%%%
 % No indents, should be unchecked later
 \setlength{\parindent}{0pt}  
@@ -30,14 +31,19 @@
 \floatstyle{boxed}
 \restylefloat{figure}
 
+% New functions and defs
+\def\code#1{\texttt{#1}}
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % The actual work
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 \begin{document}
+
+
+
 \begin{titlepage}
 \maketitle
 \textcolor{red}{*Things related to Usability later in the explanations}
@@ -286,12 +292,51 @@ What are the principles in the implementation of my tests.\\
 \label{sec:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \subsection{Used Software Packages and Tools}
-Java has been around for nearly 20 years \cite{javaRelease1}
-	\subsubsection{Scala}
-	\subsubsection{Akka}
-	\subsubsection{Play}
-	\subsubsection{Blueprints-Stack}
-	\subsubsection{Titan Database}
+Java has been around for nearly 20 years \cite{link:javaRelease1} and with it came the evolution of the Java Virtual Machine (JVM). As given above there were plenty of reasons for me to make use of the JVM throughout the design of my software.
+As I chose Scala as my programming language for the project, I can still make use of any JVM-based package which is very convenient on the one hand but also leaves an intimidatingly huge set of possible tools to implement the desired behavior. In this chapter I will name the tools I chose and try to explain why I did so with respect to the goals and specifications stated earlier.
+
+\subsubsection{Scala} % TODO maybe this is better located in the choice of language paragraph in basics
+Since Scala compiles into Java-Bytecode it can be seen as a direct surrogate for using Java. The programmer is free to inclue Java packages and dependencies and one can even use plain Java-code if desired. There were multiple reasons for me to choose Scala over Java:\\
+
+\textbf{Scala is more modern}\\
+Scala was developed from 2001 on and saw its first release in 2003. Martin Odersky was also involved in developing the \textit{Pizza} programming language, the javac compiler and Java Generics in the late 90's which influenced the creation of Scala.\cite{link:scalaHistory}.
+The resulting language is a hybrid of functional programming elements and object oriented software design. In my personal opinion the simplification of code and the reduction for boilerplate code using functional paradigms is a general trend in the last years and will continue to become more important. Java 8 will include the use of lambda comprehensions and Apple just introduced its new programming language called \textit{Swift} which builds upon Objective-C and includes features derived from functional paradigms to make code more concise and comprehensible. 
+As it seems more purely functional programming languages such as Haskell or Curry did not yet prove their usability in a production context and are still way off from the object oriented languages such as C, Java and Objective-C which make up the first three entries in the TIOBE software index. \cite{link:tiobeIndex}
+In the mentioned index Scala is still way back (place 35) but the point is that general interest in including more functional paradigms into languages exists such as in the high demand of C\# , JavaScript or Python which all exhibit elements of functional programming mostly to make the code more concise and enabling efficient coding in a readable manner.\\
+With these developments in the back of your mind I think it is more desirable than ever to harness the power of functional programming because the future points in this direction and many of the smartest minds focus on the reasonable incorporation of functional elements into daily coding.
+
+\textbf{Why functional programming is of interest to me}\\
+As the supervisor of an internship I had in Silicon Valley put it "Scala reduces the amount of code written by rougly 30\%. 30\% less code results in 30\% less stupid mistakes in my experience. That was the main reason to introduce Scala to the company". Less boilerplate means less copy and paste, less wrong variable use and more focus on the lines of code you actually write.
+This of course is a weak argument although it captures some of the nice benefits of functional programming. Nonetheless you could achieve the very same thing I wrote in Java. All tools used also work with Java.\\
+
+But there are some aspects which really make the use of Scala handy.\\
+First of all there is the concurrency model I use which is Actor-based concurrency. The idea is that there are no globally shared, mutable states but that all state is encapsuled by actors. This paradigm was developed in the Erlang language, which is functional and was incorporated into Scala under the name of Akka \ref{sec:akka}. Scala feels much more native to this concept since good style in Scala means immutable variables and local scopes rather than global sharing of state.
+
+The fluid transformations of datastructures enables by the rich toolset of Scala collections makes data-transformation which is needed in most steps of my program very intuitive and also efficient. Let me give an example for that: Say you want to take an incoming String from an input to the system which represents an xml and parse all Julia functions contained in it and then check the database, if this function already exists and create it or update it respectively.
+
+\begin{verbatim}
+for {
+  function <- juliaParsing.parseFunctionsFromXml(xmlString)
+} {
+  Database.findFunctionBySignature(function.signature) match {
+    case Some(f) => //update the data
+    case None    => //create new entry
+  }
+}
+\end{verbatim}
+
+The for-comprehension iterates over all the retrieved functions of let's say type \code{Function} without worrying about the specific type of the result, as long as it is an \code{Iterable$<$Function$>$}. The \code	{findFunctionBySignature} method then retrieves the functions if there are any in the database. The result can than be pattern matches to implement the desired behavior. Variables are tighly scoped in this contruct and can be efficiently garbage collected after use. The \code{function} variable is very transient yet requires not mutably declared temporary variable.
+For comprehensions over the collections in Scala work mondadically and are optimized by the compiler which also makes them fast on runtime. Constructs like the one above appear very often in my system for retrieval of data and from my point of view the presented piece of code structures the behavior quite elegantly. It also capsulates the absence of data without the need for any kind of exceptions. Constructs like these make Scala so appealing to me and in my mind also lead to code which is better readable from the outside. My experience is that writing in Scala lets me focus more on the logics behind my transformations rather than looking up API's all day.
+
+\subsubsection{Akka}
+\label{sec:akka}
+Akka \citep{akkaHome} is a concurrency-toolkit which is based on the Erlang concurrency model of \textit{Actors} \cite{link:erlangConcurrency}.
+The principle idea is that shared mutable state leads to a lot of problems in a multithreaded context. First of all the shared variables have to be locked or mutexed to prevent dirty reads or writes or even data corruption. This blocking behavior means that threads will be idling while they wait for their turn to access the locked variable. It also includes the introduction of boilerplate code to check for the lock and waiting behavior. Also this design is normally not intuitive for a programmer and means adapting to the mindset of a machine rather than having a model which can map a human understanding of parallelism on the machine in an efficient manner.
+
+\subsubsection{Play}
+\subsubsection{Blueprints-Stack}
+\subsubsection{Titan Database}
+\subsubsection{Elastic Search}
 	
 
 
