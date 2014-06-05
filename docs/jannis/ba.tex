@@ -149,7 +149,7 @@ The system should make use of as much context-information as necessary, even dro
 \textbf{Defining the desired experience from a client's point of view}
 \begin{itemize}
 	\item Most obviously: Having a consistent, simple and well documented interface to the database. It is well defined what queries can be made (and how, maybe using DTD) as well as what one can expect as a response to those queries.
-	\item The most important criteria: Having fast response times for simple queries (meaning super-fast retrieval of single functions). Searches for larger sets should yield responses quickly as well. Initial guess \< 500ms for first results to arrive.
+	\item The most important criteria: Having fast response times for simple queries (meaning super-fast retrieval of single functions). Searches for larger sets should yield responses quickly as well. Initial guess less than 500ms for first results to arrive.
 	\item Finding the most current version of a function
 	\item Finding the most relevant function if there are multiple implementations
 	\item If one searches for a set of functions or if a query has mutliple matching results, the client will expect some kind of order on the results. This order should feel natural and consistent as people have become used to by modern search engines. If the database fails to deliever at this level people are far less likely to interact with the code and make updates to the system. 
@@ -285,8 +285,19 @@ What are the principles in the implementation of my tests.\\
 \section{Design \& Implementation}
 \label{sec:implementation}
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\subsection{What Software I Use in Detail}
-software packages, bundles, tools etc...
+\subsection{Used Software Packages and Tools}
+Java has been around for nearly 20 years \cite{javaRelease1}
+	\subsubsection{Scala}
+	\subsubsection{Akka}
+	\subsubsection{Play}
+	\subsubsection{Blueprints-Stack}
+	\subsubsection{Titan Database}
+	
+
+
+
+
+
 \subsection{First Sketch - Design of my Implementation}
 how do I tackle the problems and requirements?
 \subsection{More Detailed Description of the Implementation}
@@ -320,7 +331,7 @@ What are the next steps and which people can get involved. How do I see the chan
 This is a citation \cite{Chang2008}\\
 This is an image as a floating object with a ref to it: See Figure \ref{fig:fieseText} on page \pageref{fig:fieseText}
 \begin{figure}[h]		
- 	\includegraphics[scale=0.3]{figures/grumpyCat.jpg}
+ 	%\includegraphics[scale=0.3]{figures/grumpyCat.jpg}
 	\caption{Ne fiese text is dat}
 	\label{fig:fieseText}
 \end{figure}
