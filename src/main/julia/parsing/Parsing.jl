@@ -5,6 +5,7 @@ filename = ARGS[1]
 outputFile = ascii(ARGS[2] * ".xml")
 
 #Read from file and remove trailing \n\r and spaces
+function parseShit(filename::String)
 str = strip(readall(open(filename)))
 #parse file, does not check if the program is correct or not!
 #Just linewise check.
@@ -28,7 +29,8 @@ while !done(str,i)
 # 	end
 # end
 end
-
+exprs
+end
 function lowerFirstChar(x::String)
 	string(lowercase(x[1])) * x[2:end]
 end
