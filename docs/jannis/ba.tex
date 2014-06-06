@@ -11,7 +11,7 @@
 \usepackage{hyperref}
 \usepackage{float}
 \usepackage{graphicx}
-
+\usepackage{wrapfig}
 
 %%%%%%%%%% Settings %%%%%%%%%%%
 % No indents, should be unchecked later
@@ -28,8 +28,8 @@
 }
 
 % Set the style of figures
-\floatstyle{boxed}
-\restylefloat{figure}
+%\floatstyle{boxed}
+%\restylefloat{figure}
 
 % New functions and defs
 \def\code#1{\texttt{#1}}
@@ -339,11 +339,16 @@ This makes actors totally asynchronous and non-blocking since they will capsulat
 I want to give a very simle example on how this model works:\\
 Say we want to do an everyday task also related to my work at hand: \textit{Distributing incoming work from a port}.
 
-\begin{figure}[h]		
- 	\includegraphics[scale=0.4]{figures/akkaExample1.png}
+\begin{wrapfigure}{r}{0.6\textwidth}
+	\begin{center}
+		\includegraphics[width=0.58\textwidth]{figures/akkaExample1.png}
 	\caption{Simple arrangements of actors}
 	\label{fig:akkaExample1}
-\end{figure}
+	\end{center}		
+ 	
+\end{wrapfigure}
+
+
 
 As seen in figure \ref{fig:akkaExample1} the resource is encapsuled by an actor and not directly accessible from the outside anymore. The Resource actor has sole access to the resource and internally bufferes data. The actors which want to process the incoming data need to be known to the Resource so that it can push the incoming work to the processing actors. The source actor will try to find a free actor for the input and then send a message containing the data to it. If there is no free worker, it will buffer the data. I am deliberately leaving out lots of details which would be needed for a functioning implementation, this is just a demonstration of the design principles used.
 Already here some things become visible: Actors will not block a thread when there is no work to be done. Only when the source distributes work, the workers will come alive and start doing things, instead of busy waiting or blocking on the source. This is how the system gets more event-driven which makes a lot of sense in an application which is dependent on input from outside clients.
