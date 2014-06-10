@@ -22,7 +22,7 @@ import akka.pattern.ask
  * Opens up a simple HTTP server using the config information.
  */
 object SprayServer extends App with Logging{
-  
+
   // Create the actor system
   implicit val system = ActorSystem("ServerTest")
   // Just some time to let the actor-system initialize before trying to do something in it
@@ -37,14 +37,6 @@ object SprayServer extends App with Logging{
 
   // Fire up the server in the system
   val server = system.actorOf(serverProps, "httpServer")
-
-  //This is just BS
-//  while(true){
-//    Thread.sleep(30000)
-//    server ! ChangeHandler(DbDownHandlerActor.props)
-//    Thread.sleep(30000)
-//    server ! ChangeHandler(PlayfulHandlerActor.props)
-//  }
 }
 
 /**
@@ -125,6 +117,8 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
         error("Could not connect the listener. Service will not be online, thus shutting down!")
         context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
     }
+    // What is this supposed to achieve in the end ?
+    // Maybe somewhat someone should explain this in more detail
     info("Done setting up the Http-server")
   }
 }
@@ -141,7 +135,3 @@ object HttpServerActor{
   // A message which is used to change the behavior of the server on runtime
   case class  ChangeHandler(handlerProps: Props)
 }
-
-
-
-

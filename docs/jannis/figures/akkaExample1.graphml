@@ -16,15 +16,14 @@
     <data key="d7"/>
     <node id="n0" yfiles.foldertype="group">
       <data key="d4"/>
-      <data key="d5"/>
       <data key="d6">
         <y:ProxyAutoBoundsNode>
           <y:Realizers active="0">
             <y:GroupNode>
-              <y:Geometry height="293.71450216769415" width="589.590046430531" x="487.41614802290496" y="527.7093682566784"/>
+              <y:Geometry height="294.12465841769415" width="589.590046430531" x="487.41614802290496" y="527.2992120066784"/>
               <y:Fill hasColor="false" transparent="false"/>
               <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#CCCCCC" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="589.590046430531" x="0.0" y="0.0">Actor System</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#CCCCCC" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="589.590046430531" x="0.0" y="0.0">Actor System</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
               <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
@@ -34,7 +33,7 @@
               <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
               <y:Fill color="#F5F5F5" transparent="false"/>
               <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="65.201171875" x="-7.6005859375" y="0.0">Folder 2</y:NodeLabel>
+              <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="63.75830078125" x="-6.879150390625" y="0.0">Folder 2</y:NodeLabel>
               <y:Shape type="roundrectangle"/>
               <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
               <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
@@ -48,13 +47,13 @@
           <data key="d6">
             <y:ShapeNode>
               <y:Geometry height="191.66666666666669" width="200.0" x="502.41614802290496" y="583.8046334305373"/>
-              <y:Fill color="#CCFFCC" transparent="false"/>
+              <y:Fill color="#FFF5C3" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="2.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="104.67578125" x="47.662109375" y="4.0">Resource Actor
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="101.529296875" x="49.2353515625" y="4.0">Resource Actor
 
 Encapsulates 
 resource in body</y:NodeLabel>
-              <y:Shape type="roundrectangle"/>
+              <y:Shape type="octagon"/>
               <y:DropShadow color="#C0C0C0" offsetX="5" offsetY="5"/>
             </y:ShapeNode>
           </data>
@@ -65,7 +64,7 @@ resource in body</y:NodeLabel>
               <y:Geometry height="81.25" width="81.25" x="561.791148022905" y="672.1796334305373"/>
               <y:Fill hasColor="false" transparent="false"/>
               <y:BorderStyle color="#000000" type="line" width="2.0"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="17.96875" modelName="custom" textColor="#000000" visible="true" width="58.08203125" x="11.583984375" y="31.640625">Http Port<y:LabelModel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="18.1328125" modelName="custom" textColor="#000000" visible="true" width="56.546875" x="12.3515625" y="31.55859375">Http Port<y:LabelModel>
                   <y:SmartNodeLabelModel distance="4.0"/>
                 </y:LabelModel>
                 <y:ModelParameter>
@@ -78,25 +77,24 @@ resource in body</y:NodeLabel>
         </node>
         <node id="n0::n2" yfiles.foldertype="group">
           <data key="d4"/>
-          <data key="d5"/>
           <data key="d6">
             <y:ProxyAutoBoundsNode>
               <y:Realizers active="0">
                 <y:GroupNode>
-                  <y:Geometry height="240.96766100719208" width="218.17389840762598" x="843.8322960458099" y="564.1703057566784"/>
+                  <y:Geometry height="241.17273913219208" width="218.17389840762598" x="843.8322960458099" y="563.9652276316784"/>
                   <y:Fill hasColor="false" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="218.17389840762598" x="0.0" y="0.0">Processing Actors</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="218.17389840762598" x="0.0" y="0.0">Processing Actors</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="false" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="15" bottomF="15.0" left="15" leftF="15.0" right="15" rightF="15.0" top="15" topF="15.0"/>
-                  <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="0" topF="0.0"/>
+                  <y:BorderInsets bottom="0" bottomF="0.0" left="0" leftF="0.0" right="0" rightF="0.0" top="5" topF="5.0"/>
                 </y:GroupNode>
                 <y:GroupNode>
                   <y:Geometry height="50.0" width="50.0" x="0.0" y="60.0"/>
                   <y:Fill color="#F5F5F5" transparent="false"/>
                   <y:BorderStyle color="#000000" type="dashed" width="1.0"/>
-                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.4609375" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="65.201171875" x="-7.6005859375" y="0.0">Folder 1</y:NodeLabel>
+                  <y:NodeLabel alignment="right" autoSizePolicy="node_width" backgroundColor="#EBEBEB" borderDistance="0.0" fontFamily="Dialog" fontSize="15" fontStyle="plain" hasLineColor="false" height="21.666015625" modelName="internal" modelPosition="t" textColor="#000000" visible="true" width="63.75830078125" x="-6.879150390625" y="0.0">Folder 1</y:NodeLabel>
                   <y:Shape type="roundrectangle"/>
                   <y:State closed="true" closedHeight="50.0" closedWidth="50.0" innerGraphDisplayEnabled="false"/>
                   <y:Insets bottom="5" bottomF="5.0" left="5" leftF="5.0" right="5" rightF="5.0" top="5" topF="5.0"/>
@@ -109,14 +107,14 @@ resource in body</y:NodeLabel>
             <node id="n0::n2::n0">
               <data key="d6">
                 <y:ShapeNode>
-                  <y:Geometry height="130.66666666666669" width="136.34782608695653" x="858.8322960458099" y="600.6312432566784"/>
-                  <y:Fill color="#99CCFF" transparent="false"/>
+                  <y:Geometry height="130.66666666666669" width="136.34782608695653" x="858.8322960458099" y="605.6312432566784"/>
+                  <y:Fill color="#8DCDC1" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="104.67578125" x="15.836022418478251" y="35.39583333333337">Akka Actor
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="101.529296875" x="17.40926460597825" y="35.06770833333337">Akka Actor
 
 Encapsulates 
 resource in body</y:NodeLabel>
-                  <y:Shape type="roundrectangle"/>
+                  <y:Shape type="octagon"/>
                   <y:DropShadow color="#C0C0C0" offsetX="5" offsetY="5"/>
                 </y:ShapeNode>
               </data>
@@ -125,13 +123,13 @@ resource in body</y:NodeLabel>
               <data key="d6">
                 <y:ShapeNode>
                   <y:Geometry height="130.66666666666669" width="136.34782608695653" x="872.6645920916199" y="620.4655370910392"/>
-                  <y:Fill color="#99CCFF" transparent="false"/>
+                  <y:Fill color="#8DCDC1" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="104.67578125" x="15.836022418478251" y="35.39583333333337">Akka Actor
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="101.529296875" x="17.40926460597825" y="35.06770833333337">Akka Actor
 
 Encapsulates 
 resource in body</y:NodeLabel>
-                  <y:Shape type="roundrectangle"/>
+                  <y:Shape type="octagon"/>
                   <y:DropShadow color="#C0C0C0" offsetX="5" offsetY="5"/>
                 </y:ShapeNode>
               </data>
@@ -140,13 +138,13 @@ resource in body</y:NodeLabel>
               <data key="d6">
                 <y:ShapeNode>
                   <y:Geometry height="130.66666666666669" width="136.34782608695653" x="889.3291841832397" y="638.1341247597608"/>
-                  <y:Fill color="#99CCFF" transparent="false"/>
+                  <y:Fill color="#8DCDC1" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="104.67578125" x="15.836022418478251" y="35.39583333333337">Akka Actor
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="101.529296875" x="17.40926460597825" y="35.06770833333337">Akka Actor
 
 Encapsulates 
 resource in body</y:NodeLabel>
-                  <y:Shape type="roundrectangle"/>
+                  <y:Shape type="octagon"/>
                   <y:DropShadow color="#C0C0C0" offsetX="5" offsetY="5"/>
                 </y:ShapeNode>
               </data>
@@ -155,13 +153,13 @@ resource in body</y:NodeLabel>
               <data key="d6">
                 <y:ShapeNode>
                   <y:Geometry height="130.66666666666669" width="136.34782608695653" x="905.6583683664794" y="654.4713000972039"/>
-                  <y:Fill color="#99CCFF" transparent="false"/>
+                  <y:Fill color="#8DCDC1" transparent="false"/>
                   <y:BorderStyle color="#000000" type="line" width="2.0"/>
-                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="118.099609375" x="9.124108355978251" y="35.39583333333337">Akka Actor
+                  <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="c" textColor="#000000" visible="true" width="114.384765625" x="10.981530230978251" y="35.06770833333337">Akka Actor
 
 lenghty processing
  of imcoming data</y:NodeLabel>
-                  <y:Shape type="roundrectangle"/>
+                  <y:Shape type="octagon"/>
                   <y:DropShadow color="#C0C0C0" offsetX="5" offsetY="5"/>
                 </y:ShapeNode>
               </data>
@@ -198,7 +196,7 @@ lenghty processing
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="927.0062255859375" y="665.964599609375"/>
+            <y:Point x="927.0062255859375" y="670.964599609375"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -210,7 +208,7 @@ lenghty processing
       <data key="d10">
         <y:ArcEdge>
           <y:Path sx="0.0" sy="0.0" tx="0.0" ty="0.0">
-            <y:Point x="927.0062255859375" y="665.964599609375"/>
+            <y:Point x="927.0062255859375" y="670.964599609375"/>
           </y:Path>
           <y:LineStyle color="#000000" type="line" width="1.0"/>
           <y:Arrows source="none" target="standard"/>
@@ -291,13 +289,12 @@ lenghty processing
       </data>
     </edge>
     <edge id="n0::e2" source="n0::n0" target="n0::n2">
-      <data key="d9"/>
       <data key="d10">
         <y:PolyLineEdge>
           <y:Path sx="84.58385197709504" sy="5.016169496403904" tx="-109.11458016648191" ty="0.0"/>
           <y:LineStyle color="#000000" type="line" width="2.0"/>
           <y:Arrows source="none" target="standard"/>
-          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="59.875" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="86.51171875" x="33.18356246279018" y="5.0478347686524785">Message:
+          <y:EdgeLabel alignment="center" configuration="AutoFlippingLabel" distance="2.0" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="custom" preferredPlacement="anywhere" ratio="0.5" textColor="#000000" visible="true" width="83.74609375" x="34.9200810758565" y="5.024982729957401">Message:
 Pushes chunk
 of data for 
 processing<y:LabelModel>
