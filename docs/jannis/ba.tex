@@ -1,29 +1,28 @@
-\documentclass[11p]{scrartcl}
+\documentclass[twoside, 11pt]{scrartcl}
 
 %%%%% General information %%%%%
 \title{Overview Over My Bachelor's Thesis}
 \author{Jannis Eichborn}
 
-%%%%%%%%%% Packages %%%%%%%%%%%
-\usepackage{color}
-\usepackage{cite}
-\usepackage{natbib}
+%%%%%%%%%% PACKAGES %%%%%%%%%%%
+% basic packages
+\usepackage[english]{babel}
+\usepackage[utf8]{inputenc}
+%\usepackage{cite}
+\usepackage[sort]{natbib}
 \usepackage{hyperref}
-
-
+\usepackage{color}
 %\usepackage{float}
-%\usepackage{graphicx}
-
 \usepackage{graphicx}
 \usepackage{floatrow}
+%\usepackage{showframe}
+\usepackage{fancyhdr}
 
-
-
-%%%%%%%%%% Settings %%%%%%%%%%%
+%%%%%%%%%% SETTINGS %%%%%%%%%%%
 % No indents, should be unchecked later
-\setlength{\parindent}{0pt}  
+%\setlength{\parindent}{0pt}  
 
-% Make all items in the contents chart clickable
+% make links in the document interactive
 \hypersetup{linktoc=all}
 \hypersetup{
     colorlinks,
@@ -33,13 +32,23 @@
     urlcolor=black
 }
 
-% Set the style of figures
+% Set the style of the header and the footer
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE,RO]{ }
+\fancyhead[RE,LO]{\leftmark}
+\fancyfoot[CE,CO]{}
+\fancyfoot[RE,LO]{\thepage}
+\renewcommand{\headrulewidth}{0.5pt}
+
+% set the style for floating figures
 %\floatstyle{boxed}
 %\restylefloat{figure}
 
-% New functions and defs
+%%%%%%%%%% NEW FUNCTIONS AND DEFS %%%%%%%%%%%
 \def\code#1{\texttt{#1}}
 
+    
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
