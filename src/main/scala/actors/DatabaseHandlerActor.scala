@@ -16,7 +16,7 @@ import spray.can.server.Stats
 
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
-import database.TitanDbInteractions
+import database.{TitanDatabaseConnection, TitanDbInteractions}
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
@@ -127,9 +127,9 @@ trait HandlerActor
                       |              <li>The entity in the request: $entity</li>
                       |              <li>The protocol used: $protocol</li>
                       |            </ul>
-                      |            <img src = "http://i.imgur.com/728GirQ.jpg"
+                      |            <img src = "http://wizardchan.org/v9k/src/1sa7wpv0.wizardchan.feelsbadman.png"
                       |                 alt="WatDatDenn?"
-                      |                 title ="Nosey Fucker!"
+                      |                 title ="Nosey, aren't you?!"
                       |                 width="200"
                       |                 height="200"
                       |                 align="right"/>
@@ -169,7 +169,7 @@ object DbDownHandlerActor {
       <html>
         <body>
           <h1> The database is currently down. Please try again later.</h1>
-          <img src = "http://i.imgur.com/728GirQ.jpg"
+          <img src = "http://wizardchan.org/v9k/src/1sa7wpv0.wizardchan.feelsbadman.png"
                      alt="WatDatDenn?"
                      title ="Nosey Fucker!"
                      width="200"
@@ -199,6 +199,22 @@ class DbHandlerActor extends HandlerActor{
 
   // All the logics on how to handle requests.
   def customReceive: Receive = {
+
+    //~~~~~~~~~~~~~~~~~` DEMO THINGS
+    case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
+      TitanDatabaseConnection.createPrototypeGraph("dev")
+      sender() ! HttpResponse(entity = dbToString)
+    case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
+      sender() ! HttpResponse(entity = getMethods("length"))
+    case HttpRequest(GET, Uri.Path("/getImplementation"),_,_,_) =>
+      sender() ! HttpResponse(entity = getBestImplementation("length(String)"))
+    case HttpRequest(GET, Uri.Path("/getAllImplementations"),_,_,_) =>
+      sender() ! HttpResponse(entity = getAllImplementations("length(String)"))
+
+    case HttpRequest(GET, Uri.Path("/insertMethod"),_,_,_) =>
+      sender() ! HttpResponse(entity = insertFunction)
+
+    //~~~~~~~~~~~~~~~~~~~~~~
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = dbToString)
 

@@ -57,7 +57,48 @@ trait TitanDbInteractions
 
   }
 
+  def getMethods(function: String): String = {
+    getMethodsForFunction(graph.get, function)
+  }
 
+  def getBestImplementation(meth: String): String = {
+    TitanDatabaseConnection.getBestImplementation(graph.get, meth)
+  }
+
+  def getAllImplementations(meth: String): String = {
+    TitanDatabaseConnection.getAllImplementations(graph.get, meth)
+  }
+
+  def insertFunction: String = {
+    val g = graph.get
+    try {
+      val g = graph.get
+      val length = g.getVertices("iid", "func:1").iterator().next
+
+      val meth1 = g.addVertex(null)
+      ElementHelper.setProperties(meth1, "type" , "meth", "iid" ,"meth:3", "methodSignature" ,"length(Matrix)", "methodFor" ,"func:1")
+      val impl1 = g.addVertex(null)
+      ElementHelper.setProperties(impl1, "type", "impl", "iid" , "impl:3", "implements", "meth:3", "author", "jannis", "rating", "0")
+      val vers1 = g.addVertex(null)
+      ElementHelper.setProperties(vers1, "type", "vers", "iid", "vers:3", "versOf", "impl:3", "code", "Hier rechne ich mit Matrizen.", "time" , "1234567")
+
+
+      // Add the edges that we want
+
+      g.addEdge(null, length, meth1, "methodOf")
+      g.addEdge(null, meth1, impl1, "implementationOf")
+      g.addEdge(null, impl1, vers1, "versionOf")
+
+      g.commit
+      "Succesfully entered your new code! You should print the graph to observe changes."
+    } catch {
+      case NonFatal(e) =>
+        g.rollback
+        "Failed while entering data. " + e
+    }
+
+
+  }
   // TODO these need to be implemented still
   def getNode(name: String): String = ???
   def getFunction(signature: JuliaSignature) = ???
@@ -81,12 +122,12 @@ object TitanDatabaseConnection extends Logging{
    * @param args
    */
   def main(args: Array[String]): Unit = {
-    val g = openGraphFromConfig("dev")
-//    val g = createPrototypeGraph("dev")
+//    val g = openGraphFromConfig("dev")
+    val g = createPrototypeGraph("dev")
     println(graphToString(g.get))
 
     println("....\n"
-       + getMethodsForFunction(g.get, "length"))
+      + getAllImplementations(g.get, "length(String)"))
 
     //insertNode(g.get, Map(("type" -> "func"),("functionName" -> "length"),("iid" -> "func:1")))
     //println(graphToString(g.get))
@@ -151,6 +192,13 @@ object TitanDatabaseConnection extends Logging{
       } yield(s"$prop: ${vertex.getProperty[String](prop)}")
     ).mkString(sep)
 
+    val versVertices = graph.getVertices("type", "vers").map((vertex: Vertex) =>
+      for {
+        prop <- vertex.getPropertyKeys
+      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+    ).mkString(sep)
+
+
     val edgesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
 
     val isFunction = graph.getEdges.map((edge: Edge) =>
@@ -170,6 +218,8 @@ object TitanDatabaseConnection extends Logging{
       "\t-->" + methVertices,
       "\nIMPLEMENTATION-VERTICES",
       "\t-->" + implVertices,
+      "\nVERSIONS-VERTICES",
+      "\t-->" + versVertices,
       edgesHeader,
       s"There are ${graph.getEdges.size} edges in the graph\n",
       "\t-->" + isFunction
@@ -194,6 +244,19 @@ object TitanDatabaseConnection extends Logging{
     val fun = g.getVertices("functionName", func).iterator.next()
     val meths = fun.getVertices(Direction.OUT, "methodOf").map(_.getProperty[String]("methodSignature"))
     meths.mkString("\n")
+  }
+
+
+  def getBestImplementation(g: TitanGraph, meth: String): String = {
+    val methi = g.getVertices("methodSignature", meth).iterator.next()
+    val impls = methi.getVertices(Direction.OUT, "implementationOf").toSeq.sortBy(_.getProperty[String]("rating"))
+    impls.last.getProperty[String]("author")
+  }
+
+
+  def getAllImplementations(g: TitanGraph, meth: String): String = {
+    val methi = g.getVertices("methodSignature", meth).iterator.next()
+    methi.getVertices(Direction.OUT, "implementationOf").map(_.getProperty[String]("author")).mkString("\n")
   }
 
   //def addImplementation()
@@ -298,7 +361,7 @@ object TitanDatabaseConnection extends Logging{
     info(s"Instantiating the graph ${graph.getType("name")}")
 
     // ID TODO --> There should be an algorithm to generate and decode ID's
-    graph.makeKey("iid").dataType(classOf[String]) //.indexed(classOf[Vertex]).indexed("search", classOf[Edge]).unique.make
+    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
 
 
     // The key which determines the type of a node in a graph
@@ -334,25 +397,33 @@ object TitanDatabaseConnection extends Logging{
     graph.makeKey("code").dataType(classOf[String])
     graph.makeKey("metadata").dataType(classOf[String])
 
-    graph.commit
 
     // add some simple function into the database
     val length = graph.addVertex(null)
     ElementHelper.setProperties(length, "type", "func","functionName", "length", "iid", "func:1")
-    val meth = graph.addVertex(null)
-    ElementHelper.setProperties(meth, "type" , "meth", "iid" ,"meth:1", "methodSignature" ,"length(String)", "methodFor" ,"func:1")
-    val impl = graph.addVertex(null)
-    ElementHelper.setProperties(impl, "type", "impl", "iid" , "impl:1", "implements", "meth:1")
-    val vers = graph.addVertex(null)
-    ElementHelper.setProperties(vers, "type", "vers", "iid", "vers:1", "versOf", "impl:1", "author", "jannis", "code", "Hello World")
+    val meth1 = graph.addVertex(null)
+    ElementHelper.setProperties(meth1, "type" , "meth", "iid" ,"meth:1", "methodSignature" ,"length(String)", "methodFor" ,"func:1")
+    val meth2 = graph.addVertex(null)
+    ElementHelper.setProperties(meth2, "type" , "meth", "iid" ,"meth:2", "methodSignature" ,"length(Array)", "methodFor" ,"func:1")
+    val impl1 = graph.addVertex(null)
+    ElementHelper.setProperties(impl1, "type", "impl", "iid" , "impl:1", "implements", "meth:1", "author", "simon", "rating", "8")
+    val impl2 = graph.addVertex(null)
+    ElementHelper.setProperties(impl2, "type", "impl", "iid" , "impl:2", "implements", "meth:1", "author", "jannis", "rating", "2")
+    val vers1 = graph.addVertex(null)
+    ElementHelper.setProperties(vers1, "type", "vers", "iid", "vers:1", "versOf", "impl:1", "code", "Guten Tag, Welt.", "time" , "123456")
+    val vers2 = graph.addVertex(null)
+    ElementHelper.setProperties(vers2, "type", "vers", "iid", "vers:2", "versOf", "impl:1", "code", "Hello, world.", "time", "123890")
 
     // Add the edges that we want
     graph.addEdge(null,functions,length, "isFunction")
-    graph.addEdge(null, length, meth, "methodOf")
-    graph.addEdge(null, meth, impl, "implementationOf")
-    graph.addEdge(null, impl, vers, "versionOf")
+    graph.addEdge(null, length, meth1, "methodOf")
+    graph.addEdge(null, length, meth2, "methodOf")
+    graph.addEdge(null, meth1, impl1, "implementationOf")
+    graph.addEdge(null, meth1, impl2, "implementationOf")
+    graph.addEdge(null, impl1, vers1, "versionOf")
+    graph.addEdge(null, impl1, vers2, "versionOf")
 
-
+    graph.commit
   }
 
   /**

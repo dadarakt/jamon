@@ -22,6 +22,12 @@ trait DataBaseInteractions {
   def dbToString: String
   def getNode(name: String): String
   def getFunction(signature: JuliaSignature) // With a precise match
+  def getMethods(function: String): String
+  def getBestImplementation(meth: String): String
+  def getAllImplementations(meth: String): String
+
+  def insertFunction : String
+
   def find: JuliaFunctions // Should be overloaded multiple times for seach with different paramaters.
   def retrieve: JuliaFunctions // Returnes the whole function, could be separated later with just returning meta-info
   // first and after that give back the whle function if desired.

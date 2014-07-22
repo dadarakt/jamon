@@ -16,3 +16,5 @@ res/
 *.blg
 *.dvi
 *.out
+
+.DS_Store
