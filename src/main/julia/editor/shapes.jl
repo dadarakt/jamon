@@ -103,7 +103,10 @@ function render(x::Rectangle{Int64})
 	#create transformation matrix
 	styles = 
 	[
-		:model => Float32[x.w 0 0 x.x ; 0 x.h 0 x.y ; 0 0 1 0 ; 0 0 0 1],
+		:model => Float32[x.w 0 0 x.x ; 
+		0 x.h 0 x.y ; 
+		0 0 1 0 ; 
+		0 0 0 1],
 		:vcolor => Float32[0,0,0,1, 0,0,0,1, 0,0,0,1, 0,0,0,1]
 	]
 	render(SHAPE_DATA; styles...)

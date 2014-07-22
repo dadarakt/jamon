@@ -9,7 +9,7 @@ import GLUtil.update
 render(id::Symbol, uniform::Input, programID::Uint32) = render(id, uniform.value, programID)
 update(buffer::GLBuffer, updateBuff::Input) = update(buffer, updateBuff.value)
 
-window = createWindow([1500, 1500], "Mesh Display")
+window = createWindow([1000, 1000], "Mesh Display")
 include("shapes.jl")
 
 shaderDepthVert = """
@@ -83,6 +83,7 @@ end
 perspectiveCam = PerspectiveCamera(position = Float32[500, 500, 500])
 registerEventAction(WindowResized{Window}, x -> true, resize, (perspectiveCam,))
 registerEventAction(WindowResized{Window}, x -> true, x -> glViewport(0,0,x.w, x.h))
+registerEventAction(WindowResized{Window}, x -> true, println)
 registerEventAction(MouseDragged{Window}, rightbuttondragged, move, (perspectiveCam,))
 registerEventAction(MouseDragged{Window}, middlebuttondragged, rotate, (perspectiveCam,))
 w, h = GLFW.GetWindowSize(window)

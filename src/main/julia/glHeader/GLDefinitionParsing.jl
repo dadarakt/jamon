@@ -28,9 +28,14 @@ function writeDictFunctions(fs, dict)
 			returnType	= string(expr.args[2])
 			jArguments	= "(" *string(expr.args[1])* ")"
 		end
+		if haskey(ogl1functions, elem[1])
+
+			funcPointer = "(@windows? (:$(elem[1]), \"opengl32\"): @getFuncPointer(\"" *elem[1]* "\")) , "
+		else
+			funcPointer = "@getFuncPointer(\"" *elem[1]* "\"), " 
+		end
 		
-		
-		ccallFunc 	= "ccall(@getFuncPointer(\"" *elem[1]* "\"), " *returnType* ", " *argTypes* ", " *argNames* ")"
+		ccallFunc 	= "ccall($(funcPointer)" *returnType* ", " *argTypes* ", " *argNames* ")"
 		jFunc 		= "function " *elem[1]* "(" *argNames* ")\n\t" *ccallFunc*"\nend\n"
 		write(fs, jFunc)
 	end
@@ -65,6 +70,10 @@ types 		= Dict{ASCIIString, Dict{ASCIIString, ASCIIString}}()
 functions 	= Dict{ASCIIString, Dict{ASCIIString, ASCIIString}}()
 constants 	= Dict{ASCIIString, Dict{ASCIIString, ASCIIString}}()
 
+
+ogl1types, ogl1functions, ogl1constants = parseJLGLFile(sourceLocation*"gl10/gl10.jl")
+
+println(haskey(ogl1functions, "glGetString"))
 
 for file in GL_FILES
 	t, f, c = parseJLGLFile(sourceLocation*file*"/"*file*".jl")
