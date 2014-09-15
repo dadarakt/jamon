@@ -94,6 +94,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
    *                     Could be changed later using the 'ChangeHandler(newHandlerProps: Props)' message.
    */
   def bindListener(handlerProps: Props) = {
+    val start = System.currentTimeMillis()
     // If there is an active listener kill it first
     if(portListener.isDefined) {
       info("Shutting down the old listener to instantiate a new one.")
@@ -113,13 +114,11 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
     bound.onComplete {
       case Success(bound) =>
         info(s"Successfully bound the listener to ${bound.localAddress}")
+        info(s"The Http-server was successfully setup in ${System.currentTimeMillis() - start} ms.")
       case Failure(ex) =>
-        error("Could not connect the listener. Service will not be online, thus shutting down!")
-        context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
+        error("FATAL ERROR! Could not connect the listener. Service will not be online, thus shutting down!")
+        context.system.scheduler.scheduleOnce(1.second) {context.system.shutdown()}
     }
-    // What is this supposed to achieve in the end ?
-    // Maybe somewhat someone should explain this in more detail
-    info("Done setting up the Http-server")
   }
 }
 
@@ -127,10 +126,11 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
  * Compagnion object for the server.
  */
 object HttpServerActor{
+  //
   def props(listenerProps: Props)(implicit system: ActorSystem): Props =
     Props(new HttpServerActor(listenerProps)(system))
 
-  // Can be used as a message to shutdown the server cleanly
+  // Can be used as a message to shutdown the server gracefully
   case object ShutdownServer
   // A message which is used to change the behavior of the server on runtime
   case class  ChangeHandler(handlerProps: Props)

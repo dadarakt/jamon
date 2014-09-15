@@ -102,12 +102,10 @@ object JuliaTypes {
 
 }
 
-
-
 ///////////// Exceptions ////////////////
 
 /**
- * Exception which indicates an unparsable XML input
+ * Exception which indicates an unparsable XML input which will be rejected by the system.
  * @param msg
  */
 case class MalformedXMLException(msg: String) extends Exception(msg)

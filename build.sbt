@@ -6,6 +6,10 @@ scalaVersion  := "2.10.4"
 
 sbtVersion    := "0.13.0"
 
+lazy val wurstwasser = taskKey[Unit]("A really useless task")
+
+wurstwasser := {println("Wurstwasser")}
+
 fork := true
 
 resolvers ++= {
@@ -14,6 +18,9 @@ resolvers ++= {
     "spray repo"          at "http://repo.spray.io"
   )
 }
+
+unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/jfxrt.jar"))
+
 
 libraryDependencies ++= {
   val scalaTestVers = "2.1.0"
@@ -41,7 +48,8 @@ libraryDependencies ++= {
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
     "io.spray"                %   "spray-http"            % sprayVers,
-    "org.scala-lang"          %%  "scala-pickling"        % picklingVers
+    "org.scala-lang"          %%  "scala-pickling"        % picklingVers,
+		"org.scalafx" 						%% "scalafx" % 							"1.0.0-R8"
 	)
 }
 
@@ -66,4 +74,3 @@ ivyXML :=
     <exclude org="commons-logging" name="commons-logging" />
     <exclude org="org.slf4j" name="slf4j-log4j12" />
   </dependencies>
-

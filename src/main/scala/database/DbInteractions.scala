@@ -13,9 +13,9 @@ import util.JuliaTypes._
 
 
 /**
- * Defines the interface to the database, makes connections interchangeable.
+ * Defines the user-level interface to the database, makes connections interchangeable.
  * This can be seen as static methods which can be called by actors on their mixed in implementation to do
- * transactions with the databsae.
+ * transactions with the database.
  */
 trait DataBaseInteractions {
   // TODO these are just a first sketch of what could be done
@@ -30,16 +30,17 @@ trait DataBaseInteractions {
 
   def find: JuliaFunctions // Should be overloaded multiple times for seach with different paramaters.
   def retrieve: JuliaFunctions // Returnes the whole function, could be separated later with just returning meta-info
-  // first and after that give back the whle function if desired.
-
+  // first and after that give back the whole function if desired.
 }
 
 /**
  * The resource which represents the graph so that it does not need to be instantiated every single time but can be
- * accessed after first use. Every other object will use references to this graph.
+ * accessed after first use. Every other object will use references to this graph and make the requests using the
+ * optimized driver of the underlying implementation.
  */
 object GraphObject extends Logging {
 
+  // Get the method needed for the setup of the graph
   import TitanDatabaseConnection.openGraphFromConfig
 
   val _graph: Try[TitanGraph] = openGraphFromConfig()

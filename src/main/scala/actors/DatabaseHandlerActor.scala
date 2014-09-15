@@ -17,6 +17,8 @@ import spray.can.server.Stats
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
 import database.{TitanDatabaseConnection, TitanDbInteractions}
+import scala.io.Source
+import java.io.FileNotFoundException
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
@@ -38,6 +40,15 @@ trait HandlerActor
   // fall back to the ones defined above
   def receive: Receive = customReceive orElse defaultReceive
 
+  // This is a prototype for a function which returns a page to show to the user
+  def getPage(name: String) = {
+    try{
+      Source.fromFile(s"src/main/resources/sites/$name.html").getLines.mkString("")
+    } catch {
+     case ex: FileNotFoundException => "This page does not exist"
+    }
+  }
+
   // Contains some common cases which every actor of this type should have. They are at least priority, meaning they
   // represent a comfortable fallback if an implementing class does not want to handle certain messages.
   def defaultReceive: Receive = {
@@ -54,15 +65,7 @@ trait HandlerActor
     // the 'index' page
     case  r @ HttpRequest(GET, Uri.Path("/"),_,_,_) =>
       sender() ! HttpResponse(entity = HttpEntity(`text/html`,
-        <html>
-          <body>
-            <h1>Coming up: Julia-Database</h1>
-            <h2>Work is in progress, nothing to see here yet.</h2>
-            <p>Some time in the future you can make requests to this page in order to get julia-code.
-              Check out this link for reference:</p>
-            <a href="https://github.com/dadarakt/jamon">The project on github.</a>
-          </body>
-        </html>.toString
+        getPage("index")
       ))
 
     case r @ HttpRequest(GET, Uri.Path("/longRequest"),_,_,_) =>
@@ -86,14 +89,14 @@ trait HandlerActor
               <body>
                 <h1>HttpServer Stats</h1>
                 <table>
-                  <tr><td>uptime:</td><td>{s.uptime.toMinutes}</td></tr>
-                  <tr><td>totalRequests:</td><td>{s.totalRequests}</td></tr>
-                  <tr><td>openRequests:</td><td>{s.openRequests}</td></tr>
-                  <tr><td>maxOpenRequests:</td><td>{s.maxOpenRequests}</td></tr>
-                  <tr><td>totalConnections:</td><td>{s.totalConnections}</td></tr>
-                  <tr><td>openConnections:</td><td>{s.openConnections}</td></tr>
+                  <tr><td>uptime:</td>            <td>{s.uptime.toMinutes}</td></tr>
+                  <tr><td>totalRequests:</td>     <td>{s.totalRequests}</td></tr>
+                  <tr><td>openRequests:</td>      <td>{s.openRequests}</td></tr>
+                  <tr><td>maxOpenRequests:</td>   <td>{s.maxOpenRequests}</td></tr>
+                  <tr><td>totalConnections:</td>  <td>{s.totalConnections}</td></tr>
+                  <tr><td>openConnections:</td>   <td>{s.openConnections}</td></tr>
                   <tr><td>maxOpenConnections:</td><td>{s.maxOpenConnections}</td></tr>
-                  <tr><td>requestTimeouts:</td><td>{s.requestTimeouts}</td></tr>
+                  <tr><td>requestTimeouts:</td>   <td>{s.requestTimeouts}</td></tr>
                 </table>
               </body>
             </html>.toString()
@@ -106,17 +109,33 @@ trait HandlerActor
       sender ! Http.Close
       context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
 
-    // The general fallback - 404 TODO this returns the http request for debugging, should be simplified later
+    // The general fallback for invalid requests - 404 TODO this returns the http request for debugging, should be simplified later
     case r @ HttpRequest(GET, uri, header, entity, protocol) =>
       // Unpack the headers for display (make a html list)
       val headers = header.map((h: HttpHeader) => s"<li>${h.name} -----> ${h.value}</li>").mkString("\n")
         val enty = s"""<html>
                       |          <head>
-                      |            <title> 404 - Resource not found.</title>
+                      |            <title> 404 - Resource not found. Check your query, please.</title>
+                                    <style>
+                                      body {
+                                          background-image: url('http://www.likeplusone.org/feelsbadman.png');
+                                          background-repeat: repeat;
+                                          background-size: 80px 80px;
+                                      }
+                                      h1 {
+                                        background-color:#fff;
+                                      }
+                                      h2 {
+                                        background-color:#fff;
+                                      }
+                                      ul {
+                                        background-color:#fff;
+                                      }
+                                    </style>
                       |          </head>
                       |          <body>
                       |            <h1> 404 - Invalid Request!</h1>
-                      |            <h2> Here is your query: </h2>
+                      |            <h2> Query:</h2><br>
                       |            <ul>
                       |              <li>GET Request to the address: $uri</li>
                       |              <li>headers:
@@ -127,13 +146,12 @@ trait HandlerActor
                       |              <li>The entity in the request: $entity</li>
                       |              <li>The protocol used: $protocol</li>
                       |            </ul>
-                      |            <img src = "http://wizardchan.org/v9k/src/1sa7wpv0.wizardchan.feelsbadman.png"
+                      |            <img src = "http://www.likeplusone.org/feelsbadman.png"
                       |                 alt="WatDatDenn?"
                       |                 title ="Nosey, aren't you?!"
                       |                 width="200"
                       |                 height="200"
                       |                 align="right"/>
-                      |
                       |          </body>
                       |        </html>""".stripMargin
       sender() ! HttpResponse(status = 404, entity = HttpEntity(`text/html`, enty))
@@ -144,19 +162,17 @@ trait HandlerActor
  * This actor comes into play when the backend to the service is unreachable for any reason.
  * It is the null-handler which just returns a static error code.
  * Can be seen as an example of changing the server's behavior to something that does not connect to any kind of
- * database at all
+ * database at all.
  */
 class DbDownHandlerActor
     extends HandlerActor
-    with Logging {
+    with    Logging {
 
   import DbDownHandlerActor._
 
   def customReceive: Receive = {
     // Just add a catch-all for all kinds of GETS and POSTS to display error
-    case HttpRequest(GET,_,_,_,_) =>
-      sender() ! displayDbOffline
-    case HttpRequest(POST,_,_,_,_) =>
+    case HttpRequest(_,_,_,_,_) =>
       sender() ! displayDbOffline
   }
 }
@@ -199,8 +215,7 @@ class DbHandlerActor extends HandlerActor{
 
   // All the logics on how to handle requests.
   def customReceive: Receive = {
-
-    //~~~~~~~~~~~~~~~~~` DEMO THINGS
+    //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
       TitanDatabaseConnection.createPrototypeGraph("dev")
       sender() ! HttpResponse(entity = dbToString)
@@ -210,18 +225,17 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = getBestImplementation("length(String)"))
     case HttpRequest(GET, Uri.Path("/getAllImplementations"),_,_,_) =>
       sender() ! HttpResponse(entity = getAllImplementations("length(String)"))
-
     case HttpRequest(GET, Uri.Path("/insertMethod"),_,_,_) =>
       sender() ! HttpResponse(entity = insertFunction)
-
     //~~~~~~~~~~~~~~~~~~~~~~
+
+    // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = dbToString)
 
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
   }
-
 }
 
 object DbHandlerActor {

@@ -352,7 +352,7 @@ object TitanDatabaseConnection extends Logging{
 
   /**
    * Sets up the framework for the first prototype of the database. Simple structure to retrieve and add functions and
-   * nothing more at the moment.
+   * nothing more at the moment. //TODO THIS IS ONLY DEMO MATERIAL AND IN NO WAY A REAL IMPLEMENTATION
    * Loads some simple example-data into the database. Follows the defined structure.
    */
   def instantiateGraphFramework(graph: TitanGraph): Unit = {

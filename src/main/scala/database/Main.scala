@@ -18,7 +18,7 @@ import com.thinkaurelius.titan.graphdb.database.StandardTitanGraph
 import com.tinkerpop.blueprints.ThreadedTransactionalGraph
 
 object Main extends Logging{
-// Load a file and read all the lines for further processing
+  // Load a file and read all the lines for further processing
   val lines = try{
     Source.fromFile("res/Main.scala").getLines().toSeq
   }

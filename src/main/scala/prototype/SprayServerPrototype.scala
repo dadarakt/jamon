@@ -22,27 +22,17 @@ import prototype.HttpServer.ShutdownServer
  */
 object SprayServerPrototype extends App{
   implicit val system = ActorSystem("ServerTest")
-//  val myListener : ActorRef = system.actorOf(Props[EchoHandlerSpray], "handler")
-//
-//  // Get the connection point for the system to the outside and create the bindMessage from the information
-//  val conf        = ConfigFactory.load()
-//  val ip          = conf.getString("connection.localIp")
-//  val port        = conf.getInt("connection.port")
-//  val bindMessage = new Bind(myListener, new InetSocketAddress(ip, port), 100, Nil, None)
-//
-//  IO(Http) ! bindMessage
 
   // Fire up the server
   val server = system.actorOf(HttpServer.props(EchoHandlerSpray.props), "httpServer")
 
-  Thread.sleep(50000)
+  // Let it run for a minute
+  Thread.sleep(60 * 1000)
 
+  // Shut it all down
   server ! ShutdownServer
-
   Thread.sleep(1000)
-
   system.shutdown()
-
 }
 
 /**
@@ -53,8 +43,6 @@ object SprayServerPrototype extends App{
 class HttpServer(handleProps: Props)(implicit val system: ActorSystem)
   extends Actor
   with    Logging {
-
-
 
   // On start setup the connection from the configuration and try to connect to the port
   // Is also called on restart (default in 'postRestart')
@@ -75,9 +63,6 @@ class HttpServer(handleProps: Props)(implicit val system: ActorSystem)
     IO(Http) ! Http.Unbind
     info("Server was shut down succesfully.")
   }
-
-
-
 
   // All the stuff which is important to consider coming from the spray framework
   def receive: Receive = {
@@ -207,7 +192,7 @@ class EchoHandlerSpray extends Actor{
     case HttpRequest(GET, Uri.Path("/fabian"),_,_,_) =>
       sender() ! HttpResponse(entity = dickbutt)
 
-    case _: HttpRequest => sender ! HttpResponse(status = 404, entity = "Unknown resource!")
+    case _: HttpRequest => sender ! HttpResponse(status = 404, entity = dickbutt)
 
       // TODO one case is the "PeerClosed" case here
       // Also "Abort" case
