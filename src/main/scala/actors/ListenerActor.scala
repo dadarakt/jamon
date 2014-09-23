@@ -40,19 +40,19 @@ class ListenerActor(handlerProps: Props)
       val handler = context.actorOf(_handleProps)
       context.watch(handler)
       openConnections += handler
-      info(s"Incoming connection from: ${c.remoteAddress}. Currently open connections: ${openConnections.size}")
+      info(s"Incoming connection from: ${c.remoteAddress} handled by $handler." +
+        s" Currently open connections: ${openConnections.size}")
       _sender ! Http.Register(handler)
 
     case ChangeHandler(newHandler) =>
-      info(s"The listener changed behavior to ${newHandler}")
-      context.children.foreach{context.stop(_)}
+      info(s"The listener changed behavior to $newHandler")
+      context.children.foreach{context.stop}
       _handleProps = newHandler
 
     case Terminated(handler) =>
-      info(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
       if(openConnections.contains(handler)){
         openConnections -= handler
-        info(s"Connections still open: ${openConnections.size}")
+        info(s"There was an actor being killed: $handler . Connections still open: ${openConnections.size}") //TODO this should be expected behavior later
       } else {
         error(s"There was a handler which was never created: $handler")
       }

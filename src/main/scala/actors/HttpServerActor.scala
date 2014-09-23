@@ -103,8 +103,8 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
       portListener = None
     }
 
-    // Set up the listener as a child of the server.TODO the IP has to be statically configured, can that be avoided?
-    portListener    = Some(context.actorOf(handlerProps, "portListener"))
+    // Set up the listener as a child of the server.
+    portListener    = Some(context.actorOf(handlerProps, "listener-actor"))
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
