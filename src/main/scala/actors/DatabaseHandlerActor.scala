@@ -78,6 +78,16 @@ trait HandlerActor
         </html>.toString
       ))
 
+    case r @ HttpRequest(GET, Uri.Path("/andrea"),_,_,_) =>
+      sender() ! HttpResponse(entity = HttpEntity(`text/html`,
+        <html>
+          <body>
+            <h1> Na dann lass mal ein eis essen andrea!</h1>
+            <img src="http://goldenindex.com/userpages/721900589/eis1.jpg"></img>
+          </body>
+        </html>.toString
+      ))
+
     //see some simple stats
     case HttpRequest(GET, Uri.Path("/server-stats"), _, _, _) =>
       import akka.pattern.ask

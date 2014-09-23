@@ -23,9 +23,8 @@ import akka.pattern.ask
  */
 object SprayServer extends App with Logging{
 
-  // Create the actor system
+  // Create the actor system and let it settle before starting to create actors
   implicit val system = ActorSystem("ServerTest")
-  // Just some time to let the actor-system initialize before trying to do something in it
   Thread.sleep(1000)
 
   // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
@@ -48,7 +47,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
   extends Actor
   with    Logging {
 
-  implicit val timeout = Timeout(3.seconds)
+  implicit val timeout = Timeout(10 seconds)
   import system.dispatcher
 
   // The current listener on the given port
@@ -75,7 +74,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
       info(s"Server is connected: $b")
 
     case ShutdownServer =>
-      info("Shutting down the Http-server.")
+      info("Shutting down the Http-server now.")
       context.unwatch(self)
       context.stop(self)
 
@@ -94,6 +93,7 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
    *                     Could be changed later using the 'ChangeHandler(newHandlerProps: Props)' message.
    */
   def bindListener(handlerProps: Props) = {
+
     val start = System.currentTimeMillis()
     // If there is an active listener kill it first
     if(portListener.isDefined) {
@@ -103,20 +103,21 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
       portListener = None
     }
 
-    // Set up the listener on the port as a child actor.
+    // Set up the listener as a child of the server.TODO the IP has to be statically configured, can that be avoided?
     portListener    = Some(context.actorOf(handlerProps, "portListener"))
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
     val options     = Nil
     val bindMessage = new Bind(portListener.get, new InetSocketAddress(ip, port), 100, options, None)
+    info(s"Trying to bind the new listener ${handlerProps.actorClass()} to $ip:$port")
     val bound = (IO(Http) ? bindMessage).mapTo[Http.Bound]
     bound.onComplete {
       case Success(bound) =>
         info(s"Successfully bound the listener to ${bound.localAddress}")
         info(s"The Http-server was successfully setup in ${System.currentTimeMillis() - start} ms.")
       case Failure(ex) =>
-        error("FATAL ERROR! Could not connect the listener. Service will not be online, thus shutting down!")
+        error(s"Could not connect the listener. Service will not be online, thus shutting down! $ex")
         context.system.scheduler.scheduleOnce(1.second) {context.system.shutdown()}
     }
   }

@@ -1,12 +1,12 @@
 <configuration>
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
-            <pattern>%d{HH:mm:ss.SSS} TKD [%thread] %-5level %logger{36} - %msg%n</pattern>
+            <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
         </encoder>
     </appender>
 
     <appender name="FILE" class="ch.qos.logback.core.FileAppender">
-        <file>/tmp/titan.log</file>
+        <file>/tmp/runny.log</file>
         <append>true</append>
         <encoder>
             <pattern>%d{HH:mm:ss.SSS} TKD [%thread] %-5level %logger{36} - %msg%n</pattern>
@@ -15,7 +15,7 @@
 
     <root level="info">
          <appender-ref ref="STDOUT" />
-        <!-- <appender-ref ref="FILE" /> -->
+         <!--<appender-ref ref="FILE" />-->
     </root>
 		
 </configuration>

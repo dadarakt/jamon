@@ -22,9 +22,16 @@ class ListenerActor(handlerProps: Props)
 
   // make this variable for possible later changes
   var _handleProps = handlerProps
-
-  // Holds all open Connections
+  // Holds information on all incoming connections
   var openConnections: mutable.LinkedHashSet[ActorRef] = mutable.LinkedHashSet[ActorRef]()
+
+  // The fixed size pool of actors for the server. Create it.
+  var actorPool = Map[ActorRef, Option[Work]]()
+  val poolSize = 1
+  1 to poolSize foreach { _ =>
+    actorPool = actorPool + (context.actorOf(_handleProps) -> None)
+  }
+
 
   def receive: Receive = {
     case c: Http.Connected =>
@@ -33,18 +40,19 @@ class ListenerActor(handlerProps: Props)
       val handler = context.actorOf(_handleProps)
       context.watch(handler)
       openConnections += handler
-      debug(s"Incoming connection from: ${c.remoteAddress}. Currently openend connections: ${openConnections.size}")
+      info(s"Incoming connection from: ${c.remoteAddress}. Currently open connections: ${openConnections.size}")
       _sender ! Http.Register(handler)
 
     case ChangeHandler(newHandler) =>
       info(s"The listener changed behavior to ${newHandler}")
-      context.children.foreach(context.stop(_))
+      context.children.foreach{context.stop(_)}
       _handleProps = newHandler
 
     case Terminated(handler) =>
-      debug(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
+      info(s"There was an actor being killed. $handler") //TODO this should be expected behavior later
       if(openConnections.contains(handler)){
         openConnections -= handler
+        info(s"Connections still open: ${openConnections.size}")
       } else {
         error(s"There was a handler which was never created: $handler")
       }
@@ -54,3 +62,6 @@ class ListenerActor(handlerProps: Props)
 object ListenerActor {
   def props(handlerProps: Props) = Props(new ListenerActor(handlerProps))
 }
+
+// Simple placeholder which can later be more type-specific
+case class Work(task: Any)

@@ -3,14 +3,9 @@ package database
 import grizzled.slf4j.Logging
 import com.thinkaurelius.titan.core.{TitanFactory, TitanGraph}
 import scala.util.control.NonFatal
-import util.JuliaTypes.JuliaSignature
-import scala.util.{Failure, Success, Try}
+import scala.util.Try
 import com.tinkerpop.blueprints.{Direction, Edge, Vertex}
 import com.thinkaurelius.titan.core.attribute.Cmp._
-import util.JuliaTypes.JuliaSignature
-import scala.util.Failure
-import scala.Some
-import scala.util.Success
 import org.apache.commons.configuration.BaseConfiguration
 import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration
 import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration._
@@ -117,34 +112,6 @@ object TitanDatabaseConnection extends Logging{
   val INDEX_NAME = "search"
 
   /**
-   * This main is only called to intantiate a new version of the database.
-   * Nothing else!
-   * @param args
-   */
-  def main(args: Array[String]): Unit = {
-//    val g = openGraphFromConfig("dev")
-    val g = createPrototypeGraph("dev")
-    println(graphToString(g.get))
-
-    println("....\n"
-      + getAllImplementations(g.get, "length(String)"))
-
-    //insertNode(g.get, Map(("type" -> "func"),("functionName" -> "length"),("iid" -> "func:1")))
-    //println(graphToString(g.get))
-  }
-
-  //  def main(args: Array[String]) = {
-  //    val g = openGraphFromConfig()
-  //    g match {
-  //      case Success(graph) =>
-  //        loadGodlyData(graph)
-  //        print(graph)
-  //      case Failure(e) =>
-  //        error(e)
-  //    }
-  //  }
-
-  /**
    * Opens a graph using a configuration file
    */
   def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
@@ -199,7 +166,7 @@ object TitanDatabaseConnection extends Logging{
     ).mkString(sep)
 
 
-    val edgesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
+    val edgesHeader = s"\n~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
 
     val isFunction = graph.getEdges.map((edge: Edge) =>
       s"(${edge.getLabel}, out: ${edge.getVertex(Direction.OUT).getProperty[String]("iid")} in: ${edge.getVertex(Direction.IN).getProperty[String]("iid")})"
@@ -322,12 +289,13 @@ object TitanDatabaseConnection extends Logging{
    */
   def readConfig(configFile: String = "application"): BaseConfiguration = {
     // Import all the names used in the package for safer handling of the namespaces
-    import GraphDatabaseConfiguration.{	STORAGE_NAMESPACE,
-    STORAGE_BACKEND_KEY,
-    STORAGE_DIRECTORY_KEY,
-    HOSTNAME_KEY,
-    INDEX_BACKEND_KEY,
-    INDEX_NAMESPACE
+    import GraphDatabaseConfiguration.{
+      STORAGE_NAMESPACE,
+      STORAGE_BACKEND_KEY,
+      STORAGE_DIRECTORY_KEY,
+      HOSTNAME_KEY,
+      INDEX_BACKEND_KEY,
+      INDEX_NAMESPACE
     }
     // Create the configuration from file. Will throw errors if keys are not found
     val globalConf = ConfigFactory.load()
@@ -447,10 +415,6 @@ object TitanDatabaseConnection extends Logging{
   def generateID(elemType: String): String = {
     elemType + ":" + System.currentTimeMillis.toString
   }
-
-
-
-
 
 
   /**

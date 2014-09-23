@@ -6,11 +6,7 @@ scalaVersion  := "2.10.4"
 
 sbtVersion    := "0.13.0"
 
-lazy val wurstwasser = taskKey[Unit]("A really useless task")
-
-wurstwasser := {println("Wurstwasser")}
-
-fork := true
+//fork := true
 
 resolvers ++= {
   Seq(
@@ -21,6 +17,8 @@ resolvers ++= {
 
 unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/jfxrt.jar"))
 
+// For grizzled
+seq(bintrayResolverSettings:_*)
 
 libraryDependencies ++= {
   val scalaTestVers = "2.1.0"
@@ -36,20 +34,22 @@ libraryDependencies ++= {
   Seq(
   	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
     "com.typesafe"            %   "config"                % configVers,
+    // Dependencies for logging and legacy-logging components
     "org.slf4j"               %   "slf4j-api"             % slf4jVers,
+    //"org.slf4j"               %   "slf4j-simple"          % slf4jVers,
     "org.slf4j"               %   "jcl-over-slf4j"        % slf4jVers,
-    "org.slf4j"               %   "log4j-over-slf4j"      % slf4jVers,
     "org.clapper"             %%  "grizzled-slf4j"        % grizzledVers,
     "ch.qos.logback"          %   "logback-classic"       % logbackVers     % "runtime",
 		"com.thinkaurelius.titan" %   "titan-all"             % titanVers,
 		"com.typesafe.akka"       %%  "akka-actor"            % akkaVers,
     "com.typesafe.akka"       %%  "akka-testkit"          % akkaVers        % "test",
+    "com.typesafe.akka"       %%  "akka-slf4j"            % akkaVers,
     "org.parboiled"           %   "parboiled-core"        % parboiledVers,
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
-    "io.spray"                %   "spray-http"            % sprayVers,
+    //"io.spray"                %   "spray-http"            % sprayVers, // already in spray-can
     "org.scala-lang"          %%  "scala-pickling"        % picklingVers,
-		"org.scalafx" 						%% "scalafx" % 							"1.0.0-R8"
+		"org.scalafx" 						%%  "scalafx" % 							"1.0.0-R8"
 	)
 }
 

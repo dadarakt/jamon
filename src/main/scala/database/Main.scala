@@ -47,8 +47,6 @@ object Main extends Logging{
     }
 
     GraphUtils.clearGraph(g)
-
-
     // Print initial database
     GraphUtils.printGraph(g)
 
