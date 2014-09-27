@@ -227,8 +227,8 @@ class DbHandlerActor extends HandlerActor{
   def customReceive: Receive = {
     //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
-      TitanDatabaseConnection.createPrototypeGraph("dev")
-      sender() ! HttpResponse(entity = dbToString)
+      val graph = TitanDatabaseConnection.createPrototypeGraph("dev")
+      sender() ! HttpResponse(entity = graph.toString)
     case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
       sender() ! HttpResponse(entity = getMethods("length"))
     case HttpRequest(GET, Uri.Path("/getImplementation"),_,_,_) =>

@@ -33,6 +33,9 @@ trait DataBaseInteractions {
   // first and after that give back the whole function if desired.
 }
 
+
+
+
 /**
  * The resource which represents the graph so that it does not need to be instantiated every single time but can be
  * accessed after first use. Every other object will use references to this graph and make the requests using the

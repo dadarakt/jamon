@@ -1,14 +1,12 @@
 package database
 
 import grizzled.slf4j.Logging
-import com.thinkaurelius.titan.core.{TitanFactory, TitanGraph}
+import com.thinkaurelius.titan.core.{Multiplicity, TitanFactory, TitanGraph}
 import scala.util.control.NonFatal
 import scala.util.Try
 import com.tinkerpop.blueprints.{Direction, Edge, Vertex}
 import com.thinkaurelius.titan.core.attribute.Cmp._
 import org.apache.commons.configuration.BaseConfiguration
-import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration
-import com.thinkaurelius.titan.graphdb.configuration.GraphDatabaseConfiguration._
 import util.JuliaTypes.JuliaSignature
 import scala.util.Failure
 import scala.Some
@@ -40,7 +38,7 @@ trait TitanDbInteractions
     case Some(graph) =>
       graphToString(graph)
     case None         =>
-      error("Client tried to access offline-db. Alarm!")
+      error("Client tried to access offline-db.")
       "DB could not be accessed. Please try again later."
   }
 
@@ -116,7 +114,8 @@ object TitanDatabaseConnection extends Logging{
    */
   def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
     try {
-      val conf = readConfig(configFileName)
+      val conf  = readConfig(configFileName)
+      info("Done reading configuration")
       val graph = TitanFactory.open(conf)
       Success(graph)
     } catch {
@@ -264,6 +263,7 @@ object TitanDatabaseConnection extends Logging{
         instantiateGraphFramework(graph)
         Success(graph)
       case f @ Failure(ex) =>
+        // Create the graph as written down
         f
     }
   }
@@ -288,32 +288,26 @@ object TitanDatabaseConnection extends Logging{
    * application.conf in the resources
    */
   def readConfig(configFile: String = "application"): BaseConfiguration = {
-    // Import all the names used in the package for safer handling of the namespaces
-    import GraphDatabaseConfiguration.{
-      STORAGE_NAMESPACE,
-      STORAGE_BACKEND_KEY,
-      STORAGE_DIRECTORY_KEY,
-      HOSTNAME_KEY,
-      INDEX_BACKEND_KEY,
-      INDEX_NAMESPACE
-    }
     // Create the configuration from file. Will throw errors if keys are not found
+    info(s"Loading configuration of database from configfile $configFile")
     val globalConf = ConfigFactory.load()
+
+
     new BaseConfiguration {
-      setProperty(s"$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_BACKEND_KEY"))
-      setProperty(s"$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$STORAGE_DIRECTORY_KEY"))
-      setProperty(s"$STORAGE_NAMESPACE.$HOSTNAME_KEY",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$HOSTNAME_KEY"))
-      setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.$INDEX_BACKEND_KEY"))
-      setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.directory"))
-      setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.local-mode"))
-      setProperty(s"$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only",
-        globalConf.getString(s"database.$STORAGE_NAMESPACE.$INDEX_NAMESPACE.$INDEX_NAME.client-only"))
+      setProperty(s"storage.backend",
+        globalConf.getString(s"database.storage.backend"))
+      setProperty(s"storage.directory",
+        globalConf.getString(s"database.storage.directory"))
+      //setProperty(s"storage.hostname",
+      //  globalConf.getString(s"database.storage.hostname"))
+      setProperty(s"storage.index.search.backend",
+        globalConf.getString(s"database.storage.index.search.backend"))
+      setProperty(s"storage.index.search.hostname",
+        globalConf.getString(s"database.storage.index.search.hostname"))
+      setProperty(s"storage.index.search.local-mode",
+        globalConf.getString(s"database.storage.index.search.local-mode"))
+      setProperty(s"storage.index.search.client-only",
+        globalConf.getString(s"database.storage.index.search.client-only"))
     }
   }
 
@@ -326,19 +320,46 @@ object TitanDatabaseConnection extends Logging{
   def instantiateGraphFramework(graph: TitanGraph): Unit = {
 
     import util.JuliaTypes._
-    info(s"Instantiating the graph ${graph.getType("name")}")
+    info(s"Instantiating the graph $graph")
 
-    // ID TODO --> There should be an algorithm to generate and decode ID's
-    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
+    // ----- Create the schema ------
+    val mgmt = graph.getManagementSystem
+
+    // ID TODO --> There must be an algorithm to generate and decode ID's
+    val iid = mgmt.makePropertyKey("iid").dataType(classOf[String]).make
+
+    // Create the propterty keys used in the graph
+    mgmt.makePropertyKey("type").dataType(classOf[String]).make
+    mgmt.makePropertyKey("topLevelName").dataType(classOf[String]).make
+    mgmt.makePropertyKey("functionName").dataType(classOf[String]).make
+
+    mgmt.makePropertyKey("funcName").dataType(classOf[String]).make
+    mgmt.makePropertyKey("methName").dataType(classOf[String]).make
+    mgmt.makePropertyKey("implName").dataType(classOf[String]).make
+
+    mgmt.makeEdgeLabel("funcOf").make
+    mgmt.makeEdgeLabel("methOf").make
+    mgmt.makeEdgeLabel("implOf").make
+
+    mgmt.makePropertyKey("author").dataType(classOf[String]).make
+    mgmt.makePropertyKey("timestamp").dataType(classOf[String]).make
+    mgmt.makePropertyKey("documentation").dataType(classOf[String]).make
+    mgmt.makePropertyKey("code").dataType(classOf[String]).make
+    mgmt.makePropertyKey("metadata").dataType(classOf[String]).make
+
+    mgmt.commit()
 
 
-    // The key which determines the type of a node in a graph
-    graph.makeKey("type").dataType(classOf[String]).indexed(classOf[Vertex]).make
-    // The key for the toplevel of the graph. There are only three vertices which never change. Add them!
-    graph.makeKey("topLevelName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
-    graph.makeKey("functionName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+    //    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
+//
 
-    info("adding the principal vertices to the graph:")
+//    // The key which determines the type of a node in a graph
+//    graph.makeKey("type").dataType(classOf[String]).indexed(classOf[Vertex]).make
+//    // The key for the toplevel of the graph. There are only three vertices which never change. Add them!
+//    graph.makeKey("topLevelName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+//    graph.makeKey("functionName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+
+    info("adding the central vertices to the graph:")
     val functions = graph.addVertex(null)
     ElementHelper.setProperties(functions, "topLevelName", "functions", "type", "top", "iid", "top:1")
     val packages = graph.addVertex(null)
@@ -348,22 +369,22 @@ object TitanDatabaseConnection extends Logging{
 
 
     // keys and labels for function metadata (not the leaves)
-    graph.makeKey("funcName").dataType(classOf[JuliaFunctionName]).indexed( classOf[Vertex]).unique.make
-    graph.makeKey("methName").dataType(classOf[JuliaSignature]).indexed(classOf[Vertex]).unique.make
-    // This should be a unique ID for each implementation entered
-    graph.makeKey("implName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+//    graph.makeKey("funcName").dataType(classOf[JuliaFunctionName]).indexed( classOf[Vertex]).unique.make
+//    graph.makeKey("methName").dataType(classOf[JuliaSignature]).indexed(classOf[Vertex]).unique.make
+//    // This should be a unique ID for each implementation entered
+//    graph.makeKey("implName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 
     // The labels used to set functions in relation to one another
-    graph.makeLabel("funcOf").manyToOne.make
-    graph.makeLabel("methOf").manyToOne.make
-    graph.makeLabel("implOf").manyToOne.make
+//    graph.makeLabel("funcOf").manyToOne.make
+//    graph.makeLabel("methOf").manyToOne.make
+//    graph.makeLabel("implOf").manyToOne.make
 
     //keys for the leafs to store data in
-    graph.makeKey("author").dataType(classOf[String])
-    graph.makeKey("timestamp").dataType(classOf[String])
-    graph.makeKey("documentation").dataType(classOf[String])
-    graph.makeKey("code").dataType(classOf[String])
-    graph.makeKey("metadata").dataType(classOf[String])
+//    graph.makeKey("author").dataType(classOf[String])
+//    graph.makeKey("timestamp").dataType(classOf[String])
+//    graph.makeKey("documentation").dataType(classOf[String])
+//    graph.makeKey("code").dataType(classOf[String])
+//    graph.makeKey("metadata").dataType(classOf[String])
 
 
     // add some simple function into the database
@@ -394,6 +415,7 @@ object TitanDatabaseConnection extends Logging{
     graph.commit
   }
 
+
   /**
    * Inserts a node into the given graph with the given properties
    * @param graph
@@ -422,24 +444,55 @@ object TitanDatabaseConnection extends Logging{
    * for some early tests. Makes keys and indexes as well as data points.
    */
   def loadGodlyData(graph: TitanGraph) = {
+
+    import Multiplicity._
+
+    // ----- CREATION OF THE SCHEMA -----
     // Make some keys -> The important stuff
-    graph.makeKey("name").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
-    graph.makeKey("age").dataType(classOf[Integer]).indexed("search", classOf[Vertex]).make
-    graph.makeKey("type").dataType(classOf[String]).make
-    val time 	= graph.makeKey("time").dataType(classOf[Integer]).make
-    val reason 	= graph.makeKey("reason").dataType(classOf[String]).indexed("search", classOf[Edge]).make
-    graph.makeKey("place").dataType(classOf[Geoshape]).indexed(INDEX_NAME, classOf[Edge]).make
+    val mgmt = graph.getManagementSystem
+
+    // edge labels
+    mgmt.makeEdgeLabel("father").multiplicity(MANY2ONE).make
+    mgmt.makeEdgeLabel("mother").multiplicity(MANY2ONE).make
+    mgmt.makeEdgeLabel("battled").make
+    mgmt.makeEdgeLabel("lives").multiplicity(MANY2ONE).make
+    mgmt.makeEdgeLabel("pet").make
+    mgmt.makeEdgeLabel("brother").make
+
+    // Make the property keys for the graph
+    val name = mgmt.makePropertyKey("name").dataType(classOf[String]).make
+    val age = mgmt.makePropertyKey("age").dataType(classOf[Integer]).make
+    mgmt.makePropertyKey("type").dataType(classOf[String]).make
+    mgmt.makePropertyKey("time").dataType(classOf[Integer]).make
+    mgmt.makePropertyKey("reason").dataType(classOf[String]).make
+    mgmt.makePropertyKey("place").dataType(classOf[Geoshape]).make
+
+    val byName = mgmt.buildIndex("byName", classOf[Vertex]).addKey(name).buildCompositeIndex
+    val byNameAndAge = mgmt.buildIndex("byNameAndAge", classOf[Vertex]).addKey(name).addKey(age).buildCompositeIndex
+    // Write out the changes
+    mgmt.commit
+
+
+    // LAGACY does not compile!
+//    graph.makeKey("name").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
+//    graph.makeKey("age").dataType(classOf[Integer]).indexed("search", classOf[Vertex]).make
+//    graph.makeKey("type").dataType(classOf[String]).make
+//    val time 	= graph.makeKey("time").dataType(classOf[Integer]).make
+//    val reason 	= graph.makeKey("reason").dataType(classOf[String]).indexed("search", classOf[Edge]).make
+//    graph.makeKey("place").dataType(classOf[Geoshape]).indexed(INDEX_NAME, classOf[Edge]).make
 
     // Make some labels
-    graph.makeLabel("father").manyToOne.make
-    graph.makeLabel("mother").manyToOne.make
-    graph.makeLabel("battled").sortKey(time).make
-    graph.makeLabel("lives").signature(reason).make
-    graph.makeLabel("pet").make
-    graph.makeLabel("brother").make
+//    graph.makeLabel("father").manyToOne.make
+//    graph.makeLabel("mother").manyToOne.make
+//    graph.makeLabel("battled").sortKey(time).make
+//    graph.makeLabel("lives").signature(reason).make
+//    graph.makeLabel("pet").make
+//    graph.makeLabel("brother").make
 
     // And write it to the graph
-    graph.commit
+    // graph.commit
+
+    // ----- INSERTION OF EXAMPLE DATA -----
 
     //Add some vertices
     val saturn = graph.addVertex(null)

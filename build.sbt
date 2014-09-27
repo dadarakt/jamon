@@ -6,7 +6,7 @@ scalaVersion  := "2.10.4"
 
 sbtVersion    := "0.13.0"
 
-//fork := true
+fork := true
 
 resolvers ++= {
   Seq(
@@ -18,7 +18,7 @@ resolvers ++= {
 unmanagedJars in Compile += Attributed.blank(file(System.getenv("JAVA_HOME") + "/jre/lib/jfxrt.jar"))
 
 // For grizzled
-seq(bintrayResolverSettings:_*)
+//seq(bintrayResolverSettings:_*)
 
 libraryDependencies ++= {
   val scalaTestVers = "2.1.0"
@@ -27,20 +27,21 @@ libraryDependencies ++= {
   val grizzledVers  = "1.0.1"
   val akkaVers      = "2.3.2"
   val logbackVers   = "1.0.13"
-  val titanVers     = "0.4.2"
+  val titanVers     = "0.5.0"
   val parboiledVers = "1.1.5"
   val sprayVers     = "1.3.1"
   val picklingVers  = "0.8.0"
   Seq(
   	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
     "com.typesafe"            %   "config"                % configVers,
+    "joda-time"               %   "joda-time"             % "2.1",
     // Dependencies for logging and legacy-logging components
     "org.slf4j"               %   "slf4j-api"             % slf4jVers,
     //"org.slf4j"               %   "slf4j-simple"          % slf4jVers,
     "org.slf4j"               %   "jcl-over-slf4j"        % slf4jVers,
     "org.clapper"             %%  "grizzled-slf4j"        % grizzledVers,
     "ch.qos.logback"          %   "logback-classic"       % logbackVers     % "runtime",
-		"com.thinkaurelius.titan" %   "titan-all"             % titanVers,
+		"com.thinkaurelius.titan" %   "titan-core"             % titanVers,
 		"com.typesafe.akka"       %%  "akka-actor"            % akkaVers,
     "com.typesafe.akka"       %%  "akka-testkit"          % akkaVers        % "test",
     "com.typesafe.akka"       %%  "akka-slf4j"            % akkaVers,

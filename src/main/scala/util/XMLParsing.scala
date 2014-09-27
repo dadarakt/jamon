@@ -85,8 +85,7 @@ object XMLParsing extends Logging {
     if(requests.isEmpty) throw new MalformedXMLException("There are no requests in this query")
 
     // Extract information. Most of the information is not necessary so there is a fall-back to defaults
-      import org.joda.time.format.{ISODateTimeFormat}
-      import org.joda.time.{DateTimeZone, DateTime}
+      import org.joda.time.format.ISODateTimeFormat
       val userTimestamp = try {
       ISODateTimeFormat.dateTime.parseDateTime((head \ Timestamp).head.text).getMillis
     } catch {
