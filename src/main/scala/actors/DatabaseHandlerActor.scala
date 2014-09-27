@@ -29,25 +29,96 @@ trait HandlerActor
   extends Actor
   with Logging {
 
+  //  The implicits for the creation of actors and calls
   import context.dispatcher
   implicit val timeout: Timeout = 3.seconds
   implicit val system           = context.system
 
-  // This has to be implemented by actors which mix in this trait
-  def customReceive: Receive
+  // Actors which mix in this trait will have to define their customReceive which can override anything from default-
+  // receive and add new behaviro
+  def customReceive:  Receive
+  def receive:        Receive = customReceive orElse defaultReceive
 
-  // The actual receive function will first check the cases defined by the classes which mix in the trait and otherwise
-  // fall back to the ones defined above
-  def receive: Receive = customReceive orElse defaultReceive
-
-  // This is a prototype for a function which returns a page to show to the user
-  def getPage(name: String) = {
+  /**
+   * Retreives a html page from the source or returns error-page otherwise
+   * @param r The original request made by the user
+   * @return The html entity to be shown to the user
+   */
+  def getPage(r: HttpRequest): HttpResponse = {
     try{
-      Source.fromFile(s"src/main/resources/sites/$name.html").getLines.mkString("")
+      HttpResponse(
+        status = 200,
+        entity = HttpEntity(
+          `text/html`, Source.fromFile(s"src/main/resources/sites${r.uri.path}.html").getLines.mkString(""))
+      )
     } catch {
-     case ex: FileNotFoundException => "This page does not exist"
+     case ex: FileNotFoundException =>
+        _404(r)
     }
   }
+
+  /**
+   * For static resources with faster access (should only be used in cases where the page is supposed to exist)
+   * @param name
+   * @return
+   */
+  def getPage(name: String): HttpResponse = {
+    try {
+      HttpResponse(
+        status = 200,
+        entity = HttpEntity(`text/html`,Source.fromFile(s"src/main/resources/sites/$name.html").getLines.mkString(""))
+      )
+    } catch {
+      case ex: FileNotFoundException =>
+        _404(HttpRequest())
+    }
+  }
+
+  /**
+   * The static error-response
+   */
+  def _404(r: HttpRequest) = HttpResponse(status = 404, entity = HttpEntity(`text/html`,
+    s"""<html>
+                   <head>
+                     <title> 404 - Resource not found.</title>
+                      <style>
+                        body {
+
+                        }
+                        h1 {
+                          background-color:#fff;
+                        }
+                        h2 {
+                          background-color:#fff;
+                        }
+                        ul {
+                          background-color:#fff;
+                        }
+                      </style>
+                   </head>
+                   <body>
+                     <h1> 404 - Invalid Request! Please make sure your query is correct.</h1>
+                     <h2> The query: </h2>
+                     <ul>
+                      |              <li>GET Request to the address: ${r.uri}</li>
+                      |              <li>headers:
+                      |                <ul>
+                      |                  ${r.headers}
+                      |                </ul>
+                      |              </li>
+                      |              <li>The entity in the request: ${r.entity}</li>
+                      |              <li>The protocol used: ${r.protocol}</li>
+                      |            </ul>
+
+                     <img src = "http://www.likeplusone.org/feelsbadman.png"
+                          alt="WatDatDenn?"
+                          title ="Nosey, aren't you?!"
+                          width="200"
+                          height="200"
+                          align="right"/>
+                   </body>
+                 </html>""".stripMargin
+  ))
 
   // Contains some common cases which every actor of this type should have. They are at least priority, meaning they
   // represent a comfortable fallback if an implementing class does not want to handle certain messages.
@@ -64,9 +135,7 @@ trait HandlerActor
 
     // the 'index' page
     case  r @ HttpRequest(GET, Uri.Path("/"),_,_,_) =>
-      sender() ! HttpResponse(entity = HttpEntity(`text/html`,
-        getPage("index")
-      ))
+      sender() ! getPage("index")
 
     case r @ HttpRequest(GET, Uri.Path("/longRequest"),_,_,_) =>
       Thread.sleep(30000)
@@ -74,16 +143,6 @@ trait HandlerActor
         <html>
           <body>
             <h1> Thanks for waiting 10 seconds </h1>
-          </body>
-        </html>.toString
-      ))
-
-    case r @ HttpRequest(GET, Uri.Path("/andrea"),_,_,_) =>
-      sender() ! HttpResponse(entity = HttpEntity(`text/html`,
-        <html>
-          <body>
-            <h1> Na dann lass mal ein eis essen andrea!</h1>
-            <img src="http://goldenindex.com/userpages/721900589/eis1.jpg"></img>
           </body>
         </html>.toString
       ))
@@ -119,52 +178,10 @@ trait HandlerActor
       sender ! Http.Close
       context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
 
-    // The general fallback for invalid requests - 404 TODO this returns the http request for debugging, should be simplified later
-    case r @ HttpRequest(GET, uri, header, entity, protocol) =>
-      // Unpack the headers for display (make a html list)
-      val headers = header.map((h: HttpHeader) => s"<li>${h.name} -----> ${h.value}</li>").mkString("\n")
-        val enty = s"""<html>
-                      |          <head>
-                      |            <title> 404 - Resource not found. Check your query, please.</title>
-                                    <style>
-                                      body {
-                                          background-image: url('http://www.likeplusone.org/feelsbadman.png');
-                                          background-repeat: repeat;
-                                          background-size: 80px 80px;
-                                      }
-                                      h1 {
-                                        background-color:#fff;
-                                      }
-                                      h2 {
-                                        background-color:#fff;
-                                      }
-                                      ul {
-                                        background-color:#fff;
-                                      }
-                                    </style>
-                      |          </head>
-                      |          <body>
-                      |            <h1> 404 - Invalid Request!</h1>
-                      |            <h2> Query:</h2><br>
-                      |            <ul>
-                      |              <li>GET Request to the address: $uri</li>
-                      |              <li>headers:
-                      |                <ul>
-                      |                  $headers
-                      |                </ul>
-                      |              </li>
-                      |              <li>The entity in the request: $entity</li>
-                      |              <li>The protocol used: $protocol</li>
-                      |            </ul>
-                      |            <img src = "http://www.likeplusone.org/feelsbadman.png"
-                      |                 alt="WatDatDenn?"
-                      |                 title ="Nosey, aren't you?!"
-                      |                 width="200"
-                      |                 height="200"
-                      |                 align="right"/>
-                      |          </body>
-                      |        </html>""".stripMargin
-      sender() ! HttpResponse(status = 404, entity = HttpEntity(`text/html`, enty))
+
+    // The general fallback: Try to get the resource from file as a static webpage TODO this returns the http request for debugging purposes, should be simplified later
+    case r: HttpRequest =>
+      sender() ! getPage(r)
   }
 }
 
@@ -241,6 +258,7 @@ class DbHandlerActor extends HandlerActor{
 
     // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
+      val graph  =
       sender() ! HttpResponse(entity = dbToString)
 
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
