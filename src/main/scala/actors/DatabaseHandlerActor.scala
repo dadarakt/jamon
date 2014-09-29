@@ -39,87 +39,6 @@ trait HandlerActor
   def customReceive:  Receive
   def receive:        Receive = customReceive orElse defaultReceive
 
-  /**
-   * Retreives a html page from the source or returns error-page otherwise
-   * @param r The original request made by the user
-   * @return The html entity to be shown to the user
-   */
-  def getPage(r: HttpRequest): HttpResponse = {
-    try{
-      HttpResponse(
-        status = 200,
-        entity = HttpEntity(
-          `text/html`, Source.fromFile(s"src/main/resources/sites${r.uri.path}.html").getLines.mkString(""))
-      )
-    } catch {
-     case ex: FileNotFoundException =>
-        _404(r)
-    }
-  }
-
-  /**
-   * For static resources with faster access (should only be used in cases where the page is supposed to exist)
-   * @param name
-   * @return
-   */
-  def getPage(name: String): HttpResponse = {
-    try {
-      HttpResponse(
-        status = 200,
-        entity = HttpEntity(`text/html`,Source.fromFile(s"src/main/resources/sites/$name.html").getLines.mkString(""))
-      )
-    } catch {
-      case ex: FileNotFoundException =>
-        _404(HttpRequest())
-    }
-  }
-
-  /**
-   * The static error-response
-   */
-  def _404(r: HttpRequest) = HttpResponse(status = 404, entity = HttpEntity(`text/html`,
-    s"""<html>
-                   <head>
-                     <title> 404 - Resource not found.</title>
-                      <style>
-                        body {
-
-                        }
-                        h1 {
-                          background-color:#fff;
-                        }
-                        h2 {
-                          background-color:#fff;
-                        }
-                        ul {
-                          background-color:#fff;
-                        }
-                      </style>
-                   </head>
-                   <body>
-                     <h1> 404 - Invalid Request! Please make sure your query is correct.</h1>
-                     <h2> The query: </h2>
-                     <ul>
-                      |              <li>GET Request to the address: ${r.uri}</li>
-                      |              <li>headers:
-                      |                <ul>
-                      |                  ${r.headers}
-                      |                </ul>
-                      |              </li>
-                      |              <li>The entity in the request: ${r.entity}</li>
-                      |              <li>The protocol used: ${r.protocol}</li>
-                      |            </ul>
-
-                     <img src = "http://www.likeplusone.org/feelsbadman.png"
-                          alt="WatDatDenn?"
-                          title ="Nosey, aren't you?!"
-                          width="200"
-                          height="200"
-                          align="right"/>
-                   </body>
-                 </html>""".stripMargin
-  ))
-
   // Contains some common cases which every actor of this type should have. They are at least priority, meaning they
   // represent a comfortable fallback if an implementing class does not want to handle certain messages.
   def defaultReceive: Receive = {
@@ -135,7 +54,7 @@ trait HandlerActor
 
     // the 'index' page
     case  r @ HttpRequest(GET, Uri.Path("/"),_,_,_) =>
-      sender() ! getPage("index")
+      sender() ! StaticPages.getPage("index")
 
     case r @ HttpRequest(GET, Uri.Path("/longRequest"),_,_,_) =>
       Thread.sleep(30000)
@@ -158,7 +77,7 @@ trait HandlerActor
               <body>
                 <h1>HttpServer Stats</h1>
                 <table>
-                  <tr><td>uptime:</td>            <td>{s.uptime.toMinutes}</td></tr>
+                  <tr><td>uptime:</td>            <td>{s.uptime.toHours} hours</td></tr>
                   <tr><td>totalRequests:</td>     <td>{s.totalRequests}</td></tr>
                   <tr><td>openRequests:</td>      <td>{s.openRequests}</td></tr>
                   <tr><td>maxOpenRequests:</td>   <td>{s.maxOpenRequests}</td></tr>
@@ -181,7 +100,7 @@ trait HandlerActor
 
     // The general fallback: Try to get the resource from file as a static webpage TODO this returns the http request for debugging purposes, should be simplified later
     case r: HttpRequest =>
-      sender() ! getPage(r)
+      sender() ! StaticPages.getPage(r)
   }
 }
 
@@ -199,6 +118,9 @@ class DbDownHandlerActor
 
   def customReceive: Receive = {
     // Just add a catch-all for all kinds of GETS and POSTS to display error
+    case  r @ HttpRequest(GET, Uri.Path("/"),_,_,_) =>
+      sender() ! StaticPages.getPage("index")
+
     case HttpRequest(_,_,_,_,_) =>
       sender() ! displayDbOffline
   }
@@ -270,6 +192,91 @@ object DbHandlerActor {
   // TODO this is just a bit sluggish
   def titanProps: Props = Props(new DbHandlerActor with TitanDbInteractions)
 }
+
+object StaticPages {
+  /**
+   * Retreives a html page from the source or returns error-page otherwise
+   * @param r The original request made by the user
+   * @return The html entity to be shown to the user
+   */
+  def getPage(r: HttpRequest): HttpResponse = {
+    try{
+      HttpResponse(
+        status = 200,
+        entity = HttpEntity(
+          `text/html`, Source.fromFile(s"src/main/resources/sites${r.uri.path}.html").getLines.mkString(""))
+      )
+    } catch {
+      case ex: FileNotFoundException =>
+        _404(r)
+    }
+  }
+
+  /**
+   * For static resources with faster access (should only be used in cases where the page is supposed to exist)
+   * @param name
+   * @return
+   */
+  def getPage(name: String): HttpResponse = {
+    try {
+      HttpResponse(
+        status = 200,
+        entity = HttpEntity(`text/html`,Source.fromFile(s"src/main/resources/sites/$name.html").getLines.mkString(""))
+      )
+    } catch {
+      case ex: FileNotFoundException =>
+        _404(HttpRequest())
+    }
+  }
+
+  /**
+   * The static error-response
+   */
+  def _404(r: HttpRequest) = HttpResponse(status = 404, entity = HttpEntity(`text/html`,
+    s"""<html>
+                   <head>
+                     <title> 404 - Resource not found.</title>
+                      <style>
+                        body {
+
+                        }
+                        h1 {
+                          background-color:#fff;
+                        }
+                        h2 {
+                          background-color:#fff;
+                        }
+                        ul {
+                          background-color:#fff;
+                        }
+                      </style>
+                   </head>
+                   <body>
+                     <h1> 404 - Invalid Request! Please make sure your query is correct.</h1>
+                     <h2> The query: </h2>
+                     <ul>
+                      |              <li>GET Request to the address: ${r.uri}</li>
+                      |              <li>headers:
+                      |                <ul>
+                      |                  ${r.headers}
+                      |                </ul>
+                      |              </li>
+                      |              <li>The entity in the request: ${r.entity}</li>
+                      |              <li>The protocol used: ${r.protocol}</li>
+                      |            </ul>
+
+                     <img src = "http://www.likeplusone.org/feelsbadman.png"
+                          alt="WatDatDenn?"
+                          title ="Nosey, aren't you?!"
+                          width="200"
+                          height="200"
+                          align="right"/>
+                   </body>
+                 </html>""".stripMargin
+  ))
+}
+
+
 
 
 

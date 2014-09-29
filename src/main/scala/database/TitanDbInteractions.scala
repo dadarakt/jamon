@@ -113,14 +113,28 @@ object TitanDatabaseConnection extends Logging{
    * Opens a graph using a configuration file
    */
   def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
+    import com.typesafe.config.ConfigFactory
+
+    val confy   = ConfigFactory.load
+//    info(s"The backend: ${confy.getString("database.backend")} " +
+//      s" The graph directory: ${confy.getString("database.directory")}" +
+//      //s" The hostname for the graph: ${confy.getString("database.hostname")}" +
+//      s" The index backend: ${confy.getString("database.index.search.backend")}" +
+//      s" The index host: ${confy.getString("database.index.search.hostname")}")
+
     try {
       val conf  = readConfig(configFileName)
-      info("Done reading configuration")
+      val keys = conf.getKeys.toList
+      for {
+        key <- keys
+      } {info(conf.getProperty(key.toString))}
+      info(s"Done reading configuration form $configFileName. Will start with the following parameters.")
+      info(s"${conf.getKeys.mkString(",")}")
       val graph = TitanFactory.open(conf)
       Success(graph)
     } catch {
       case NonFatal(e) => {
-        error(s"Could not access the database.")
+        error(s"Could not open the database using the provided configuration in $configFileName, $e")
         Failure(e)
       }
     }
@@ -292,22 +306,21 @@ object TitanDatabaseConnection extends Logging{
     info(s"Loading configuration of database from configfile $configFile")
     val globalConf = ConfigFactory.load()
 
-
     new BaseConfiguration {
       setProperty(s"storage.backend",
-        globalConf.getString(s"database.storage.backend"))
+        globalConf.getString(s"database.backend"))
       setProperty(s"storage.directory",
-        globalConf.getString(s"database.storage.directory"))
-      //setProperty(s"storage.hostname",
-      //  globalConf.getString(s"database.storage.hostname"))
+        globalConf.getString(s"database.directory"))
+//      setProperty(s"hostname",
+//        globalConf.getString(s"database.hostname"))
       setProperty(s"storage.index.search.backend",
-        globalConf.getString(s"database.storage.index.search.backend"))
+        globalConf.getString(s"database.index.search.backend"))
       setProperty(s"storage.index.search.hostname",
-        globalConf.getString(s"database.storage.index.search.hostname"))
+        globalConf.getString(s"database.index.search.hostname"))
       setProperty(s"storage.index.search.local-mode",
-        globalConf.getString(s"database.storage.index.search.local-mode"))
+        globalConf.getString(s"database.index.search.local-mode"))
       setProperty(s"storage.index.search.client-only",
-        globalConf.getString(s"database.storage.index.search.client-only"))
+        globalConf.getString(s"database.index.search.client-only"))
     }
   }
 
@@ -319,40 +332,59 @@ object TitanDatabaseConnection extends Logging{
    */
   def instantiateGraphFramework(graph: TitanGraph): Unit = {
 
-    import util.JuliaTypes._
     info(s"Instantiating the graph $graph")
 
     // ----- Create the schema ------
+    info(s"Creating the schema")
     val mgmt = graph.getManagementSystem
 
     // ID TODO --> There must be an algorithm to generate and decode ID's
     val iid = mgmt.makePropertyKey("iid").dataType(classOf[String]).make
 
-    // Create the propterty keys used in the graph
-    mgmt.makePropertyKey("type").dataType(classOf[String]).make
-    mgmt.makePropertyKey("topLevelName").dataType(classOf[String]).make
-    mgmt.makePropertyKey("functionName").dataType(classOf[String]).make
+    // The names used to label the vertices in the graph
+    val topLevel        = "topLevel"
+    val function        = "function"
+    val method          = "method"
+    val implementation  = "implementation"
+    val version         = "version"
 
-    mgmt.makePropertyKey("funcName").dataType(classOf[String]).make
-    mgmt.makePropertyKey("methName").dataType(classOf[String]).make
-    mgmt.makePropertyKey("implName").dataType(classOf[String]).make
+    // Static label for the major nodes in the graph which are not editable by users.
+    mgmt.makeVertexLabel(topLevel).setStatic.make
 
-    mgmt.makeEdgeLabel("funcOf").make
-    mgmt.makeEdgeLabel("methOf").make
-    mgmt.makeEdgeLabel("implOf").make
+    // Labels for all nodes used in the database which form the meta-levels above the actual data
+    mgmt.makeVertexLabel(function).make
+    mgmt.makeVertexLabel(method).make
+    mgmt.makeVertexLabel(implementation).make
+    mgmt.makeVertexLabel(version).make
 
+    // Property keys to store meta-information in the nodes
+    mgmt.makePropertyKey(s"${topLevel}Name").dataType(classOf[String]).make
+    val functionName        = mgmt.makePropertyKey(s"${function}Name").dataType(classOf[String]).make
+    val methodName          = mgmt.makePropertyKey(s"${method}Name").dataType(classOf[String]).make
+    val implementationName  = mgmt.makePropertyKey(s"${implementation}Name").dataType(classOf[String]).make
+
+    // Property keys which are used to store data in the leafs of the code-tree
     mgmt.makePropertyKey("author").dataType(classOf[String]).make
     mgmt.makePropertyKey("timestamp").dataType(classOf[String]).make
     mgmt.makePropertyKey("documentation").dataType(classOf[String]).make
     mgmt.makePropertyKey("code").dataType(classOf[String]).make
     mgmt.makePropertyKey("metadata").dataType(classOf[String]).make
 
+    // The labels for edges which define the relationships in the database
+    // There is no need to traverse from a function node to the top-level node
+    mgmt.makeEdgeLabel("funcOf").unidirected.make
+    mgmt.makeEdgeLabel("methOf").make
+    mgmt.makeEdgeLabel("implOf").make
+
+    // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
+    mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(functionName).buildCompositeIndex
+
+
     mgmt.commit()
 
 
     //    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
 //
-
 //    // The key which determines the type of a node in a graph
 //    graph.makeKey("type").dataType(classOf[String]).indexed(classOf[Vertex]).make
 //    // The key for the toplevel of the graph. There are only three vertices which never change. Add them!
@@ -360,48 +392,32 @@ object TitanDatabaseConnection extends Logging{
 //    graph.makeKey("functionName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 
     info("adding the central vertices to the graph:")
-    val functions = graph.addVertex(null)
-    ElementHelper.setProperties(functions, "topLevelName", "functions", "type", "top", "iid", "top:1")
-    val packages = graph.addVertex(null)
-    ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", "top:2")
-    val arguments = graph.addVertex(null)
-    ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", "top:3")
+    val functions = graph.addVertexWithLabel(topLevel)
+    ElementHelper.setProperties(functions, s"${topLevel}Name", "functions", "iid", s"$topLevel:1")
+    val packages = graph.addVertexWithLabel(topLevel)
+    ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$topLevel:2")
+    val arguments = graph.addVertexWithLabel(topLevel)
+    ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$topLevel:3")
 
+    // add some simple function into the database]
+    info("adding some initial data into the graph")
+    val length = graph.addVertexWithLabel(function)
+    ElementHelper.setProperties(length,"functionName", "length", "iid", "func:1")
+    val length2 = graph.addVertexWithLabel("function")
+    ElementHelper.setProperties(length2, "functionName", "length2", "iid", "func:2" )
 
-    // keys and labels for function metadata (not the leaves)
-//    graph.makeKey("funcName").dataType(classOf[JuliaFunctionName]).indexed( classOf[Vertex]).unique.make
-//    graph.makeKey("methName").dataType(classOf[JuliaSignature]).indexed(classOf[Vertex]).unique.make
-//    // This should be a unique ID for each implementation entered
-//    graph.makeKey("implName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
-
-    // The labels used to set functions in relation to one another
-//    graph.makeLabel("funcOf").manyToOne.make
-//    graph.makeLabel("methOf").manyToOne.make
-//    graph.makeLabel("implOf").manyToOne.make
-
-    //keys for the leafs to store data in
-//    graph.makeKey("author").dataType(classOf[String])
-//    graph.makeKey("timestamp").dataType(classOf[String])
-//    graph.makeKey("documentation").dataType(classOf[String])
-//    graph.makeKey("code").dataType(classOf[String])
-//    graph.makeKey("metadata").dataType(classOf[String])
-
-
-    // add some simple function into the database
-    val length = graph.addVertex(null)
-    ElementHelper.setProperties(length, "type", "func","functionName", "length", "iid", "func:1")
-    val meth1 = graph.addVertex(null)
-    ElementHelper.setProperties(meth1, "type" , "meth", "iid" ,"meth:1", "methodSignature" ,"length(String)", "methodFor" ,"func:1")
-    val meth2 = graph.addVertex(null)
-    ElementHelper.setProperties(meth2, "type" , "meth", "iid" ,"meth:2", "methodSignature" ,"length(Array)", "methodFor" ,"func:1")
-    val impl1 = graph.addVertex(null)
-    ElementHelper.setProperties(impl1, "type", "impl", "iid" , "impl:1", "implements", "meth:1", "author", "simon", "rating", "8")
-    val impl2 = graph.addVertex(null)
-    ElementHelper.setProperties(impl2, "type", "impl", "iid" , "impl:2", "implements", "meth:1", "author", "jannis", "rating", "2")
-    val vers1 = graph.addVertex(null)
-    ElementHelper.setProperties(vers1, "type", "vers", "iid", "vers:1", "versOf", "impl:1", "code", "Guten Tag, Welt.", "time" , "123456")
-    val vers2 = graph.addVertex(null)
-    ElementHelper.setProperties(vers2, "type", "vers", "iid", "vers:2", "versOf", "impl:1", "code", "Hello, world.", "time", "123890")
+    val meth1 = graph.addVertexWithLabel(method)
+    ElementHelper.setProperties(meth1, "iid" ,"meth:1", "methodSignature" ,"length(String)", "methodFor" ,"func:1")
+    val meth2 = graph.addVertexWithLabel(method)
+    ElementHelper.setProperties(meth2, "iid" ,"meth:2", "methodSignature" ,"length(Array)", "methodFor" ,"func:1")
+    val impl1 = graph.addVertexWithLabel(implementation)
+    ElementHelper.setProperties(impl1, "iid" , "impl:1", "implements", "meth:1", "author", "simon", "rating", "8")
+    val impl2 = graph.addVertexWithLabel(implementation)
+    ElementHelper.setProperties(impl2,  "iid" , "impl:2", "implements", "meth:1", "author", "jannis", "rating", "2")
+    val vers1 = graph.addVertexWithLabel(version)
+    ElementHelper.setProperties(vers1,  "iid", "vers:1", "versOf", "impl:1", "code", "Guten Tag, Welt.", "time" , "123456")
+    val vers2 = graph.addVertexWithLabel(version)
+    ElementHelper.setProperties(vers2, "iid", "vers:2", "versOf", "impl:1", "code", "Hello, world.", "time", "123890")
 
     // Add the edges that we want
     graph.addEdge(null,functions,length, "isFunction")
@@ -413,6 +429,8 @@ object TitanDatabaseConnection extends Logging{
     graph.addEdge(null, impl1, vers2, "versionOf")
 
     graph.commit
+
+    info("successfully inserted the data into the graph")
   }
 
 

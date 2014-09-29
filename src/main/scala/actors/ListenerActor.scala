@@ -25,7 +25,7 @@ class ListenerActor(handlerProps: Props)
   // Holds information on all incoming connections
   var openConnections: mutable.LinkedHashSet[ActorRef] = mutable.LinkedHashSet[ActorRef]()
 
-  // The fixed size pool of actors for the server. Create it.
+  // The fixed size pool of actors for the server. Create it. TODO this is only a prototype for possible optimization
   var actorPool = Map[ActorRef, Option[Work]]()
   val poolSize = 1
   1 to poolSize foreach { _ =>
@@ -40,19 +40,19 @@ class ListenerActor(handlerProps: Props)
       val handler = context.actorOf(_handleProps)
       context.watch(handler)
       openConnections += handler
-      info(s"Incoming connection from: ${c.remoteAddress} handled by $handler." +
+      debug(s"Incoming connection from: ${c.remoteAddress} handled by $handler." +
         s" Currently open connections: ${openConnections.size}")
       _sender ! Http.Register(handler)
 
     case ChangeHandler(newHandler) =>
       info(s"The listener changed behavior to $newHandler")
-      context.children.foreach{context.stop}
+      context.children.foreach{context.stop} // force-close all existing connections
       _handleProps = newHandler
 
     case Terminated(handler) =>
       if(openConnections.contains(handler)){
         openConnections -= handler
-        info(s"There was an actor being killed: $handler . Connections still open: ${openConnections.size}") //TODO this should be expected behavior later
+        debug(s"There was an actor being killed: $handler . Connections still open: ${openConnections.size}")
       } else {
         error(s"There was a handler which was never created: $handler")
       }

@@ -28,12 +28,19 @@ object SprayServer extends App with Logging{
   Thread.sleep(1000)
 
   // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
-  // val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
+  val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
+  var handlerProps: Props = _
+  graphTry match {
+    case Success(graph) =>
+      info(s"The configured graph was retrieved, will start server to operate on it.")
+      handlerProps  = DbHandlerActor.titanProps
+    case Failure(ex) =>
+      error(s"The configured graph could not be openend, will start in offline mode/")
+      handlerProps = DbDownHandlerActor.props
+  }
 
-  val handlerProps  = DbHandlerActor.titanProps
   val listenerProps = ListenerActor.props(handlerProps)
   val serverProps   = HttpServerActor.props(listenerProps)
-
   // Fire up the server in the system
   val server = system.actorOf(serverProps, "httpServer")
 }
@@ -89,10 +96,10 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
   /**
    * Binds a (new) listener to the port (depending on already having one or not).
    *
-   * @param handlerProps The kind of handler which is supposed to be used by the listener on startup.
+   * @param listenerProps The kind of handler which is supposed to be used by the listener on startup.
    *                     Could be changed later using the 'ChangeHandler(newHandlerProps: Props)' message.
    */
-  def bindListener(handlerProps: Props) = {
+  def bindListener(listenerProps: Props) = {
 
     val start = System.currentTimeMillis()
     // If there is an active listener kill it first
@@ -104,13 +111,13 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
     }
 
     // Set up the listener as a child of the server.
-    portListener    = Some(context.actorOf(handlerProps, "listener-actor"))
+    portListener    = Some(context.actorOf(listenerProps, "listener-actor"))
     val conf        = ConfigFactory.load()
     val ip          = conf.getString("connection.localIp")
     val port        = conf.getInt("connection.port")
     val options     = Nil
     val bindMessage = new Bind(portListener.get, new InetSocketAddress(ip, port), 100, options, None)
-    info(s"Trying to bind the new listener ${handlerProps.actorClass()} to $ip:$port")
+    info(s"Trying to bind the new listener ${listenerProps.actorClass()} to $ip:$port")
     val bound = (IO(Http) ? bindMessage).mapTo[Http.Bound]
     bound.onComplete {
       case Success(bound) =>
