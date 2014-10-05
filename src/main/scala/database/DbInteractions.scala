@@ -107,3 +107,4 @@ object GraphObject extends Logging {
     case Failure(ex) =>
       throw ex //Let the user of the resource decide how to handle this situation
   }
+}

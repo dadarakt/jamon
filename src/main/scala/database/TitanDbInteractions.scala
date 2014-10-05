@@ -27,8 +27,8 @@ import scala.Some
 import scala.util.Success
 
 /**
- * Defines methods to read data from a Titan-Database for an actor
- */
+* Defines methods to read data from a Titan-Database for an actor
+*/
 trait TitanDbInteractions
   extends DataBaseInteractions
   with    Logging {
@@ -53,9 +53,6 @@ trait TitanDbInteractions
   }
 
   //~~~~~~~~~~~~~ HELPERS ~~~~~~~~~~~~~~~~
-  /**
-   * Abstracts away things like creating indices and stuff
-   */
   def insertFunctionNode(graph: TitanGraph, props: Seq[String]) = {
 
   }
@@ -72,7 +69,7 @@ trait TitanDbInteractions
     TitanDatabaseConnection.getAllImplementations(graph.get, meth)
   }
 
-  def findFunction(name: String): Vertex = {
+  def findFunction(name: String)= {
 
   }
 
@@ -107,11 +104,12 @@ trait TitanDbInteractions
   def getFunction(signature: JuliaSignature) = ???
   def find = ???
   def retrieve = ???
+  def getMethod(signature: JuliaSignature) = ???
 }
 
 
 /**
- * Contains methods to interact with the titan instance on the machine
+ * Contains methods to interact with TitanDB
  */
 object TitanDatabaseConnection extends Logging{
 
@@ -119,34 +117,18 @@ object TitanDatabaseConnection extends Logging{
   val INDEX_NAME = "search"
 
   /**
-   * Opens a graph using a configuration file
+   * Opens a graph using the provided configuration file
    */
-  def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
-    import com.typesafe.config.ConfigFactory
-    //val confy   = ConfigFactory.load
-//    info(s"The backend: ${confy.getString("database.backend")} " +
-//      s" The graph directory: ${confy.getString("database.directory")}" +
-//      //s" The hostname for the graph: ${confy.getString("database.hostname")}" +
-//      s" The index backend: ${confy.getString("database.index.search.backend")}" +
-//      s" The index host: ${confy.getString("database.index.search.hostname")}")
-
+  def openGraphFromConfig(configPath: String = "conf/titan.properties"): Try[TitanGraph] = {
     try {
-//      val conf  = readConfig(configFileName)
-//      val keys = conf.getKeys.toList
-//      for {
-//        key <- keys
-//      } {info(conf.getProperty(key.toString))}
-//      info(s"Done reading configuration form $configFileName. Will start with the following parameters.")
-//      info(s"${conf.getKeys.mkString(",")}")
-//      // Do this step by step for better error tracing
-      val graph = TitanFactory.open("conf/titan.properties")
+      val graph = TitanFactory.open(configPath)
       if(graph.isOpen) {
-        info("The configured graph was openend.")
+        info(s"Opened graph from configuration file $configPath.")
       }
       Success(graph)
     } catch {
       case NonFatal(e) => {
-        error(s"Could not open the database using the provided configuration in $configFileName, $e")
+        error(s"Could not open the database using the provided configuration in $configPath, $e")
         Failure(e)
       }
     }
@@ -156,18 +138,7 @@ object TitanDatabaseConnection extends Logging{
    * Prints out everything in a graph. Only used for testing. TODO only test BS
    */
   def graphToString(graph: TitanGraph): String = {
-      //graph.containsVertexLabel("topLevel").toString()
-      //graph.containsVertexLabel("wurstwasser").toString()
-//      val things = graph.getVertices("functionName", "length")
-//      val aha = things.mkString(" ")
-//
-//      val wurst =  graph.getVertices("methodSignature", "length(String)")
-//      aha + things.mkString(" ")
-    val sep = "\n\t-->"
-    val verticesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~"
-    // Get all top vertices from the graph (the ones with the corresponding label)
     val topLabel: VertexLabel = graph.getVertexLabel("topLevel")
-
     try {
       val (_, time1) =
         MeasureFunction.measureCallWithResult(graph.query.has("functionName", "length").vertices.mkString(" "))
@@ -183,69 +154,12 @@ object TitanDatabaseConnection extends Logging{
         warn("Error while retrieving nodes from the index")
         ex.toString()
     }
-//    val topVertices = graph.getVertices("type", "topLevel").map((vertex: Vertex) =>
-//      for {
-//        prop <- vertex.getPropertyKeys
-//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-//    ).mkString(sep)
-//
-//    val funVertices = graph.getVertices("type", "func").map((vertex: Vertex) =>
-//      for {
-//        prop <- vertex.getPropertyKeys
-//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-//    ).mkString(sep)
-//
-//    val methVertices = graph.getVertices("type", "meth").map((vertex: Vertex) =>
-//      for {
-//        prop <- vertex.getPropertyKeys
-//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-//    ).mkString(sep)
-//
-//    val implVertices = graph.getVertices("type", "impl").map((vertex: Vertex) =>
-//      for {
-//        prop <- vertex.getPropertyKeys
-//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-//    ).mkString(sep)
-//
-//    val versVertices = graph.getVertices("type", "vers").map((vertex: Vertex) =>
-//      for {
-//        prop <- vertex.getPropertyKeys
-//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-//    ).mkString(sep)
-//
-//
-//    val edgesHeader = s"\n~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
-//
-//    val isFunction = graph.getEdges.map((edge: Edge) =>
-//      s"(${edge.getLabel}, out: ${edge.getVertex(Direction.OUT).getProperty[String]("iid")} in: ${edge.getVertex(Direction.IN).getProperty[String]("iid")})"
-//    ).mkString(sep)
-//
-//    val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
-//
-//    graph.commit
-//    (verticesHeader,
-//      s"There are ${graph.getVertices.size} vertices in the graph.",
-//      "\nTOP-LEVEL VERTICES:",
-//      "\t-->" + topVertices,
-//      "\nFUNCTION-VERTICES",
-//      "\t-->" + funVertices,
-//      "\nMETHOD-VERTICES",
-//      "\t-->" + methVertices,
-//      "\nIMPLEMENTATION-VERTICES",
-//      "\t-->" + implVertices,
-//      "\nVERSIONS-VERTICES",
-//      "\t-->" + versVertices,
-//      edgesHeader,
-//      s"There are ${graph.getEdges.size} edges in the graph\n",
-//      "\t-->" + isFunction
-//      ).productIterator.mkString("\n")
-
-    // try an indexed search
-    //    for {
-    //      result <- graph.indexQuery()
-    //    } println(s"${result.getElement} , ${result.getScore}")
   }
 
+  /**
+   * Just demoing things
+   * @param g
+   */
   def addSomeShit(g: TitanGraph) = {
     insertNode(g, Map(("type" -> "meth"), ("iid" -> "meth:1"), ("methodSignature" -> "length(String)")))
   }
@@ -301,12 +215,12 @@ object TitanDatabaseConnection extends Logging{
 
   /**
    * Uses the given (empty) graph to build the structure for the graph
-   * @param configFileName The config from which to read the settings.
+   * @param configPath The config from which to read the settings.
    * @return The loaded graph
    */
-  def createPrototypeGraph(configFileName: String): Try[TitanGraph] = {
+  def createGraphFromConfig(configPath: String): Try[TitanGraph] = {
     info("Trying to setup the prototype graph...")
-    openGraphFromConfig(configFileName) match {
+    openGraphFromConfig(configPath) match {
       case Success(graph) =>
         info("found the graph, now instantiating it.")
         instantiateGraphFramework(graph)
@@ -328,34 +242,6 @@ object TitanDatabaseConnection extends Logging{
         Success(graph)
       case f @ Failure(ex) =>
         f // Just push the exception
-    }
-  }
-
-
-  /**
-   * Reads the graph-related config from a config file. If none is given it will use the default
-   * application.conf in the resources
-   */
-  def readConfig(configFile: String = "application"): BaseConfiguration = {
-    // Create the configuration from file. Will throw errors if keys are not found
-    info(s"Loading configuration of database from configfile $configFile")
-    val globalConf = ConfigFactory.load()
-
-    new BaseConfiguration {
-      setProperty(s"storage.backend",
-        globalConf.getString(s"database.backend"))
-      setProperty(s"storage.directory",
-        globalConf.getString(s"database.directory"))
-//      setProperty(s"hostname",
-//        globalConf.getString(s"database.hostname"))
-      setProperty(s"storage.index.search.backend",
-        globalConf.getString(s"database.index.search.backend"))
-      setProperty(s"storage.index.search.hostname",
-        globalConf.getString(s"database.index.search.hostname"))
-      setProperty(s"storage.index.search.local-mode",
-        globalConf.getString(s"database.index.search.local-mode"))
-      setProperty(s"storage.index.search.client-only",
-        globalConf.getString(s"database.index.search.client-only"))
     }
   }
 

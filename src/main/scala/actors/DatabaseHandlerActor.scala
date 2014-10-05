@@ -168,7 +168,7 @@ class DbHandlerActor extends HandlerActor{
     //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
       try{
-        val graph = TitanDatabaseConnection.createPrototypeGraph("dev")
+        val graph = TitanDatabaseConnection.createGraphFromConfig("dev")
         sender() ! HttpResponse(entity = graph.toString)
       } catch {
         case NonFatal(ex) => sender() ! HttpResponse(entity = s"There was an error: $ex")

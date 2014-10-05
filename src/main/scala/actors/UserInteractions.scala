@@ -1,5 +1,7 @@
 package actors
 
+import database.DataBaseInteractions
+
 /**
  * Created by Jannis on 10/5/14.
  */
@@ -10,6 +12,9 @@ package actors
  * TODO statically describe these data formats!
  */
 trait UserInteractions {
+
+  // Needs the database-interactions to make the requests
+  this: DataBaseInteractions =>
 
   //<<<<<<< Functions to FIND things >>>>>>>>>
   // Here only metadata are returned to show basic information on what exists in the database
