@@ -50,10 +50,9 @@ libraryDependencies ++= {
     "org.parboiled"           %   "parboiled-core"        % parboiledVers,
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
-    //"io.spray"                %   "spray-http"            % sprayVers, // already in spray-can
     "org.scala-lang"          %%  "scala-pickling"        % picklingVers,
-		"org.scalafx" 						%%  "scalafx" % 							"1.0.0-R8"
-	)
+		"org.scalafx" 						%%  "scalafx"               % "1.0.0-R8"
+  )
 }
 
 scalacOptions ++= Seq(

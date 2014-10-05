@@ -1,20 +1,30 @@
 package database
 
+import _root_.util.JuliaTypes.JuliaSignature
+import _root_.util.MeasureFunction
 import grizzled.slf4j.Logging
-import com.thinkaurelius.titan.core.{Multiplicity, TitanFactory, TitanGraph}
+import com.thinkaurelius.titan.core._
 import scala.util.control.NonFatal
 import scala.util.Try
-import com.tinkerpop.blueprints.{Direction, Edge, Vertex}
+import com.tinkerpop.blueprints._
 import com.thinkaurelius.titan.core.attribute.Cmp._
 import org.apache.commons.configuration.BaseConfiguration
-import util.JuliaTypes.JuliaSignature
+import _root_.util.JuliaTypes.JuliaSignature
 import scala.util.Failure
 import scala.Some
 import scala.util.Success
 import com.typesafe.config.ConfigFactory
 import com.tinkerpop.blueprints.util.ElementHelper
-import com.thinkaurelius.titan.core.attribute.Geoshape
+import com.thinkaurelius.titan.core.attribute.{Text, Contain, Geoshape}
 import scala.collection.JavaConversions._
+import scala.util.Failure
+import scala.Some
+import scala.util.Success
+import com.thinkaurelius.titan.graphdb.query.TitanPredicate
+import com.thinkaurelius.titan.core.util.TitanCleanup
+import scala.util.Failure
+import scala.Some
+import scala.util.Success
 
 /**
  * Defines methods to read data from a Titan-Database for an actor
@@ -75,9 +85,7 @@ trait TitanDbInteractions
       val vers1 = g.addVertex(null)
       ElementHelper.setProperties(vers1, "type", "vers", "iid", "vers:3", "versOf", "impl:3", "code", "Hier rechne ich mit Matrizen.", "time" , "1234567")
 
-
       // Add the edges that we want
-
       g.addEdge(null, length, meth1, "methodOf")
       g.addEdge(null, meth1, impl1, "implementationOf")
       g.addEdge(null, impl1, vers1, "versionOf")
@@ -89,15 +97,12 @@ trait TitanDbInteractions
         g.rollback
         "Failed while entering data. " + e
     }
-
-
   }
   // TODO these need to be implemented still
   def getNode(name: String): String = ???
   def getFunction(signature: JuliaSignature) = ???
   def find = ???
   def retrieve = ???
-
 }
 
 
@@ -114,8 +119,7 @@ object TitanDatabaseConnection extends Logging{
    */
   def openGraphFromConfig(configFileName: String = "application"): Try[TitanGraph] = {
     import com.typesafe.config.ConfigFactory
-
-    val confy   = ConfigFactory.load
+    //val confy   = ConfigFactory.load
 //    info(s"The backend: ${confy.getString("database.backend")} " +
 //      s" The graph directory: ${confy.getString("database.directory")}" +
 //      //s" The hostname for the graph: ${confy.getString("database.hostname")}" +
@@ -123,14 +127,18 @@ object TitanDatabaseConnection extends Logging{
 //      s" The index host: ${confy.getString("database.index.search.hostname")}")
 
     try {
-      val conf  = readConfig(configFileName)
-      val keys = conf.getKeys.toList
-      for {
-        key <- keys
-      } {info(conf.getProperty(key.toString))}
-      info(s"Done reading configuration form $configFileName. Will start with the following parameters.")
-      info(s"${conf.getKeys.mkString(",")}")
-      val graph = TitanFactory.open(conf)
+//      val conf  = readConfig(configFileName)
+//      val keys = conf.getKeys.toList
+//      for {
+//        key <- keys
+//      } {info(conf.getProperty(key.toString))}
+//      info(s"Done reading configuration form $configFileName. Will start with the following parameters.")
+//      info(s"${conf.getKeys.mkString(",")}")
+//      // Do this step by step for better error tracing
+      val graph = TitanFactory.open("conf/titan.properties")
+      if(graph.isOpen) {
+        info("The configured graph was openend.")
+      }
       Success(graph)
     } catch {
       case NonFatal(e) => {
@@ -144,66 +152,81 @@ object TitanDatabaseConnection extends Logging{
    * Prints out everything in a graph. Only used for testing. TODO only test BS
    */
   def graphToString(graph: TitanGraph): String = {
-
+      //graph.containsVertexLabel("topLevel").toString()
+      //graph.containsVertexLabel("wurstwasser").toString()
+//      val things = graph.getVertices("functionName", "length")
+//      val aha = things.mkString(" ")
+//
+//      val wurst =  graph.getVertices("methodSignature", "length(String)")
+//      aha + things.mkString(" ")
     val sep = "\n\t-->"
-
     val verticesHeader = s"~~~~~~~~~~~~~~~~~~~~~~~~ vertices ~~~~~~~~~~~~~~~~~~~~~~~~"
-    val topVertices = graph.getVertices("type", "top").map((vertex: Vertex) =>
-      for {
-        prop <- vertex.getPropertyKeys
-      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-    ).mkString(sep)
+    // Get all top vertices from the graph (the ones with the corresponding label)
+    val topLabel: VertexLabel = graph.getVertexLabel("topLevel")
 
-    val funVertices = graph.getVertices("type", "func").map((vertex: Vertex) =>
-      for {
-        prop <- vertex.getPropertyKeys
-      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-    ).mkString(sep)
+    val (functionNames, time1) = MeasureFunction.measureCallWithResult(graph.query.has("functionName", "length").vertices.mkString(" "))
+    val ash = graph.query.has("functionName", Text.CONTAINS, "eng").vertices.mkString(" ")
+    val (iid, time2) = MeasureFunction.measureCallWithResult(graph.query.has("iid", "func").vertices.mkString(" "))
 
-    val methVertices = graph.getVertices("type", "meth").map((vertex: Vertex) =>
-      for {
-        prop <- vertex.getPropertyKeys
-      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-    ).mkString(sep)
-
-    val implVertices = graph.getVertices("type", "impl").map((vertex: Vertex) =>
-      for {
-        prop <- vertex.getPropertyKeys
-      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-    ).mkString(sep)
-
-    val versVertices = graph.getVertices("type", "vers").map((vertex: Vertex) =>
-      for {
-        prop <- vertex.getPropertyKeys
-      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
-    ).mkString(sep)
-
-
-    val edgesHeader = s"\n~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
-
-    val isFunction = graph.getEdges.map((edge: Edge) =>
-      s"(${edge.getLabel}, out: ${edge.getVertex(Direction.OUT).getProperty[String]("iid")} in: ${edge.getVertex(Direction.IN).getProperty[String]("iid")})"
-    ).mkString(sep)
-
-    val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
-
-    graph.commit
-    (verticesHeader,
-      s"There are ${graph.getVertices.size} vertices in the graph.",
-      "\nTOP-LEVEL VERTICES:",
-      "\t-->" + topVertices,
-      "\nFUNCTION-VERTICES",
-      "\t-->" + funVertices,
-      "\nMETHOD-VERTICES",
-      "\t-->" + methVertices,
-      "\nIMPLEMENTATION-VERTICES",
-      "\t-->" + implVertices,
-      "\nVERSIONS-VERTICES",
-      "\t-->" + versVertices,
-      edgesHeader,
-      s"There are ${graph.getEdges.size} edges in the graph\n",
-      "\t-->" + isFunction
-      ).productIterator.mkString("\n")
+    info(s"indexed access was $time1 ms, unindexed: $time2 ms.")
+    info(ash)
+    functionNames
+//    val topVertices = graph.getVertices("type", "topLevel").map((vertex: Vertex) =>
+//      for {
+//        prop <- vertex.getPropertyKeys
+//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+//    ).mkString(sep)
+//
+//    val funVertices = graph.getVertices("type", "func").map((vertex: Vertex) =>
+//      for {
+//        prop <- vertex.getPropertyKeys
+//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+//    ).mkString(sep)
+//
+//    val methVertices = graph.getVertices("type", "meth").map((vertex: Vertex) =>
+//      for {
+//        prop <- vertex.getPropertyKeys
+//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+//    ).mkString(sep)
+//
+//    val implVertices = graph.getVertices("type", "impl").map((vertex: Vertex) =>
+//      for {
+//        prop <- vertex.getPropertyKeys
+//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+//    ).mkString(sep)
+//
+//    val versVertices = graph.getVertices("type", "vers").map((vertex: Vertex) =>
+//      for {
+//        prop <- vertex.getPropertyKeys
+//      } yield(s"$prop: ${vertex.getProperty[String](prop)}")
+//    ).mkString(sep)
+//
+//
+//    val edgesHeader = s"\n~~~~~~~~~~~~~~~~~~~~~~~~  edges   ~~~~~~~~~~~~~~~~~~~~~~~~"
+//
+//    val isFunction = graph.getEdges.map((edge: Edge) =>
+//      s"(${edge.getLabel}, out: ${edge.getVertex(Direction.OUT).getProperty[String]("iid")} in: ${edge.getVertex(Direction.IN).getProperty[String]("iid")})"
+//    ).mkString(sep)
+//
+//    val edges = graph.getEdges.map((e: Edge) => Option(e.getLabel)).flatten
+//
+//    graph.commit
+//    (verticesHeader,
+//      s"There are ${graph.getVertices.size} vertices in the graph.",
+//      "\nTOP-LEVEL VERTICES:",
+//      "\t-->" + topVertices,
+//      "\nFUNCTION-VERTICES",
+//      "\t-->" + funVertices,
+//      "\nMETHOD-VERTICES",
+//      "\t-->" + methVertices,
+//      "\nIMPLEMENTATION-VERTICES",
+//      "\t-->" + implVertices,
+//      "\nVERSIONS-VERTICES",
+//      "\t-->" + versVertices,
+//      edgesHeader,
+//      s"There are ${graph.getEdges.size} edges in the graph\n",
+//      "\t-->" + isFunction
+//      ).productIterator.mkString("\n")
 
     // try an indexed search
     //    for {
@@ -331,81 +354,89 @@ object TitanDatabaseConnection extends Logging{
    * Loads some simple example-data into the database. Follows the defined structure.
    */
   def instantiateGraphFramework(graph: TitanGraph): Unit = {
-
     info(s"Instantiating the graph $graph")
+    info("Clearing out the old graph with all its data")
 
     // ----- Create the schema ------
-    info(s"Creating the schema")
+    info(s"Creating the schema:")
     val mgmt = graph.getManagementSystem
 
-    // ID TODO --> There must be an algorithm to generate and decode ID's
-    val iid = mgmt.makePropertyKey("iid").dataType(classOf[String]).make
-
-    // The names used to label the vertices in the graph
+    // helpers
     val topLevel        = "topLevel"
     val function        = "function"
     val method          = "method"
     val implementation  = "implementation"
     val version         = "version"
 
-    // Static label for the major nodes in the graph which are not editable by users.
-    mgmt.makeVertexLabel(topLevel).setStatic.make
+    try {
+      // ID TODO --> There must be an algorithm to generate and decode the IDs
+      // The names used to label the vertices in the graph
+      val iid = mgmt.makePropertyKey("iid").dataType(classOf[String]).make
+      info("\t -> Creating the labels")
+      // Static label for the major nodes in the graph which are not extendable for users
+      mgmt.makeVertexLabel(topLevel).setStatic.make
+      // Labels for all nodes used in the database which form the meta-levels above the actual data
+      val functionLabel = mgmt.makeVertexLabel(function).make
+      mgmt.makeVertexLabel(method).make
+      mgmt.makeVertexLabel(implementation).make
+      mgmt.makeVertexLabel(version).make
 
-    // Labels for all nodes used in the database which form the meta-levels above the actual data
-    mgmt.makeVertexLabel(function).make
-    mgmt.makeVertexLabel(method).make
-    mgmt.makeVertexLabel(implementation).make
-    mgmt.makeVertexLabel(version).make
+      info("\t -> Creating the property keys")
+      // Property keys to store meta-information in the nodes
+      mgmt.makePropertyKey(s"${topLevel}Name").dataType(classOf[String]).make
+      val functionName        = mgmt.makePropertyKey(s"${function}Name").dataType(classOf[String]).make
+      val methodName          = mgmt.makePropertyKey(s"${method}Name").dataType(classOf[String]).make
+      val implementationName  = mgmt.makePropertyKey(s"${implementation}Name").dataType(classOf[String]).make
 
-    // Property keys to store meta-information in the nodes
-    mgmt.makePropertyKey(s"${topLevel}Name").dataType(classOf[String]).make
-    val functionName        = mgmt.makePropertyKey(s"${function}Name").dataType(classOf[String]).make
-    val methodName          = mgmt.makePropertyKey(s"${method}Name").dataType(classOf[String]).make
-    val implementationName  = mgmt.makePropertyKey(s"${implementation}Name").dataType(classOf[String]).make
-
-    // Property keys which are used to store data in the leafs of the code-tree
-    mgmt.makePropertyKey("author").dataType(classOf[String]).make
-    mgmt.makePropertyKey("timestamp").dataType(classOf[String]).make
-    mgmt.makePropertyKey("documentation").dataType(classOf[String]).make
-    mgmt.makePropertyKey("code").dataType(classOf[String]).make
-    mgmt.makePropertyKey("metadata").dataType(classOf[String]).make
-
-    // The labels for edges which define the relationships in the database
-    // There is no need to traverse from a function node to the top-level node
-    mgmt.makeEdgeLabel("funcOf").unidirected.make
-    mgmt.makeEdgeLabel("methOf").make
-    mgmt.makeEdgeLabel("implOf").make
-
-    // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
-    mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(functionName).buildCompositeIndex
+      // Property keys which are used to store data in the leafs of the code-tree
+      mgmt.makePropertyKey("author").dataType(classOf[String]).make
+      mgmt.makePropertyKey("timestamp").dataType(classOf[String]).make
+      mgmt.makePropertyKey("documentation").dataType(classOf[String]).make
+      mgmt.makePropertyKey("code").dataType(classOf[String]).make
+      mgmt.makePropertyKey("metadata").dataType(classOf[String]).make
 
 
-    mgmt.commit()
+      info("\t -> Creating the edge-labels")
+      // The labels for edges which define the relationships in the database
+      // There is no need to traverse from a function node to the top-level node
+      mgmt.makeEdgeLabel("funcOf").unidirected.make
+      mgmt.makeEdgeLabel("methOf").make
+      mgmt.makeEdgeLabel("implOf").make
+
+      info("\t -> Setting up the indices")
+      // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
+      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(functionName).buildCompositeIndex()
+      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(functionName).buildMixedIndex("search")
+      mgmt.commit()
+      info("Created the schema for the graph")
+    } catch {
+      case ex: TitanException =>
+        info(s"There was an error during the creation of the schema for the graph, $ex")
+        mgmt.rollback()
+    }
 
 
-    //    graph.makeKey("iid").dataType(classOf[String]).indexed(classOf[Vertex]).indexed(classOf[Edge]).unique.make
-//
-//    // The key which determines the type of a node in a graph
-//    graph.makeKey("type").dataType(classOf[String]).indexed(classOf[Vertex]).make
-//    // The key for the toplevel of the graph. There are only three vertices which never change. Add them!
-//    graph.makeKey("topLevelName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
-//    graph.makeKey("functionName").dataType(classOf[String]).indexed(classOf[Vertex]).unique.make
 
-    info("adding the central vertices to the graph:")
+
+    // ----- Insert initial data -----
+    info("\t -> Adding the central vertices to the graph:")
     val functions = graph.addVertexWithLabel(topLevel)
     ElementHelper.setProperties(functions, s"${topLevel}Name", "functions", "iid", s"$topLevel:1")
     val packages = graph.addVertexWithLabel(topLevel)
     ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$topLevel:2")
     val arguments = graph.addVertexWithLabel(topLevel)
     ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$topLevel:3")
+    info("\t -> Inserted central vertices into the graph")
 
-    // add some simple function into the database]
-    info("adding some initial data into the graph")
+
+    // TODO the following insertions are only for demonstration
+    // add some dummy functions in the database
+    info("\t -> Adding dummy data into the graph")
     val length = graph.addVertexWithLabel(function)
     ElementHelper.setProperties(length,"functionName", "length", "iid", "func:1")
     val length2 = graph.addVertexWithLabel("function")
     ElementHelper.setProperties(length2, "functionName", "length2", "iid", "func:2" )
-
+    // add some dummy methods in the datbase
     val meth1 = graph.addVertexWithLabel(method)
     ElementHelper.setProperties(meth1, "iid" ,"meth:1", "methodSignature" ,"length(String)", "methodFor" ,"func:1")
     val meth2 = graph.addVertexWithLabel(method)
@@ -418,8 +449,7 @@ object TitanDatabaseConnection extends Logging{
     ElementHelper.setProperties(vers1,  "iid", "vers:1", "versOf", "impl:1", "code", "Guten Tag, Welt.", "time" , "123456")
     val vers2 = graph.addVertexWithLabel(version)
     ElementHelper.setProperties(vers2, "iid", "vers:2", "versOf", "impl:1", "code", "Hello, world.", "time", "123890")
-
-    // Add the edges that we want
+    // Add some edges for demonstration
     graph.addEdge(null,functions,length, "isFunction")
     graph.addEdge(null, length, meth1, "methodOf")
     graph.addEdge(null, length, meth2, "methodOf")
@@ -427,10 +457,10 @@ object TitanDatabaseConnection extends Logging{
     graph.addEdge(null, meth1, impl2, "implementationOf")
     graph.addEdge(null, impl1, vers1, "versionOf")
     graph.addEdge(null, impl1, vers2, "versionOf")
-
     graph.commit
+    info("Inserted the dummy data into the graph")
 
-    info("successfully inserted the data into the graph")
+    info("Done setting up the graph")
   }
 
 
@@ -440,7 +470,7 @@ object TitanDatabaseConnection extends Logging{
    * @param props
    */
   def insertNode(graph: TitanGraph, props: Map[String, AnyRef]): Unit = {
-    val node = graph.addVertex()
+    val node = graph.addVertexWithLabel("kaese")
     for{
       prop <- props
     }(node.setProperty(prop._1, prop._2))

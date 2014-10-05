@@ -17,6 +17,7 @@ import prototype.HttpServer.ShutdownServer
 import scala.util.{Failure, Success}
 import actors.HttpServerActor.ChangeHandler
 import akka.pattern.ask
+import spray.http.{StatusCodes, HttpResponse, HttpRequest, Timedout}
 
 /**
  * Opens up a simple HTTP server using the config information.
@@ -91,6 +92,10 @@ class HttpServerActor(listenerProps: Props)(implicit val system: ActorSystem)
       if(portListener.isDefined) {
         portListener.get ! ChangeHandler(newHandleProps)
       }
+
+    case Timedout(r: HttpRequest) =>
+      warn(s"A connection made to the service timed out! $r")
+      sender ! HttpResponse(StatusCodes.InternalServerError, "Your query timed out.")
   }
 
   /**

@@ -19,6 +19,7 @@ import grizzled.slf4j.Logging
 import database.{TitanDatabaseConnection, TitanDbInteractions}
 import scala.io.Source
 import java.io.FileNotFoundException
+import scala.util.control.NonFatal
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
@@ -166,8 +167,13 @@ class DbHandlerActor extends HandlerActor{
   def customReceive: Receive = {
     //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
-      val graph = TitanDatabaseConnection.createPrototypeGraph("dev")
-      sender() ! HttpResponse(entity = graph.toString)
+      try{
+        val graph = TitanDatabaseConnection.createPrototypeGraph("dev")
+        sender() ! HttpResponse(entity = graph.toString)
+      } catch {
+        case NonFatal(ex) => sender() ! HttpResponse(entity = s"There was an error: $ex")
+      }
+
     case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
       sender() ! HttpResponse(entity = getMethods("length"))
     case HttpRequest(GET, Uri.Path("/getImplementation"),_,_,_) =>

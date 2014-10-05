@@ -4,6 +4,7 @@ import akka.actor.{Terminated, ActorRef, Actor, Props}
 import grizzled.slf4j.Logging
 import spray.can.Http
 import actors.HttpServerActor.ChangeHandler
+import spray.http.{StatusCodes, HttpResponse, HttpRequest, Timedout}
 
 /**
  * Listenes on the port for connections and dispatches them to the handling actors.
@@ -43,6 +44,8 @@ class ListenerActor(handlerProps: Props)
       debug(s"Incoming connection from: ${c.remoteAddress} handled by $handler." +
         s" Currently open connections: ${openConnections.size}")
       _sender ! Http.Register(handler)
+
+
 
     case ChangeHandler(newHandler) =>
       info(s"The listener changed behavior to $newHandler")
