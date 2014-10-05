@@ -72,6 +72,10 @@ trait TitanDbInteractions
     TitanDatabaseConnection.getAllImplementations(graph.get, meth)
   }
 
+  def findFunction(name: String): Vertex = {
+
+  }
+
   def insertFunction: String = {
     val g = graph.get
     try {
@@ -99,7 +103,7 @@ trait TitanDbInteractions
     }
   }
   // TODO these need to be implemented still
-  def getNode(name: String): String = ???
+  def getImplementation(name: String): String = ???
   def getFunction(signature: JuliaSignature) = ???
   def find = ???
   def retrieve = ???
@@ -164,13 +168,21 @@ object TitanDatabaseConnection extends Logging{
     // Get all top vertices from the graph (the ones with the corresponding label)
     val topLabel: VertexLabel = graph.getVertexLabel("topLevel")
 
-    val (functionNames, time1) = MeasureFunction.measureCallWithResult(graph.query.has("functionName", "length").vertices.mkString(" "))
-    val ash = graph.query.has("functionName", Text.CONTAINS, "eng").vertices.mkString(" ")
-    val (iid, time2) = MeasureFunction.measureCallWithResult(graph.query.has("iid", "func").vertices.mkString(" "))
+    try {
+      val (_, time1) =
+        MeasureFunction.measureCallWithResult(graph.query.has("functionName", "length").vertices.mkString(" "))
+      val (functionNames, time2) =
+        MeasureFunction.measureCallWithResult(graph.query.has("functionName", Text.CONTAINS_REGEX, ".*len.*").vertices.
+          map(node => node.getPropertyKeys).mkString(" "))
 
-    info(s"indexed access was $time1 ms, unindexed: $time2 ms.")
-    info(ash)
-    functionNames
+      info(s"indexed access was $time1 ms, mixed index: $time2 ms.")
+      info(functionNames)
+      functionNames
+    } catch {
+      case NonFatal(ex) =>
+        warn("Error while retrieving nodes from the index")
+        ex.toString()
+    }
 //    val topVertices = graph.getVertices("type", "topLevel").map((vertex: Vertex) =>
 //      for {
 //        prop <- vertex.getPropertyKeys
