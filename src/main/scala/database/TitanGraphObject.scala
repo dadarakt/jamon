@@ -4,7 +4,7 @@ import _root_.util.MeasureFunction
 import grizzled.slf4j.Logging
 import scala.util.{Failure, Success, Try}
 import com.thinkaurelius.titan.core._
-import com.tinkerpop.blueprints.Vertex
+import com.tinkerpop.blueprints.{Direction, Vertex}
 import com.tinkerpop.blueprints.util.ElementHelper
 import scala.util.Success
 import scala.util.Failure
@@ -30,6 +30,26 @@ object TitanGraphObject extends Logging {
       throw ex //Let the user of the resource decide how to handle this situation
   }
 
+  ////////////////////////////////////////////////////////////////////////////////////////////////
+  // CONSTANTS TO USE FOR THE DATABASE-SCHEMA
+  ///////////////////////////////////////////////////////////////////////////////////////////////
+  final val TopLevel        = "topLevel"
+  final val Function        = "function"
+  final val Method          = "method"
+  final val Implementation  = "implementation"
+  final val Version         = "version"
+
+  final val Index           = "search"
+
+  final val Iid             = "iid" // To be used later, disregarded for prototyping
+  final val Author          = "author"
+  final val TimeStamp       = "timestamp"
+  final val Documentation   = "documentation"
+  final val Code            = "code"
+  final val MetaData        = "metadata"
+  final val Arguments       = "arguments"
+  final val Weighting       = "weighting"
+
   /**
    * Opens a graph using the provided configuration file
    */
@@ -54,61 +74,51 @@ object TitanGraphObject extends Logging {
    * Loads some simple example-data into the database. Follows the defined structure.
    */
   def instantiateGraphFramework: String = {
-    info(s"Instantiating the graph $graph")
-    info("Clearing out the old graph with all its data")
-
-    // ----- Create the schema ------
-    info(s"Creating the schema:")
+    info(s"Creating the schema for graph $graph:")
     val mgmt = graph.getManagementSystem
-
-    // helpers
-    val topLevel        = "topLevel"
-    val function        = "function"
-    val method          = "method"
-    val implementation  = "implementation"
-    val version         = "version"
-
     try {
       // The labels to identify different classes of vertices in the graph
       info("\t -> Creating the labels")
       // Labels for all nodes used in the database which form the meta-levels above the actual data
       // Static label for the major nodes in the graph which are not extendable for users
-      mgmt.makeVertexLabel(topLevel).setStatic.make
-      mgmt.makeVertexLabel(function).make
-      mgmt.makeVertexLabel(method).make
-      mgmt.makeVertexLabel(implementation).make
-      mgmt.makeVertexLabel(version).make
+      mgmt.makeVertexLabel(TopLevel).setStatic.make
+      mgmt.makeVertexLabel(Function).make
+      mgmt.makeVertexLabel(Method).make
+      mgmt.makeVertexLabel(Implementation).make
+      mgmt.makeVertexLabel(Version).make
+      info("\t -> Done creating the labels.")
 
       info("\t -> Creating the property keys")
       // Property keys to store meta-information in the vertices
-      val iid                 = mgmt.makePropertyKey("iid").dataType(classOf[String]).make
-      val topLevelName        = mgmt.makePropertyKey(s"${topLevel}Name").dataType(classOf[String]).make // << used only for the entry points
-      val functionName        = mgmt.makePropertyKey(s"${function}Name").dataType(classOf[String]).make
-      val args                = mgmt.makePropertyKey(s"${method}Name").dataType(classOf[String]).cardinality(Cardinality.LIST).make
-      val implementationName  = mgmt.makePropertyKey(s"${implementation}Name").dataType(classOf[String]).make
-      val documentation       = mgmt.makePropertyKey(s"${function}Doc").dataType(classOf[String]).make
-
+      val iid                 = mgmt.makePropertyKey(Iid).dataType(classOf[String]).make
+      val topLevel            = mgmt.makePropertyKey(TopLevel).dataType(classOf[String]).make // << used only for the entry points
+      val function            = mgmt.makePropertyKey(Function).dataType(classOf[String]).make
+      val args                = mgmt.makePropertyKey(Arguments).dataType(classOf[String]).cardinality(Cardinality.LIST).make
+      val documentation       = mgmt.makePropertyKey(Documentation).dataType(classOf[String]).make
+      val timestamp           = mgmt.makePropertyKey(TimeStamp).dataType(classOf[java.lang.Long]).make
+      val code                = mgmt.makePropertyKey(Code).dataType(classOf[String]).make
+      val author              = mgmt.makePropertyKey(Author).dataType(classOf[String]).make
+      val weighting           = mgmt.makePropertyKey(Weighting).dataType(classOf[java.lang.Integer]).make
+      val metadata            = mgmt.makePropertyKey(MetaData).dataType(classOf[String]).make
       // Property keys which are used to store data in the leafs of the code-tree
-      mgmt.makePropertyKey("author").dataType(classOf[String]).make
-      mgmt.makePropertyKey("timestamp").dataType(classOf[String]).make
-      mgmt.makePropertyKey("documentation").dataType(classOf[String]).make
-      mgmt.makePropertyKey("code").dataType(classOf[String]).make
-      mgmt.makePropertyKey("metadata").dataType(classOf[String]).make
       info("\t -> Done creating the property keys")
 
       info("\t -> Creating the edge-labels")
       // The labels for edges which define the relationships in the database
-      // There is no need to traverse from a function node to the top-level node
-      mgmt.makeEdgeLabel("isFunc").unidirected.multiplicity(Multiplicity.SIMPLE).make
-      mgmt.makeEdgeLabel("methOf").multiplicity(Multiplicity.SIMPLE).make
+      // There is no need to traverse from a function node to the top-level node thus unidirected
+      mgmt.makeEdgeLabel("isFunc").unidirected.make
+      val methOf = mgmt.makeEdgeLabel("methOf").make
       mgmt.makeEdgeLabel("implOf").multiplicity(Multiplicity.SIMPLE).make
       mgmt.makeEdgeLabel("versOf").multiplicity(Multiplicity.SIMPLE).make
       info("\t -> Done creating the edge-labels")
 
       info("\t -> Setting up the indices")
       // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
-      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(functionName).buildCompositeIndex()
-      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(functionName).buildMixedIndex("search")
+      mgmt.buildIndex("entryPoints", classOf[Vertex]).addKey(topLevel).buildCompositeIndex
+      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).buildCompositeIndex
+      mgmt.buildIndex("byArguments", classOf[Vertex]).addKey(args).buildCompositeIndex
+      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).buildMixedIndex(Index)
+      mgmt.buildEdgeIndex(methOf, "byMethodName", Direction.OUT, Order.DEFAULT, weighting)
       info("\t -> Done setting up the indices")
 
       mgmt.commit()
@@ -116,19 +126,19 @@ object TitanGraphObject extends Logging {
 
       // Insert the basic nodes to the graph
       info("\t -> Adding the central vertices to the graph:")
-      val functions = graph.addVertexWithLabel(topLevel)
-      ElementHelper.setProperties(functions, s"${topLevel}Name", "functions", "iid", s"$topLevel:1")
-      val packages = graph.addVertexWithLabel(topLevel)
-      ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$topLevel:2")
-      val arguments = graph.addVertexWithLabel(topLevel)
-      ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$topLevel:3")
+      val functions = graph.addVertexWithLabel(TopLevel)
+      ElementHelper.setProperties(functions, TopLevel, "functions", TimeStamp, System.currentTimeMillis: java.lang.Long)
+//      val arguments = graph.addVertexWithLabel(TopLevel)
+//      ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$TopLevel:3")
+//      val packages = graph.addVertexWithLabel(TopLevel)
+//      ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$TopLevel:2")
       info("\t -> Inserted central vertices into the graph")
 
       info("Done setting up the graph")
       "Sucessfully initialized the graph schema"
     } catch {
-      case ex: TitanException =>
-        info(s"There was an error during the creation of the schema for the graph, $ex")
+      case NonFatal(ex) =>
+        info(s"There was an error during the creation of the schema for the graph rolling back changes, $ex")
         mgmt.rollback()
         s"Failed during creation of the graph schema, $ex"
     }

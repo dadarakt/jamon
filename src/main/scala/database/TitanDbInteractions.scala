@@ -17,8 +17,9 @@ import scala.Some
 import scala.util.{Failure, Success}
 
 /**
-* Defines methods to read data from a Titan-Database for an actor
-*/
+ * Defines methods to read data from a Titan-Database for an actor. Does not handle the resource, but defines operations
+ * on it
+ */
 trait TitanDbInteractions
   extends DataBaseInteractions
   with    Logging {
@@ -36,7 +37,6 @@ trait TitanDbInteractions
       case NonFatal(e) =>
         None
     }
-
 
   def dbToString: String = graph match {
     case Some(graph) =>
