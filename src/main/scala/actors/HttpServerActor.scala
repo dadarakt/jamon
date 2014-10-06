@@ -18,6 +18,8 @@ import scala.util.{Failure, Success}
 import actors.HttpServerActor.ChangeHandler
 import akka.pattern.ask
 import spray.http.{StatusCodes, HttpResponse, HttpRequest, Timedout}
+import database.TitanGraphObject
+import scala.util.control.NonFatal
 
 /**
  * Opens up a simple HTTP server using the config information.
@@ -28,22 +30,24 @@ object SprayServer extends App with Logging{
   implicit val system = ActorSystem("ServerTest")
   Thread.sleep(1000)
 
-  // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
-  val graphTry = database.TitanDatabaseConnection.openGraphFromConfig()
   var handlerProps: Props = _
-  graphTry match {
-    case Success(graph) =>
-      info(s"The configured graph was retrieved, will start server to operate on it.")
-      handlerProps  = DbHandlerActor.titanProps
-    case Failure(ex) =>
+
+  // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
+  val graphTry = try{
+    TitanGraphObject.graph
+    info(s"The configured graph was retrieved, will start server to operate on it.")
+    handlerProps  = DbHandlerActor.titanProps
+  } catch {
+    case NonFatal(ex) =>
       error(s"The configured graph could not be openend, will start in offline mode/")
       handlerProps = DbDownHandlerActor.props
   }
 
+  // Fire up the server in the system
   val listenerProps = ListenerActor.props(handlerProps)
   val serverProps   = HttpServerActor.props(listenerProps)
-  // Fire up the server in the system
-  val server = system.actorOf(serverProps, "httpServer")
+  val server        = system.actorOf(serverProps, "httpServer")
+
 }
 
 /**

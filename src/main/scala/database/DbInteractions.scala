@@ -84,27 +84,9 @@ trait DataBaseInteractions {
 
   // ----- Development -----
   def dbToString: String
+  def insertDummyData: String
 }
 
 
 
 
-/**
- * The resource which represents the graph so that it does not need to be instantiated every single time but can be
- * accessed after first use. Every other object will use references to this graph and make the requests using the
- * optimized driver of the underlying implementation.
- */
-object GraphObject extends Logging {
-
-  // Get the method needed for the setup of the graph
-  import TitanDatabaseConnection.openGraphFromConfig
-
-  val _graph: Try[TitanGraph] = openGraphFromConfig()
-
-  def graph: TitanGraph = _graph match {
-    case Success(g) =>
-      g
-    case Failure(ex) =>
-      throw ex //Let the user of the resource decide how to handle this situation
-  }
-}

@@ -16,7 +16,7 @@ import spray.can.server.Stats
 
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
-import database.{TitanDatabaseConnection, TitanDbInteractions}
+import database.{TitanGraphObject, TitanDatabaseConnection, TitanDbInteractions}
 import scala.io.Source
 import java.io.FileNotFoundException
 import scala.util.control.NonFatal
@@ -167,13 +167,8 @@ class DbHandlerActor extends HandlerActor{
   def customReceive: Receive = {
     //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
-      try{
-        val graph = TitanDatabaseConnection.createGraphFromConfig("dev")
-        sender() ! HttpResponse(entity = graph.toString)
-      } catch {
-        case NonFatal(ex) => sender() ! HttpResponse(entity = s"There was an error: $ex")
-      }
-
+      val response = TitanGraphObject.instantiateGraphFramework
+      sender() ! HttpResponse(entity = TitanGraphObject.graph.toString + "\n" + response)
     case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
       sender() ! HttpResponse(entity = getMethods("length"))
     case HttpRequest(GET, Uri.Path("/getImplementation"),_,_,_) =>
@@ -182,11 +177,12 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = getAllImplementations("length(String)"))
     case HttpRequest(GET, Uri.Path("/insertMethod"),_,_,_) =>
       sender() ! HttpResponse(entity = insertFunction)
+    case HttpRequest(GET, Uri.Path("/insertDummyData"),_,_,_) =>
+      sender() ! HttpResponse(entity = insertDummyData)
     //~~~~~~~~~~~~~~~~~~~~~~
 
     // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
-      val graph  =
       sender() ! HttpResponse(entity = dbToString)
 
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
