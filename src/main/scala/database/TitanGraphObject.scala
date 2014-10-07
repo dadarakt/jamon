@@ -39,6 +39,8 @@ object TitanGraphObject extends Logging {
   final val Implementation  = "implementation"
   final val Version         = "version"
 
+  final val FunctionName    = s"${Function}Name"
+  final val TopLevelName    = s"${TopLevel}Name"
   final val Index           = "search"
 
   final val Iid             = "iid" // To be used later, disregarded for prototyping
@@ -49,6 +51,15 @@ object TitanGraphObject extends Logging {
   final val MetaData        = "metadata"
   final val Arguments       = "arguments"
   final val Weighting       = "weighting"
+
+  final val IsFunction      = "isFunction"
+  final val MethodOf        = "methOf"
+  final val ImplementationOf = "implOf"
+  final val VersionOf       = "versOf"
+
+  final val InitialWeighting: java.lang.Integer = 1
+
+  var functionNode: Option[Vertex] = None
 
   /**
    * Opens a graph using the provided configuration file
@@ -81,7 +92,7 @@ object TitanGraphObject extends Logging {
       info("\t -> Creating the labels")
       // Labels for all nodes used in the database which form the meta-levels above the actual data
       // Static label for the major nodes in the graph which are not extendable for users
-      mgmt.makeVertexLabel(TopLevel).setStatic.make
+      mgmt.makeVertexLabel(TopLevel).make
       mgmt.makeVertexLabel(Function).make
       mgmt.makeVertexLabel(Method).make
       mgmt.makeVertexLabel(Implementation).make
@@ -91,8 +102,8 @@ object TitanGraphObject extends Logging {
       info("\t -> Creating the property keys")
       // Property keys to store meta-information in the vertices
       val iid                 = mgmt.makePropertyKey(Iid).dataType(classOf[String]).make
-      val topLevel            = mgmt.makePropertyKey(TopLevel).dataType(classOf[String]).make // << used only for the entry points
-      val function            = mgmt.makePropertyKey(Function).dataType(classOf[String]).make
+      val topLevel            = mgmt.makePropertyKey(TopLevelName).dataType(classOf[String]).make // << used only for the entry points
+      val function            = mgmt.makePropertyKey(s"${Function}Name").dataType(classOf[String]).make
       val args                = mgmt.makePropertyKey(Arguments).dataType(classOf[String]).cardinality(Cardinality.LIST).make
       val documentation       = mgmt.makePropertyKey(Documentation).dataType(classOf[String]).make
       val timestamp           = mgmt.makePropertyKey(TimeStamp).dataType(classOf[java.lang.Long]).make
@@ -128,12 +139,13 @@ object TitanGraphObject extends Logging {
       info("\t -> Adding the central vertices to the graph:")
       val functions = graph.addVertexWithLabel(TopLevel)
       ElementHelper.setProperties(functions, TopLevel, "functions", TimeStamp, System.currentTimeMillis: java.lang.Long)
+      functionNode = Some(functions)
 //      val arguments = graph.addVertexWithLabel(TopLevel)
 //      ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$TopLevel:3")
 //      val packages = graph.addVertexWithLabel(TopLevel)
 //      ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$TopLevel:2")
       info("\t -> Inserted central vertices into the graph")
-
+      graph.commit()
       info("Done setting up the graph")
       "Sucessfully initialized the graph schema"
     } catch {
