@@ -252,19 +252,16 @@ object TitanDatabaseConnection extends Logging{
    * @return
    */
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
-                       docs: String, newImplementation: Boolean = false): String = {
+                       docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): String = {
     // First instantiate the vertex with the provided data
     info("Started to insert a new implementation into the graph")
 
     val functionNode = graph.query.has(TopLevelName, "functions").vertices.head
 
     try {
-      val timestamp = System.currentTimeMillis: java.lang.Long
-      val versionVertex = graph.addVertexWithLabel("version")
-      ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
-      args.foreach(versionVertex.addProperty(Arguments, _))
+      val timestamp = System.currentTimeMillis: java.lang.Long // Timestamp all changes with the same time
 
-      // Decide if there exists a function in the graph with the same name, if not create the function vertex
+      // Try to find the function in the graph with the same name, if not create a new function vertex
       info("Setting up the functionVertex")
       val functionVertex = graph.query.has(FunctionName, funcName).vertices.headOption match {
         case Some(vertex) =>
@@ -336,10 +333,40 @@ object TitanDatabaseConnection extends Logging{
         }
       }
 
-      // Make the final links
-      info("Adding the final edges for the insertion.")
-      val versionEdge = graph.addEdge(null, versionVertex, implementationVertex, VersionOf)
-      ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
+      // If no new version is desired delete the old version
+      if(newVersion) {
+        info("User wanted to create a new version for the implementation. Creating the new one now.")
+        val versionVertex = graph.addVertexWithLabel("version")
+        ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
+        args.foreach(versionVertex.addProperty(Arguments, _))
+        val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
+        ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
+        info("Done creating the new version")
+      } else {
+        info("User wants to overwrite latest version.")
+        // find most recent version
+        implementationVertex.getEdges(Direction.OUT, VersionOf).toList.sortBy(_.getVertex(Direction.IN).
+          getProperty[Long](TimeStamp)).headOption match {
+          case Some(e) => {
+            info("Found older verion, will override old values")
+            val v = e.getVertex(Direction.IN)
+            v.setProperty(TimeStamp, timestamp)
+            v.setProperty(Code, source)
+            v.setProperty(Documentation, docs)
+            info("Done overwriting the old values.")
+          }
+          case None => {
+            info("There were no versions of the implementation, will now create the initial one.")
+            val versionVertex = graph.addVertexWithLabel("version")
+            ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
+            args.foreach(versionVertex.addProperty(Arguments, _))
+            info("Adding the final edges for the insertion.")
+            val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
+            ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
+            info("Done creating the initial version.")
+          }
+        }
+      }
 
       graph.commit()
       info("Insertion of data was successful")
