@@ -12,7 +12,6 @@ import scala.util.control.NonFatal
 import com.thinkaurelius.titan.core.attribute.Text
 import scala.collection.JavaConversions._
 
-
 /**
  * The resource which represents the graph so that it does not need to be instantiated every single time but can be
  * accessed after first use. Every other object will use references to this graph and make the requests using the
@@ -30,6 +29,9 @@ object TitanGraphObject extends Logging {
       throw ex //Let the user of the resource decide how to handle this situation
   }
 
+  private var _functionNode: Option[Vertex] = _
+  def functionNode = _functionNode
+
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // CONSTANTS TO USE FOR THE DATABASE-SCHEMA
   ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -39,8 +41,8 @@ object TitanGraphObject extends Logging {
   final val Implementation  = "implementation"
   final val Version         = "version"
 
-  final val FunctionName    = s"${Function}Name"
-  final val TopLevelName    = s"${TopLevel}Name"
+  final val FunctionName    = "FunctionName"
+  final val TopLevelName    = "TopLevelName"
   final val Index           = "search"
 
   final val Iid             = "iid" // To be used later, disregarded for prototyping
@@ -59,18 +61,30 @@ object TitanGraphObject extends Logging {
 
   final val InitialWeighting: java.lang.Integer = 1
 
-  var functionNode: Option[Vertex] = None
+
 
   /**
    * Opens a graph using the provided configuration file
    */
   def openGraphFromConfig(configPath: String = "conf/titan.properties"): Try[TitanGraph] = {
     try {
-      val graph = TitanFactory.open(configPath)
-      if(graph.isOpen) {
+      val g = TitanFactory.open(configPath)
+      if(g.isOpen) {
         info(s"Opened graph from configuration file $configPath.")
+        // Find out whether the graph has valid schema yet by searching for the toplevel node
+        _functionNode = g.query.has(TopLevelName, "functions").vertices.headOption
+        info(_functionNode)
+        _functionNode match {
+          case Some(_) => // no notting
+            info("The configured graph already has schema, go on using it.")
+          case None =>
+            info("The configured graph has no schema, will go on and configure it.")
+            instantiateGraphFramework(g)
+        }
+        Success(g)
+      } else {
+        Failure(new IllegalAccessError("could not find the graph, what is going on?"))
       }
-      Success(graph)
     } catch {
       case NonFatal(e) => {
         error(s"Could not open the database using the provided configuration in $configPath, $e")
@@ -84,9 +98,9 @@ object TitanGraphObject extends Logging {
    * nothing more at the moment. //TODO THIS IS ONLY DEMO MATERIAL AND IN NO WAY A REAL IMPLEMENTATION
    * Loads some simple example-data into the database. Follows the defined structure.
    */
-  def instantiateGraphFramework: String = {
-    info(s"Creating the schema for graph $graph:")
-    val mgmt = graph.getManagementSystem
+  def instantiateGraphFramework(g: TitanGraph): String = {
+    info(s"Creating the schema for graph $g:")
+    val mgmt = g.getManagementSystem
     try {
       // The labels to identify different classes of vertices in the graph
       info("\t -> Creating the labels")
@@ -103,7 +117,7 @@ object TitanGraphObject extends Logging {
       // Property keys to store meta-information in the vertices
       val iid                 = mgmt.makePropertyKey(Iid).dataType(classOf[String]).make
       val topLevel            = mgmt.makePropertyKey(TopLevelName).dataType(classOf[String]).make // << used only for the entry points
-      val function            = mgmt.makePropertyKey(s"${Function}Name").dataType(classOf[String]).make
+      val function            = mgmt.makePropertyKey(FunctionName).dataType(classOf[String]).make
       val args                = mgmt.makePropertyKey(Arguments).dataType(classOf[String]).cardinality(Cardinality.LIST).make
       val documentation       = mgmt.makePropertyKey(Documentation).dataType(classOf[String]).make
       val timestamp           = mgmt.makePropertyKey(TimeStamp).dataType(classOf[java.lang.Long]).make
@@ -137,20 +151,20 @@ object TitanGraphObject extends Logging {
 
       // Insert the basic nodes to the graph
       info("\t -> Adding the central vertices to the graph:")
-      val functions = graph.addVertexWithLabel(TopLevel)
-      ElementHelper.setProperties(functions, TopLevel, "functions", TimeStamp, System.currentTimeMillis: java.lang.Long)
-      functionNode = Some(functions)
+      val functions = g.addVertexWithLabel(TopLevel)
+      ElementHelper.setProperties(functions, TopLevelName, "functions", TimeStamp, System.currentTimeMillis: java.lang.Long)
 //      val arguments = graph.addVertexWithLabel(TopLevel)
 //      ElementHelper.setProperties(arguments, "topLevelName", "arguments", "type", "top", "iid", s"$TopLevel:3")
 //      val packages = graph.addVertexWithLabel(TopLevel)
 //      ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$TopLevel:2")
       info("\t -> Inserted central vertices into the graph")
-      graph.commit()
+      g.commit()
+      _functionNode = Some(functions)
       info("Done setting up the graph")
       "Sucessfully initialized the graph schema"
     } catch {
       case NonFatal(ex) =>
-        info(s"There was an error during the creation of the schema for the graph rolling back changes, $ex")
+        info(s"There was an error during the creation of the schema for the graph. Rolling back changes after $ex")
         mgmt.rollback()
         s"Failed during creation of the graph schema, $ex"
     }

@@ -167,7 +167,7 @@ class DbHandlerActor extends HandlerActor{
   def customReceive: Receive = {
     //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
-      val response = TitanGraphObject.instantiateGraphFramework
+      val response = TitanGraphObject.instantiateGraphFramework(TitanGraphObject.graph)
       sender() ! HttpResponse(entity = TitanGraphObject.graph.toString + "\n" + response)
     case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
       sender() ! HttpResponse(entity = getMethods("length"))

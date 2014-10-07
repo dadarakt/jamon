@@ -32,9 +32,10 @@ object SprayServer extends App with Logging{
 
   var handlerProps: Props = _
 
+  val graphObject = TitanGraphObject
   // Meanwhile try to open the graph, for now do not go online if the graph cannot be retrieved!
   val graphTry = try{
-    TitanGraphObject.graph
+    graphObject.graph
     info(s"The configured graph was retrieved, will start server to operate on it.")
     handlerProps  = DbHandlerActor.titanProps
   } catch {

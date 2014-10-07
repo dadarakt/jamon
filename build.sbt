@@ -32,7 +32,7 @@ libraryDependencies ++= {
   val sprayVers     = "1.3.1"
   val picklingVers  = "0.8.0"
   Seq(
-  	"org.scalatest"           %%  "scalatest"             % scalaTestVers   % "test",
+  	"org.scalatest"           %%  "scalatest"             % scalaTestVers,
     "com.typesafe"            %   "config"                % configVers,
     "joda-time"               %   "joda-time"             % "2.1",
     // Dependencies for logging and legacy-logging components

@@ -30,11 +30,12 @@ trait TitanDbInteractions
   val graphObject = TitanGraphObject
 
   // Reference to the available graph
-  val graph: Option[TitanGraph] =
+  def graph: Option[TitanGraph] =
     try {
       Some(graphObject.graph)
     } catch {
       case NonFatal(e) =>
+        error(s"Could not set up the graph for interactions in TitanDbInteractions line 38, $e")
         None
     }
 
@@ -239,7 +240,7 @@ object TitanDatabaseConnection extends Logging{
     } yield {
       (i, funcName, args, auth, doc)
     }
-    val (result, time) = MeasureFunction.measureCallWithResult(insertSourceCode(graph, "wurstwasser", "wurst", List("wurst", "wasser"), "simonDerPenner", "was ist das hier nur fuer ein mist?"))
+    val (result, time) = MeasureFunction.measureCallWithResult(insertSourceCode("wurstwasser", "wurst", List("wurst", "wasser"), "simonDerPenner", "was ist das hier nur fuer ein mist?"))
     info(s"It took $time ms to insert the data.")
     result
   }
@@ -250,10 +251,12 @@ object TitanDatabaseConnection extends Logging{
    * @param args
    * @return
    */
-  def insertSourceCode(graph: TitanGraph, source: String, funcName: String, args: List[String], author: String,
+  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
                        docs: String, newImplementation: Boolean = false): String = {
     // First instantiate the vertex with the provided data
     info("Started to insert a new implementation into the graph")
+
+    val functionNode = graph.query.has(TopLevelName, "functions").vertices.head
 
     try {
       val timestamp = System.currentTimeMillis: java.lang.Long
@@ -271,7 +274,7 @@ object TitanDatabaseConnection extends Logging{
           info(s"Did not find the function $funcName, will create the vertex for it.")
           val newFunctionVertex = graph.addVertexWithLabel(Function)
           ElementHelper.setProperties(newFunctionVertex, FunctionName, funcName, Documentation, docs)
-          val functionEdge = graph.addEdge(null, functionNode.get, newFunctionVertex, IsFunction)
+          val functionEdge = graph.addEdge(null, functionNode, newFunctionVertex, IsFunction)
           ElementHelper.setProperties(functionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
           info("Created the new function")
           newFunctionVertex
