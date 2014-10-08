@@ -108,7 +108,7 @@ object TitanGraphObject extends Logging {
       // Labels for all nodes used in the database which form the meta-levels above the actual data
       // Static label for the major nodes in the graph which are not extendable for users
       mgmt.makeVertexLabel(TopLevel).make
-      mgmt.makeVertexLabel(Function).make
+      val functionLabel = mgmt.makeVertexLabel(Function).make
       mgmt.makeVertexLabel(Method).make
       mgmt.makeVertexLabel(Implementation).make
       mgmt.makeVertexLabel(Version).make
@@ -141,9 +141,9 @@ object TitanGraphObject extends Logging {
       info("\t -> Setting up the indices")
       // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
       mgmt.buildIndex("entryPoints", classOf[Vertex]).addKey(topLevel).buildCompositeIndex
-      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).buildCompositeIndex
+      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).indexOnly(functionLabel).buildCompositeIndex
       mgmt.buildIndex("byArguments", classOf[Vertex]).addKey(args).buildCompositeIndex
-      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).buildMixedIndex(Index)
+      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).indexOnly(functionLabel).buildMixedIndex(Index)
       mgmt.buildEdgeIndex(methOf, "byMethodName", Direction.OUT, Order.DEFAULT, weighting)
       info("\t -> Done setting up the indices")
 

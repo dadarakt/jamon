@@ -50,16 +50,12 @@ trait TitanDbInteractions
   }
 
   //~~~~~~~~~~~~~ HELPERS ~~~~~~~~~~~~~~~~
-  def insertFunctionNode(graph: TitanGraph, props: Seq[String]) = {
-
-  }
-
   def findFunctionByName(functionName: String, numResults: Int): String = {
     TitanDatabaseConnection.findFunctionByNameFuzzy(functionName, numResults)
   }
 
-  def getMethodsForFunction(functionName: String, numResults: Int = maxNumResults): String = {
-    TitanDatabaseConnection.getMethodsForFunction(functionName, numResults)
+  def findMethodsForFunction(functionName: String, numResults: Int = maxNumResults): String = {
+    TitanDatabaseConnection.findMethodsForFunction(functionName, numResults)
   }
 
   // TODO these need to be implemented
@@ -76,13 +72,13 @@ trait TitanDbInteractions
 object TitanDatabaseConnection extends Logging{
 
   // defines the namespace for indexing
-  val INDEX_NAME = "search"
-  final val maxNumResults = 1000
-  final val sep = "§"
-
+  final val INDEX_NAME        = "search"
+  final val sep               = "§"
+  final val maxNumResults     = 1000
 
   def findFunctionByNameFuzzy(func: String, numResults: Int): String = {
     debug(s"Trying to find functions for the string $func")
+    if(func.isEmpty) return "No search term given"
     val n = if(numResults < maxNumResults) numResults else maxNumResults
     val vertices = graph.query.has(FunctionName, com.thinkaurelius.titan.core.attribute.Text.CONTAINS_REGEX, s".*$func.*").vertices.take(n)
     val ans = vertices.collect {
@@ -94,7 +90,7 @@ object TitanDatabaseConnection extends Logging{
     ans.mkString(sep)
   }
 
-  def getMethodsForFunction(func: String, numResults: Int): String = {
+  def findMethodsForFunction(func: String, numResults: Int): String = {
     debug(s"Getting $numResults methods for function $func")
     val n = if(numResults < maxNumResults) numResults else maxNumResults
     graph.getVertices(FunctionName, func).headOption match {
@@ -108,47 +104,25 @@ object TitanDatabaseConnection extends Logging{
     }
   }
 
-
-
   def getBestImplementation(g: TitanGraph, meth: String): String = {
     val methi = g.getVertices("methodSignature", meth).iterator.next()
     val impls = methi.getVertices(Direction.OUT, "implementationOf").toSeq.sortBy(_.getProperty[String]("rating"))
     impls.last.getProperty[String]("author")
   }
 
-
   def getAllImplementations(g: TitanGraph, meth: String): String = {
     val methi = g.getVertices("methodSignature", meth).iterator.next()
     methi.getVertices(Direction.OUT, "implementationOf").map(_.getProperty[String]("author")).mkString("\n")
   }
 
-
-  /**
-   * Returns a vertex with the given property to the key from the graph
-   */
   def retrieveVertex(graph: TitanGraph, key: String, property: String): Option[Vertex] = {
     println(graph.query.has(key, EQUAL, property).vertices)
     None
   }
 
-
   /**
-   * Opens a graph using the directory.
-   */
-  def openGraphFromDir(dir: String): Try[TitanGraph] = {
-    val graph = TitanFactory.open(dir)
-    if(graph.isOpen){
-      info(s"Database $dir has been openend successfully")
-      Success(graph)
-    } else {
-      error("Could not access graph, will create the graph now.")
-      Failure(new NoSuchElementException(s"Could not open the given graph at dir $dir"))
-    }
-  }
-
-
-  /**
-   * First prototype on how to insert a user's code into the database
+   * First prototype on how to insert a user's code into the database. Will later be the base for all simplyfied
+   * insertions. This function carries all the parameters.
    * @param source
    * @param args
    * @return
@@ -286,7 +260,11 @@ object TitanDatabaseConnection extends Logging{
   }
 
 
-
+  /**
+   * Removes a whole function with ALL the vertices under it
+   * @param functionName The name of the function to delete
+   * @return A String containig the message about the success of the operation
+   */
   def removeFunction(functionName: String): String = {
     info(s"Trying to remove the function $functionName from the graph")
     val start = System.currentTimeMillis
@@ -298,32 +276,27 @@ object TitanDatabaseConnection extends Logging{
         case None =>
           return "The function was not in the graph, cannot do anything."
       }
-
+      // Remove everything under the function and count what was deleted
       val methods = functionVertex.getVertices(Direction.OUT, MethodOf)
-      val implementations = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
-      val versions = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
-
-      var removedVersions = 0
-      for (v <- versions) {
-        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
-        g.removeVertex(v)
-        removedVersions += 1
+      var removedMethods          = 0
+      var removedImplementations  = 0
+      var removedVersions         = 0
+      for(m <- methods) {
+        removeMethod(m) match {
+          case (true, rImpl, rVers) => {
+            removedMethods          += 1
+            removedImplementations  += rImpl
+            removedVersions         += rVers
+          }
+          case (false, rImpl, rVers) => {
+            removedMethods          += 1
+            removedImplementations  += rImpl
+            removedVersions         += rVers
+          }
+        }
       }
 
-      var removedImplementations = 0
-      for (v <- implementations) {
-        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
-        g.removeVertex(v)
-        removedImplementations += 1
-      }
-
-      var removedMethods = 0
-      for (v <- methods) {
-        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
-        g.removeVertex(v)
-        removedMethods += 1
-      }
-
+      // Remove the functionVertex itself
       functionVertex.getEdges(Direction.OUT).foreach(g.removeEdge(_))
       g.removeVertex(functionVertex)
 
@@ -338,14 +311,94 @@ object TitanDatabaseConnection extends Logging{
     }
   }
 
+  /**
+   * Safely removes a method from the graph
+   * @param v The method to delete
+   * @return Returns if the operation was successful and the number of removed implementations and versions
+   */
+  def removeMethod(v:Vertex): (Boolean, Int, Int) = {
+    assert(v.getProperty[String]("label") == Method)
+    try {
+      var removedImplementations = 0
+      var removedVersions = 0
+      for (e <- v.getEdges(Direction.IN)){
+        graph.removeEdge(e)
+      }
+      // Remove all Versions first
+      for (e <- v.getEdges(Direction.OUT, ImplementationOf)){
+        removeImplementation(e.getVertex(Direction.IN)) match {
+          case (true, removed)  => {
+            removedImplementations += 1
+            removedVersions += removed
+          }
+          case (false, removed) => {
+            removedImplementations += removed
+            return (false, removedImplementations, removedVersions)
+          }
+        }
+      }
+      // Then remove the node with its connections
+      graph.removeVertex(v)
+      graph.commit
+      return (true, removedImplementations, removedVersions)
+    }
+  }
 
+  /**
+   * Safely removes an implementation from the graph
+   * @param v The implementation vertex reference
+   * @return Returns if the operation was sucessful and the number of removed versions
+   */
+  def removeImplementation(v: Vertex): (Boolean, Int) = {
+    assert(v.getProperty[String]("label") == Implementation)
+    try {
+      var removedVersions = 0
+      for (e <- v.getEdges(Direction.IN)){
+        graph.removeEdge(e)
+      }
+      // Remove all Versions first
+      for (e <- v.getEdges(Direction.OUT, VersionOf)){
+        removeVersion(e.getVertex(Direction.IN)) match {
+          case true  => removedVersions += 1
+          case false => return (false, removedVersions)
+        }
+      }
+      // Then remove the node with its connections
+      graph.removeVertex(v)
+      graph.commit
+      return (true, removedVersions)
+    }
+  }
+
+  /**
+   * Safely removes a vertex from the graph
+   * @param v The vertex reference to remove
+   * @return True if operation was successful, else false
+   */
+  def removeVersion(v: Vertex): Boolean = {
+    assert(v.getProperty[String]("label") == Version)
+    try{
+      for (e <- v.getEdges(Direction.IN)){
+        graph.removeEdge(e)
+      }
+      graph.removeVertex(v)
+      graph.commit
+      true
+    } catch {
+      case NonFatal(ex) =>
+        graph.rollback
+        warn(s"Could not delete version vertex $v due to $ex")
+        false
+    }
+  }
 
   /**
    * Inserts a node into the given graph with the given properties
+   * TODO might be obsolete
    * @param graph
    * @param props
    */
-  def insertNode(graph: TitanGraph, props: Map[String, AnyRef]): Unit = {
+  def addVertex(graph: TitanGraph, props: Map[String, AnyRef]): Unit = {
     val node = graph.addVertexWithLabel("kaese")
     for{
       prop <- props

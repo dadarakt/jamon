@@ -175,7 +175,7 @@ class DbHandlerActor extends HandlerActor{
 
     case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
       info("Got the request to getMethods... gonna route now.")
-      sender() ! HttpResponse(200, entity = getMethodsForFunction("length", 10))
+      sender() ! HttpResponse(200, entity = findMethodsForFunction("length", 10))
 
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>

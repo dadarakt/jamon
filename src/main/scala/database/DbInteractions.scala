@@ -18,22 +18,29 @@ import util.JuliaTypes._
  */
 trait DataBaseInteractions {
 
+  final val defaultNumResults = 50
 
   /**
-   * Returns all methods for a particular function
-   * @param function
-   * @return
+   * Returns all methods for a particular function which is given as a name.
+   * @param function The name of the function
+   * @return A list of all method-signatures which belong to the function.
    */
-  def getMethodsForFunction(function: String, numResults: Int): String
+  def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): String
 
   /**
    * Searches for the function and returns meta-information on the resulting functions.
    * TODO will be overloaded and has to return weighted results
    * @return
    */         
-  def find: JuliaFunctions 
+  def find: JuliaFunctions
 
-  def findFunctionByName(functionName: String, numResults: Int = 100): String
+  /**
+   * Retrieves all funcitons which contain the given string in their name
+   * @param searchTerm The string which is searched for. Case insensitive and anywhere in the name
+   * @param numResults Additional parameter to limit the number of results returned. Cannot exceed 1000.
+   * @return The names of the functions which contain the searchTerm as a list.
+   */
+  def findFunctionByName(searchTerm: String, numResults: Int = defaultNumResults): String
 
   /**    
    * Returns the whole function, could be separated later with just returning meta-info
