@@ -179,6 +179,9 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = insertFunction)
     case HttpRequest(GET, Uri.Path("/insertDummyData"),_,_,_) =>
       sender() ! HttpResponse(entity = insertDummyData)
+
+    case HttpRequest(GET, uri, _, _, _ ) if uri.path.startsWith(Uri.Path("/searchByFunctionName")) =>
+      sender() ! HttpResponse(200, entity = s"Le dickbutt says: Your function '${uri.path.tail.tail.tail}' sucks and that he will not retrieve it at any cost.")
     //~~~~~~~~~~~~~~~~~~~~~~
 
     // General messages.

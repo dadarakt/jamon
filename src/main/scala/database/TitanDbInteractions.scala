@@ -242,7 +242,7 @@ object TitanDatabaseConnection extends Logging{
     }
     val (result, time) = MeasureFunction.measureCallWithResult(insertSourceCode("wurstwasser", "wurst", List("wurst", "wasser"), "simonDerPenner", "was ist das hier nur fuer ein mist?"))
     info(s"It took $time ms to insert the data.")
-    result
+    "Sucessfully dumped the data to the graph"
   }
 
   /**
@@ -252,7 +252,7 @@ object TitanDatabaseConnection extends Logging{
    * @return
    */
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
-                       docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): String = {
+                       docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): Vertex = {
     // First instantiate the vertex with the provided data
     info("Started to insert a new implementation into the graph")
 
@@ -334,7 +334,7 @@ object TitanDatabaseConnection extends Logging{
       }
 
       // If no new version is desired delete the old version
-      if(newVersion) {
+      val newVers = if(newVersion) {
         info("User wanted to create a new version for the implementation. Creating the new one now.")
         val versionVertex = graph.addVertexWithLabel("version")
         ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
@@ -342,6 +342,7 @@ object TitanDatabaseConnection extends Logging{
         val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
         ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
         info("Done creating the new version")
+        versionVertex
       } else {
         info("User wants to overwrite latest version.")
         // find most recent version
@@ -354,6 +355,7 @@ object TitanDatabaseConnection extends Logging{
             v.setProperty(Code, source)
             v.setProperty(Documentation, docs)
             info("Done overwriting the old values.")
+            v
           }
           case None => {
             info("There were no versions of the implementation, will now create the initial one.")
@@ -364,22 +366,74 @@ object TitanDatabaseConnection extends Logging{
             val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
             ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
             info("Done creating the initial version.")
+            versionVertex
           }
         }
       }
 
       graph.commit()
       info("Insertion of data was successful")
-      "Successfully inserted your data"
+      newVers
 
     } catch {
       case NonFatal(ex) =>
         warn(s"Could not insert the vertex into the database, $ex")
         graph.rollback
-        "Could not insert your data, please try again later."
+        throw ex
     }
   }
 
+
+  def removeFunction(functionName: String): String = {
+    info(s"Trying to remove the function $functionName from the graph")
+    val start = System.currentTimeMillis
+    val g = graph
+    try {
+      val functionVertex = g.query.has(FunctionName, functionName).vertices.headOption match {
+        case Some(v) =>
+          v
+        case None =>
+          return "The function was not in the graph, cannot do anything."
+      }
+
+      val methods = functionVertex.getVertices(Direction.OUT, MethodOf)
+      val implementations = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
+      val versions = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
+
+      var removedVersions = 0
+      for (v <- versions) {
+        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
+        g.removeVertex(v)
+        removedVersions += 1
+      }
+
+      var removedImplementations = 0
+      for (v <- implementations) {
+        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
+        g.removeVertex(v)
+        removedImplementations += 1
+      }
+
+      var removedMethods = 0
+      for (v <- methods) {
+        v.getEdges(Direction.BOTH).foreach(g.removeEdge(_))
+        g.removeVertex(v)
+        removedMethods += 1
+      }
+
+      functionVertex.getEdges(Direction.OUT).foreach(g.removeEdge(_))
+      g.removeVertex(functionVertex)
+
+      info(s"Successfully removed the function $functionName  with $removedMethods method(s), $removedImplementations " +
+        s"implementation(s) and $removedVersions version(s) in ${System.currentTimeMillis - start} ms from the graph.")
+      g.commit
+      s"Removed the function $functionName"
+    } catch {
+      case NonFatal(ex) =>
+        g.rollback
+        "There was an error during removal of the function no changes commited."
+    }
+  }
 
 
 
