@@ -17,47 +17,14 @@ import util.JuliaTypes._
  * transactions with the database. The passed back String represents the serialized answer to the query.
  */
 trait DataBaseInteractions {
-  
-  // ----- Functions to find things -----
-  /**
-   * Returns a given function with its meta-data for a precise match
-   * @param signature
-   */
-  def getFunction(signature: JuliaSignature) // With a precise match
 
-  /**
-   * Returns a given methods with its meta-data for a precise match
-   * @param signature
-   */
-  def getMethod(signature: JuliaSignature)
 
   /**
    * Returns all methods for a particular function
    * @param function
    * @return
    */
-  def getMethods(function: String): String
-
-  /**
-   * Returns a given Implementation of a Method for a precise match
-   * @param name
-   * @return
-   */
-  def getImplementation(name: String): String
-
-  /**
-   * Finds the best implementation of a particular method with a given signature
-   * @param meth
-   * @return
-   */
-  def getBestImplementation(meth: String): String
-
-  /**
-   * Returns all the implementations of a given method signature
-   * @param meth
-   * @return
-   */
-  def getAllImplementations(meth: String): String
+  def getMethodsForFunction(function: String, numResults: Int): String
 
   /**
    * Searches for the function and returns meta-information on the resulting functions.
@@ -65,6 +32,8 @@ trait DataBaseInteractions {
    * @return
    */         
   def find: JuliaFunctions 
+
+  def findFunctionByName(functionName: String, numResults: Int = 100): String
 
   /**    
    * Returns the whole function, could be separated later with just returning meta-info

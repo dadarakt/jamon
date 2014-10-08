@@ -16,6 +16,8 @@ import com.thinkaurelius.titan.core.util.TitanCleanup
 import scala.Some
 import scala.util.{Failure, Success}
 import TitanGraphObject._
+import java.util
+
 /**
  * Defines methods to read data from a Titan-Database for an actor. Does not handle the resource, but defines operations
  * on it
@@ -52,55 +54,19 @@ trait TitanDbInteractions
 
   }
 
-  def getMethods(function: String): String = {
-    getMethodsForFunction(graph.get, function)
+  def findFunctionByName(functionName: String, numResults: Int): String = {
+    TitanDatabaseConnection.findFunctionByNameFuzzy(functionName, numResults)
   }
 
-  def getBestImplementation(meth: String): String = {
-    TitanDatabaseConnection.getBestImplementation(graph.get, meth)
-  }
-
-  def getAllImplementations(meth: String): String = {
-    TitanDatabaseConnection.getAllImplementations(graph.get, meth)
-  }
-
-  def findFunction(name: String)= {
-
-  }
-
-  def insertFunction: String = {
-    val g = graph.get
-    try {
-      val g = graph.get
-      val length = g.getVertices("iid", "func:1").iterator().next
-
-      val meth1 = g.addVertex(null)
-      ElementHelper.setProperties(meth1, "type" , "meth", "iid" ,"meth:3", "methodSignature" ,"length(Matrix)", "methodFor" ,"func:1")
-      val impl1 = g.addVertex(null)
-      ElementHelper.setProperties(impl1, "type", "impl", "iid" , "impl:3", "implements", "meth:3", "author", "jannis", "rating", "0")
-      val vers1 = g.addVertex(null)
-      ElementHelper.setProperties(vers1, "type", "vers", "iid", "vers:3", "versOf", "impl:3", "code", "Hier rechne ich mit Matrizen.", "time" , "1234567")
-
-      // Add the edges that we want
-      g.addEdge(null, length, meth1, "methodOf")
-      g.addEdge(null, meth1, impl1, "implementationOf")
-      g.addEdge(null, impl1, vers1, "versionOf")
-
-      g.commit
-      "Succesfully entered your new code! You should print the graph to observe changes."
-    } catch {
-      case NonFatal(e) =>
-        g.rollback
-        "Failed while entering data. " + e
-    }
+  def getMethodsForFunction(functionName: String, numResults: Int = maxNumResults): String = {
+    TitanDatabaseConnection.getMethodsForFunction(functionName, numResults)
   }
 
   // TODO these need to be implemented
-  def getImplementation(name: String): String = ???
-  def getFunction(signature: JuliaSignature) = ???
   def find = ???
   def retrieve = ???
-  def getMethod(signature: JuliaSignature) = ???
+  def insertFunction = ???
+
 }
 
 
@@ -111,24 +77,37 @@ object TitanDatabaseConnection extends Logging{
 
   // defines the namespace for indexing
   val INDEX_NAME = "search"
+  final val maxNumResults = 1000
+  final val sep = "§"
 
-  /**
-   * Just demoing things
-   * @param g
-   */
-  def addSomeShit(g: TitanGraph) = {
-    insertNode(g, Map(("type" -> "meth"), ("iid" -> "meth:1"), ("methodSignature" -> "length(String)")))
+
+  def findFunctionByNameFuzzy(func: String, numResults: Int): String = {
+    debug(s"Trying to find functions for the string $func")
+    val n = if(numResults < maxNumResults) numResults else maxNumResults
+    val vertices = graph.query.has(FunctionName, com.thinkaurelius.titan.core.attribute.Text.CONTAINS_REGEX, s".*$func.*").vertices.take(n)
+    val ans = vertices.collect {
+      case v if v.getProperty[String](FunctionName) != null =>
+        v.getProperty[String](FunctionName)
+    }
+    //val aha =  vertices.map(_.getProperty[String](FunctionName)).mkString(sep)
+    graph.commit
+    ans.mkString(sep)
   }
 
-  /**
-   * Returns the method (headers) for a function
-   * @param func
-   */
-  def getMethodsForFunction(g: TitanGraph, func: String): String = {
-    val fun = g.getVertices("functionName", func).iterator.next()
-    val meths = fun.getVertices(Direction.OUT, "methodOf").map(_.getProperty[String]("methodSignature"))
-    meths.mkString("\n")
+  def getMethodsForFunction(func: String, numResults: Int): String = {
+    debug(s"Getting $numResults methods for function $func")
+    val n = if(numResults < maxNumResults) numResults else maxNumResults
+    graph.getVertices(FunctionName, func).headOption match {
+      case Some(v) =>
+        val ans = s"${v.getVertices(Direction.OUT, MethodOf).take(n).map(v => s"$func(${v.getProperty[util.ArrayList[String]](Arguments).mkString(", ")})").mkString(sep)}"
+        graph.commit
+        ans
+      case None =>
+        graph.commit
+        "not found"
+    }
   }
+
 
 
   def getBestImplementation(g: TitanGraph, meth: String): String = {

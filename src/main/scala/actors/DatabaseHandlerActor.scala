@@ -169,14 +169,18 @@ class DbHandlerActor extends HandlerActor{
     case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
       val response = TitanGraphObject.instantiateGraphFramework(TitanGraphObject.graph)
       sender() ! HttpResponse(entity = TitanGraphObject.graph.toString + "\n" + response)
-    case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
-      sender() ! HttpResponse(entity = getMethods("length"))
-    case HttpRequest(GET, Uri.Path("/getImplementation"),_,_,_) =>
-      sender() ! HttpResponse(entity = getBestImplementation("length(String)"))
-    case HttpRequest(GET, Uri.Path("/getAllImplementations"),_,_,_) =>
-      sender() ! HttpResponse(entity = getAllImplementations("length(String)"))
+
     case HttpRequest(GET, Uri.Path("/insertMethod"),_,_,_) =>
       sender() ! HttpResponse(entity = insertFunction)
+
+    case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
+      info("Got the request to getMethods... gonna route now.")
+      sender() ! HttpResponse(200, entity = getMethodsForFunction("length", 10))
+
+
+    case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>
+      sender() ! HttpResponse(200, entity = findFunctionByName(uri.path.tail.tail.tail.toString))
+
     case HttpRequest(GET, uri, _, _, _ ) if uri.path.startsWith(Uri.Path("/searchByFunctionName")) =>
       sender() ! HttpResponse(200, entity = s"Le dickbutt says: Your function '${uri.path.tail.tail.tail}' sucks and that he will not retrieve it at any cost.")
     //~~~~~~~~~~~~~~~~~~~~~~
