@@ -2,15 +2,16 @@ package database
 
 import _root_.util.MeasureFunction
 import grizzled.slf4j.Logging
-import scala.util.{Failure, Success, Try}
+import scala.util.{Random, Failure, Success, Try}
 import com.thinkaurelius.titan.core._
 import com.tinkerpop.blueprints.{Direction, Vertex}
 import com.tinkerpop.blueprints.util.ElementHelper
-import scala.util.Success
-import scala.util.Failure
 import scala.util.control.NonFatal
 import com.thinkaurelius.titan.core.attribute.Text
 import scala.collection.JavaConversions._
+import scala.util.Failure
+import scala.Some
+import scala.util.Success
 
 /**
  * The resource which represents the graph so that it does not need to be instantiated every single time but can be
@@ -29,8 +30,8 @@ object TitanGraphObject extends Logging {
       throw ex //Let the user of the resource decide how to handle this situation
   }
 
-  private var _functionNode: Option[Vertex] = _
-  def functionNode = _functionNode
+  private var _functionVertex: Option[Vertex] = _
+  def functionVertex = _functionVertex
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // CONSTANTS TO USE FOR THE DATABASE-SCHEMA
@@ -72,9 +73,9 @@ object TitanGraphObject extends Logging {
       if(g.isOpen) {
         info(s"Opened graph from configuration file $configPath.")
         // Find out whether the graph has valid schema yet by searching for the toplevel node
-        _functionNode = g.query.has(TopLevelName, "functions").vertices.headOption
-        info(_functionNode)
-        _functionNode match {
+        _functionVertex = g.query.has(TopLevelName, "functions").vertices.headOption
+        info(_functionVertex)
+        _functionVertex match {
           case Some(_) => // no notting
             info("The configured graph already has schema, go on using it.")
           case None =>
@@ -159,7 +160,7 @@ object TitanGraphObject extends Logging {
 //      ElementHelper.setProperties(packages, "topLevelName", "packages", "type", "top", "iid", s"$TopLevel:2")
       info("\t -> Inserted central vertices into the graph")
       g.commit()
-      _functionNode = Some(functions)
+      _functionVertex = Some(functions)
       info("Done setting up the graph")
       "Sucessfully initialized the graph schema"
     } catch {
@@ -170,25 +171,68 @@ object TitanGraphObject extends Logging {
     }
   }
 
+  var hasShitInGraph = false
   /**
-   * Prints out everything in a graph. Only used for testing. TODO only test BS
+   * Prints out everything in a graph. Only used for testing. 
    */
   def graphToString: String = {
-    val topLabel: VertexLabel = graph.getVertexLabel("topLevel")
-    try {
-      val (_, time1) =
-        MeasureFunction.measureCallWithResult(graph.query.has("functionName", "length").vertices.mkString(" "))
-      val (functionNames, time2) =
-        MeasureFunction.measureCallWithResult(graph.query.has("functionName", Text.CONTAINS_REGEX, ".*len.*").vertices.
-          map(node => node.getPropertyKeys).mkString(" "))
 
-      info(s"indexed access was $time1 ms, mixed index: $time2 ms.")
-      info(functionNames)
-      functionNames
-    } catch {
-      case NonFatal(ex) =>
-        warn("Error while retrieving nodes from the index")
-        ex.toString()
+    if(!hasShitInGraph) {
+      hasShitInGraph = true
+      val numNodes = 1000
+      def randomString(n: Int, alphabet: String = "abcdefghijklmnopqrstuvwxyz /-"): String =
+        Stream.continually(Random.nextInt(alphabet.size)).map(alphabet).take(n).mkString
+
+      val functionNames = Array("length", "arity", "dump", "foo", "bar", "rustle", "tinker", "messAbout", "put", "get")
+      val arguments     = Array("Int32", "Int64", "Float64", "String", "Float32", "Uint64", "Bool", "Vector")
+      val authors       = Array("hans", "tim", "simon", "helmut", "verena", "anna", "lisa", "lotta", "siegfried", "michi")
+
+      val insertionResults = for {
+        i <- 0 until numNodes
+        funcName  = functionNames(i % functionNames.length)
+        args      = (1 to Random.nextInt(6)).map(arguments(_)).toList
+        auth      = authors(Random.nextInt(authors.length))
+        source    = randomString(500 + Random.nextInt(500))
+        doc       = randomString(200 + Random.nextInt(200))
+      } yield {
+        MeasureFunction.measureCallWithResult(TitanDatabaseConnection.insertSourceCode(source, funcName, args, auth, doc))
+      }
+      val times = insertionResults.map(_._2)
+      val avg   = times.drop(20).foldLeft(0.0)((t,r) => t + r) / times.length
+      val max   = times.max
+      val min   = times.min
+      info(s"Inserted ${times.length} versions into the graph. min: $min, max: $max, avg: $avg")
+      graph.commit
     }
+
+    info("Printing the graph")
+    val numVertices = graph.query.vertices.size
+    val functions = functionVertex.get.getVertices(Direction.OUT, IsFunction).toList
+    val numFunction = functions.length
+    val stringedFunctions = functions.map( functionV => {
+      // Gather data
+      val name                = functionV.getProperty[String](FunctionName)
+      val methods             = functionV.getVertices(Direction.OUT).toList
+      val numMethods          = methods.length
+      val implementations     = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
+      val numImplementations  = implementations.length
+      val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
+      val numVersions         = versions.length
+      val avgImplPerMethod    = numImplementations.toFloat / numMethods
+      val avgVersPerImpl      = numImplementations.toFloat / numVersions
+      val authors             = versions.map(_.getProperty[String](Author)).toSet
+      val times               = versions.map(_.getProperty[Long](TimeStamp))
+      val firstEdit           = times.max
+      val lastEdit            = times.min
+      val methodi = methods.map(v => s"$name(${v.getProperty[java.util.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
+      // Create the string to show the data
+      val methodsString       = s"\t -- Methods for this function: $methodi"
+      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"
+      val versionString       = s"\t -- Num versions: $numVersions, avg versions per implementation: $avgVersPerImpl"
+      val authorString        = s"\t -- Authors for this function: ${authors.mkString(", ")}"
+      val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
+      List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
+    }).mkString("\n")
+    s"Found $numFunction functions, the graph has $numVertices vertices: \n $stringedFunctions"
   }
 }

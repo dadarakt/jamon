@@ -4,9 +4,12 @@
 
 import com.tinkerpop.blueprints.{Vertex, Direction}
 import database.{TitanDatabaseConnection, TitanGraphObject}
-import org.scalatest.{BeforeAndAfterAll, BeforeAndAfter, FunSuite}
+import org.scalatest.{BeforeAndAfterAll, FunSuite}
+import scala.util.Random
 import TitanGraphObject._
 import scala.collection.JavaConversions._
+import util.MeasureFunction
+import TitanDatabaseConnection.{removeFunction, insertSourceCode}
 
 class TitanDbInteractionsTest extends FunSuite with BeforeAndAfterAll{
 
@@ -67,13 +70,43 @@ class TitanDbInteractionsTest extends FunSuite with BeforeAndAfterAll{
     assert(impl.getProperty[String](Documentation) === newImpl.getProperty[String](Documentation))
   }
 
+  test("Do a quick batch insert to get an idea of the time needed") {
+    val numNodes = 1000
+    def randomString(n: Int, alphabet: String = "abcdefghijklmnopqrstuvwxyz /-"): String =
+      Stream.continually(Random.nextInt(alphabet.size)).map(alphabet).take(n).mkString
+
+    val functionNames = Array("length", "arity", "dump", "foo", "bar", "rustle", "tinker", "messAbout", "put", "get")
+    val arguments = Array("Int32", "Int64", "Float64", "String", "Float32", "Uint64", "Bool", "Vector")
+    val authors = Array("hans", "tim", "simon", "helmut", "verena", "anna", "lisa", "lotta", "siegfried", "michi")
+
+    val insertionResults = for {
+      i <- 0 until numNodes
+      funcName  = functionNames(i % functionNames.length)
+      args      = (1 to Random.nextInt(6)).map(arguments(_)).toList
+      auth      = authors(Random.nextInt(authors.length))
+      source    = randomString(500 + Random.nextInt(500))
+      doc       = randomString(200 + Random.nextInt(200))
+    } yield {
+      MeasureFunction.measureCallWithResult(insertSourceCode(source, funcName, args, auth, doc))
+    }
+    val times = insertionResults.map(_._2)
+    val avg   = times.drop(20).foldLeft(0.0)((t,r) => t + r) / times.length
+    val max   = times.max
+    val min   = times.min
+    info(s"Inserted ${times.length} versions into the graph. min: $min, max: $max, avg: $avg")
+    graph.commit
+
+    info(TitanGraphObject.graphToString)
+    val (deleteStatus, deleteTime) = MeasureFunction.measureCallWithResult(
+      functionNames.foreach(removeFunction(_))
+    )
+    info(s"It took $deleteTime ms to clear out the data from the graph")
+    graph.commit
+    "Sucessfully dumped the data to the graph"
+  }
+
   test("Remove the function introduced to clean up the graph") {
     // Remove all written data so the graph does not get cluttered
     TitanDatabaseConnection.removeFunction(funcName)
-
-
   }
-
-
-
 }

@@ -84,7 +84,6 @@ trait DataBaseInteractions {
 
   // ----- Development -----
   def dbToString: String
-  def insertDummyData: String
 }
 
 
