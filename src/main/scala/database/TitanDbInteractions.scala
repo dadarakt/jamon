@@ -96,7 +96,7 @@ trait TitanDbInteractions
   }
 
   def insertDummyData: String = {
-    TitanDatabaseConnection.insertDummyData(graph.get, 10)
+    TitanDatabaseConnection.insertDummyData(graph.get, 1000)
   }
 
   // TODO these need to be implemented
@@ -230,7 +230,7 @@ object TitanDatabaseConnection extends Logging{
     val arguments = Array("Int32", "Int64", "Float64", "String", "Float32", "Uint64", "Bool", "Vector")
     val authors = Array("hans", "tim", "simon", "helmut", "verena", "anna", "lisa", "lotta", "siegfried", "michi")
 
-    val data = for {
+    val insertionResults = for {
       i <- 0 until numNodes
       funcName  = functionNames(i % functionNames.length)
       args      = (1 to Random.nextInt(6)).map(arguments(_)).toList
@@ -238,10 +238,20 @@ object TitanDatabaseConnection extends Logging{
       source    = randomString(500 + Random.nextInt(500))
       doc       = randomString(200 + Random.nextInt(200))
     } yield {
-      (i, funcName, args, auth, doc)
+       MeasureFunction.measureCallWithResult(insertSourceCode(source, funcName, args, auth, doc))
     }
-    val (result, time) = MeasureFunction.measureCallWithResult(insertSourceCode("wurstwasser", "wurst", List("wurst", "wasser"), "simonDerPenner", "was ist das hier nur fuer ein mist?"))
-    info(s"It took $time ms to insert the data.")
+    val times = insertionResults.map(_._2)
+    val avg   = times.drop(20).foldLeft(0.0)((t,r) => t + r) / times.length
+    val max   = times.max
+    val min   = times.min
+    info(s"Inserted ${times.length} versions into the graph. min: $min, max: $max, avg: $avg")
+    graph.commit
+
+    val (deleteStatus, deleteTime) = MeasureFunction.measureCallWithResult(
+      functionNames.foreach(removeFunction(_))
+    )
+    info(s"It took $deleteTime ms to clear out the data from the graph")
+    graph.commit
     "Sucessfully dumped the data to the graph"
   }
 
@@ -270,7 +280,7 @@ object TitanDatabaseConnection extends Logging{
         case None => {// go on and create the vertex for the function and link it
           info(s"Did not find the function $funcName, will create the vertex for it.")
           val newFunctionVertex = graph.addVertexWithLabel(Function)
-          ElementHelper.setProperties(newFunctionVertex, FunctionName, funcName, Documentation, docs)
+          ElementHelper.setProperties(newFunctionVertex, FunctionName, funcName, Documentation, docs, TimeStamp, timestamp)
           val functionEdge = graph.addEdge(null, functionNode, newFunctionVertex, IsFunction)
           ElementHelper.setProperties(functionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
           info("Created the new function")
@@ -309,7 +319,7 @@ object TitanDatabaseConnection extends Logging{
       val implementationVertex = if (newImplementation) {
         info("The user wanted to create a new implementation, now creating it.")
         val newImplementationVertex = graph.addVertexWithLabel(Implementation)
-        ElementHelper.setProperties(newImplementationVertex, Author, author, TimeStamp, timestamp)
+        ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
         val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
         ElementHelper.setProperties(implementationEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
         info("done setting up the new implementation vertex")
@@ -325,7 +335,7 @@ object TitanDatabaseConnection extends Logging{
           case None =>
             info(s"No prior implementation found for author $author, will now generate it.")
             val newImplementationVertex= graph.addVertexWithLabel(Implementation)
-            ElementHelper.setProperties(newImplementationVertex, Author, author, TimeStamp, timestamp)
+            ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
             val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
             ElementHelper.setProperties(implementationEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
             info("Created the new implementation vertex.")
@@ -382,6 +392,7 @@ object TitanDatabaseConnection extends Logging{
         throw ex
     }
   }
+
 
 
   def removeFunction(functionName: String): String = {
