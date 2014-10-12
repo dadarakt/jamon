@@ -49,13 +49,24 @@ trait TitanDbInteractions
       "DB could not be accessed. Please try again later."
   }
 
-  //~~~~~~~~~~~~~ HELPERS ~~~~~~~~~~~~~~~~
   def findFunctionByName(functionName: String, numResults: Int): String = {
     TitanDatabaseConnection.findFunctionByNameFuzzy(functionName, numResults)
   }
 
   def findMethodsForFunction(functionName: String, numResults: Int = maxNumResults): String = {
     TitanDatabaseConnection.findMethodsForFunction(functionName, numResults)
+  }
+
+  def getBestImplementationForMethod(methodName: String): String = {
+    val funcName = methodName.takeWhile(_ != '(')
+    val args = methodName.drop(funcName.length + 1).dropRight(1).split(',').map(_.trim).toList
+    TitanDatabaseConnection.getBestImplementation(funcName, args)
+  }
+
+  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
+                       docs: String, newImpl: Boolean = false, newVers: Boolean = false) = {
+    val vertex  = TitanDatabaseConnection.insertSourceCode(source, funcName, args, author, docs, newImpl, newVers)
+    s"Inserted the data into vertex $vertex"
   }
 
   // TODO these need to be implemented
@@ -77,6 +88,7 @@ object TitanDatabaseConnection extends Logging{
   final val maxNumResults     = 1000
 
   def findFunctionByNameFuzzy(func: String, numResults: Int): String = {
+    val start = System.currentTimeMillis
     debug(s"Trying to find functions for the string $func")
     if(func.isEmpty) return "No search term given"
     val n = if(numResults < maxNumResults) numResults else maxNumResults
@@ -87,38 +99,94 @@ object TitanDatabaseConnection extends Logging{
     }
     //val aha =  vertices.map(_.getProperty[String](FunctionName)).mkString(sep)
     graph.commit
-    ans.mkString(sep)
+    info(s"Search for $func took ${System.currentTimeMillis - start} ms")
+    if(ans.isEmpty) "No matching function found" else ans.mkString(sep)
   }
 
+
   def findMethodsForFunction(func: String, numResults: Int): String = {
+    val start = System.currentTimeMillis
     debug(s"Getting $numResults methods for function $func")
     val n = if(numResults < maxNumResults) numResults else maxNumResults
     graph.getVertices(FunctionName, func).headOption match {
       case Some(v) =>
         val ans = s"${v.getVertices(Direction.OUT, MethodOf).take(n).map(v => s"$func(${v.getProperty[util.ArrayList[String]](Arguments).mkString(", ")})").mkString(sep)}"
         graph.commit
+        info(s"Retrieval of the methods for function $func took ${System.currentTimeMillis - start} ms")
         ans
       case None =>
         graph.commit
-        "not found"
+        s"Could not find the function '$func' in the graph."
     }
   }
 
-  def getBestImplementation(g: TitanGraph, meth: String): String = {
-    val methi = g.getVertices("methodSignature", meth).iterator.next()
-    val impls = methi.getVertices(Direction.OUT, "implementationOf").toSeq.sortBy(_.getProperty[String]("rating"))
-    impls.last.getProperty[String]("author")
+
+  def getBestImplementation(funcName: String, args: List[String]): String = {
+    functionOption(funcName) match {
+      case Some(v) => {
+        methodOptionforFunction(v, args) match {
+          case Some(v) => {
+            getMostRecentImplementation(v) match {
+              case Some(v) =>
+                getMostRecentVersionForImplementation(v) match {
+                  case Some(v) => {
+                    v.getProperty[String](Code)
+                  }
+                  case None => {
+                    warn("Method $funcName(${args.mkString(\", \")} has an implementation without any versions!")
+                    s"No version found for the most recent "
+                  }
+                }
+              case None =>
+                s"No implementations found for method $funcName(${args.mkString(", ")})"
+            }
+          }
+          case None => {
+            s"No method with args ${args.mkString(", ")} found for function $funcName"
+          }
+        }
+      }
+      case None => {
+        s"No function called '$funcName' in the graph."
+      }
+    }
   }
+
 
   def getAllImplementations(g: TitanGraph, meth: String): String = {
     val methi = g.getVertices("methodSignature", meth).iterator.next()
-    methi.getVertices(Direction.OUT, "implementationOf").map(_.getProperty[String]("author")).mkString("\n")
+    val ans = methi.getVertices(Direction.OUT, "implementationOf").map(v => (v.getProperty[String]("author"))).mkString("\n")
+    graph.commit
+    ans
   }
 
-  def retrieveVertex(graph: TitanGraph, key: String, property: String): Option[Vertex] = {
-    println(graph.query.has(key, EQUAL, property).vertices)
-    None
+  def functionOption(funcName: String): Option[Vertex] = {
+    val ans = graph.query.has(FunctionName, funcName).vertices.headOption
+    graph.commit
+    ans
   }
+
+
+  def methodOptionforFunction(function: Vertex, args: List[String]): Option[Vertex] = {
+    val ans = function.getVertices(Direction.OUT, MethodOf).collect {
+      case v: Vertex if (args.toList == v.getProperty[java.util.ArrayList[String]](Arguments).toList) => v
+    }.headOption
+    graph.commit
+    ans
+  }
+
+  def getMostRecentImplementation(method: Vertex): Option[Vertex] = {
+    val ans =  method.getVertices(Direction.OUT, ImplementationOf).toList.sortBy(- _.getProperty[Long](TimeStamp)).headOption
+    graph.commit
+    ans
+  }
+
+  def getMostRecentVersionForImplementation(implementation: Vertex): Option[Vertex] = {
+    val ans = implementation.getVertices(Direction.OUT, VersionOf).toList.sortBy(- _.getProperty[Long](TimeStamp)).headOption
+    graph.commit
+    ans
+  }
+
 
   /**
    * First prototype on how to insert a user's code into the database. Will later be the base for all simplyfied
@@ -130,7 +198,7 @@ object TitanDatabaseConnection extends Logging{
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
                        docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): Vertex = {
     // First instantiate the vertex with the provided data
-    info("Started to insert a new implementation into the graph")
+    info(s"$author started to insert a new implementation into the graph")
 
     val functionNode = graph.query.has(TopLevelName, "functions").vertices.head
 
@@ -138,7 +206,7 @@ object TitanDatabaseConnection extends Logging{
       val timestamp = System.currentTimeMillis: java.lang.Long // Timestamp all changes with the same time
 
       // Try to find the function in the graph with the same name, if not create a new function vertex
-      info("Setting up the functionVertex")
+      debug("Setting up the functionVertex")
       val functionVertex = graph.query.has(FunctionName, funcName).vertices.headOption match {
         case Some(vertex) =>
           info(s"Found the function ${vertex.getProperty[String](FunctionName)} in the graph, will use it.")
@@ -149,13 +217,13 @@ object TitanDatabaseConnection extends Logging{
           ElementHelper.setProperties(newFunctionVertex, FunctionName, funcName, Documentation, docs, TimeStamp, timestamp)
           val functionEdge = graph.addEdge(null, functionNode, newFunctionVertex, IsFunction)
           ElementHelper.setProperties(functionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-          info("Created the new function")
+          debug("Created the new function")
           newFunctionVertex
         }
       }
 
       // Decide if there exists a method with the provided arguments, if not create the method vertex
-      info("Setting up the methodVertex")
+      debug("Setting up the methodVertex")
       //var vertex: Vertex = null
       val methodOption = functionVertex.getEdges(Direction.OUT, MethodOf).collect{
         case e: Edge if (args == e.getVertex(Direction.IN).getProperty[java.util.ArrayList[String]](Arguments).toList)
@@ -174,21 +242,21 @@ object TitanDatabaseConnection extends Logging{
           args.foreach(newMethodVertex.addProperty(Arguments, _))
           val methodEdge = graph.addEdge(null, functionVertex, newMethodVertex, MethodOf)
           ElementHelper.setProperties(methodEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-          info("Created the new method.")
+          debug("Created the new method.")
           newMethodVertex
         }
       }
 
       // Now link the vertex in the graph and create the edges necessary
       // If no new implementation is desired by the author, search for nodes which are from the author
-      info("Setting up the implementation vertex.")
+      debug("Setting up the implementation vertex.")
       val implementationVertex = if (newImplementation) {
         info("The user wanted to create a new implementation, now creating it.")
         val newImplementationVertex = graph.addVertexWithLabel(Implementation)
         ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
         val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
         ElementHelper.setProperties(implementationEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-        info("done setting up the new implementation vertex")
+        debug("done setting up the new implementation vertex")
         newImplementationVertex
       } else {
         val implementationOption = methodVertex.getEdges(Direction.OUT, ImplementationOf).collect {
@@ -197,6 +265,7 @@ object TitanDatabaseConnection extends Logging{
         implementationOption match {
           case Some(vertex) =>
             info(s"Retrieved the prior implementation from author $author, will use it.")
+            vertex.setProperty(TimeStamp, timestamp)
             vertex
           case None =>
             info(s"No prior implementation found for author $author, will now generate it.")
@@ -204,7 +273,7 @@ object TitanDatabaseConnection extends Logging{
             ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
             val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
             ElementHelper.setProperties(implementationEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-            info("Created the new implementation vertex.")
+            debug("Created the new implementation vertex.")
             newImplementationVertex
         }
       }
@@ -217,7 +286,7 @@ object TitanDatabaseConnection extends Logging{
         args.foreach(versionVertex.addProperty(Arguments, _))
         val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
         ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-        info("Done creating the new version")
+        debug("Done creating the new version")
         versionVertex
       } else {
         info("User wants to overwrite latest version.")
@@ -230,7 +299,7 @@ object TitanDatabaseConnection extends Logging{
             v.setProperty(TimeStamp, timestamp)
             v.setProperty(Code, source)
             v.setProperty(Documentation, docs)
-            info("Done overwriting the old values.")
+            debug("Done overwriting the old values.")
             v
           }
           case None => {
@@ -238,10 +307,10 @@ object TitanDatabaseConnection extends Logging{
             val versionVertex = graph.addVertexWithLabel("version")
             ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
             args.foreach(versionVertex.addProperty(Arguments, _))
-            info("Adding the final edges for the insertion.")
+            debug("Adding the final edges for the insertion.")
             val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
             ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
-            info("Done creating the initial version.")
+            debug("Done creating the initial version.")
             versionVertex
           }
         }

@@ -21,6 +21,7 @@ class TitanDbInteractionsTest extends FunSuite with BeforeAndAfterAll{
   val args     = List("wurst", "wasser")
   val doc      = "Die Funktion von Wurstwasser war bisher ein wohlgehuetetes Geheimnis, hier enthuellen wir alle Fakten."
 
+
   test("Get the grpah and check if it is open.") {
     val graph = graphObject.graph
     assert(graph.isOpen)

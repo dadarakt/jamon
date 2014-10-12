@@ -73,14 +73,21 @@ object TitanGraphObject extends Logging {
       if(g.isOpen) {
         info(s"Opened graph from configuration file $configPath.")
         // Find out whether the graph has valid schema yet by searching for the toplevel node
-        _functionVertex = g.query.has(TopLevelName, "functions").vertices.headOption
-        info(_functionVertex)
-        _functionVertex match {
-          case Some(_) => // no notting
-            info("The configured graph already has schema, go on using it.")
-          case None =>
-            info("The configured graph has no schema, will go on and configure it.")
-            instantiateGraphFramework(g)
+        try {
+          g.query.has(TopLevelName, "functions").vertices.headOption match {
+            case Some(v) => {
+              info("The graph is configured, will use it.")
+              _functionVertex = Some(v)
+            }
+            case None => {
+              info("The graph has no valid schema, will create it now!")
+              instantiateGraphFramework(g)
+            }
+          }
+        } catch {
+          case ex: java.lang.IllegalArgumentException =>
+          info("The graph has no valid schema, will create it now.")
+          instantiateGraphFramework(g)
         }
         Success(g)
       } else {
@@ -132,7 +139,7 @@ object TitanGraphObject extends Logging {
       info("\t -> Creating the edge-labels")
       // The labels for edges which define the relationships in the database
       // There is no need to traverse from a function node to the top-level node thus unidirected
-      mgmt.makeEdgeLabel("isFunc").unidirected.make
+      mgmt.makeEdgeLabel("isFunction").unidirected.make
       val methOf = mgmt.makeEdgeLabel("methOf").make
       mgmt.makeEdgeLabel("implOf").multiplicity(Multiplicity.SIMPLE).make
       mgmt.makeEdgeLabel("versOf").multiplicity(Multiplicity.SIMPLE).make
@@ -141,9 +148,9 @@ object TitanGraphObject extends Logging {
       info("\t -> Setting up the indices")
       // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
       mgmt.buildIndex("entryPoints", classOf[Vertex]).addKey(topLevel).buildCompositeIndex
-      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).indexOnly(functionLabel).buildCompositeIndex
+      mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).buildCompositeIndex
       mgmt.buildIndex("byArguments", classOf[Vertex]).addKey(args).buildCompositeIndex
-      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).indexOnly(functionLabel).buildMixedIndex(Index)
+      mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).buildMixedIndex(Index)
       mgmt.buildEdgeIndex(methOf, "byMethodName", Direction.OUT, Order.DEFAULT, weighting)
       info("\t -> Done setting up the indices")
 
@@ -179,13 +186,13 @@ object TitanGraphObject extends Logging {
 
     if(!hasShitInGraph) {
       hasShitInGraph = true
-      val numNodes = 1000
+      val numNodes = 10000
       def randomString(n: Int, alphabet: String = "abcdefghijklmnopqrstuvwxyz /-"): String =
         Stream.continually(Random.nextInt(alphabet.size)).map(alphabet).take(n).mkString
 
       val functionNames = Array("length", "arity", "dump", "foo", "bar", "rustle", "tinker", "messAbout", "put", "get")
       val arguments     = Array("Int32", "Int64", "Float64", "String", "Float32", "Uint64", "Bool", "Vector")
-      val authors       = Array("hans", "tim", "simon", "helmut", "verena", "anna", "lisa", "lotta", "siegfried", "michi")
+      val authors       = Array("sören", "findus", "simon", "helmut", "verena", "anna", "lisa", "lotta", "rainald", "torben")
 
       val insertionResults = for {
         i <- 0 until numNodes
@@ -195,7 +202,7 @@ object TitanGraphObject extends Logging {
         source    = randomString(500 + Random.nextInt(500))
         doc       = randomString(200 + Random.nextInt(200))
       } yield {
-        MeasureFunction.measureCallWithResult(TitanDatabaseConnection.insertSourceCode(source, funcName, args, auth, doc))
+        MeasureFunction.measureCallWithResult(TitanDatabaseConnection.insertSourceCode(source, funcName, args, auth, doc, false, true))
       }
       val times = insertionResults.map(_._2)
       val avg   = times.drop(20).foldLeft(0.0)((t,r) => t + r) / times.length
@@ -219,7 +226,7 @@ object TitanGraphObject extends Logging {
       val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
       val numVersions         = versions.length
       val avgImplPerMethod    = numImplementations.toFloat / numMethods
-      val avgVersPerImpl      = numImplementations.toFloat / numVersions
+      val avgVersPerImpl      = numVersions.toFloat / numImplementations
       val authors             = versions.map(_.getProperty[String](Author)).toSet
       val times               = versions.map(_.getProperty[Long](TimeStamp))
       val firstEdit           = times.max
@@ -233,6 +240,7 @@ object TitanGraphObject extends Logging {
       val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
       List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
     }).mkString("\n")
+    graph.commit
     s"Found $numFunction functions, the graph has $numVertices vertices: \n $stringedFunctions"
   }
 }

@@ -27,6 +27,9 @@ trait DataBaseInteractions {
    */
   def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): String
 
+  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
+    docs: String, newImpl: Boolean = false, newVers: Boolean = false): String
+
   /**
    * Searches for the function and returns meta-information on the resulting functions.
    * TODO will be overloaded and has to return weighted results
@@ -41,6 +44,13 @@ trait DataBaseInteractions {
    * @return The names of the functions which contain the searchTerm as a list.
    */
   def findFunctionByName(searchTerm: String, numResults: Int = defaultNumResults): String
+
+  /**
+   * Retrieves the best (after some kind of measure TODO) implementation (with its most recent version) from the graph
+   * @param methodName The method (with arguments) for which the implementation is desired
+   * @return A representation of the implementation
+   */
+  def getBestImplementationForMethod(methodName: String): String
 
   /**    
    * Returns the whole function, could be separated later with just returning meta-info

@@ -30,7 +30,6 @@ libraryDependencies ++= {
   val titanVers     = "0.5.0"
   val parboiledVers = "1.1.5"
   val sprayVers     = "1.3.1"
-  val picklingVers  = "0.8.0"
   Seq(
   	"org.scalatest"           %%  "scalatest"             % scalaTestVers,
     "com.typesafe"            %   "config"                % configVers,
@@ -50,8 +49,8 @@ libraryDependencies ++= {
     "org.parboiled"           %   "parboiled-core"        % parboiledVers,
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
-    "org.scala-lang"          %%  "scala-pickling"        % picklingVers,
-		"org.scalafx" 						%%  "scalafx"               % "1.0.0-R8"
+		"org.scalafx" 						%%  "scalafx"               % "1.0.0-R8",
+		"io.spray" 								%%  "spray-json" 						% "1.3.0"
   )
 }
 

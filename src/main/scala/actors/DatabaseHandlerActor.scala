@@ -23,7 +23,7 @@ import scala.util.control.NonFatal
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
- * Implements all the common behavior which is necessary for an actor to handle requests. These are mostly fall-back
+ * Implements all the common behavior which is necessary for an actor to handle requests. These are mostly fall-back.
  * responses.
  */
 trait HandlerActor
@@ -57,17 +57,7 @@ trait HandlerActor
     case  r @ HttpRequest(GET, Uri.Path("/"),_,_,_) =>
       sender() ! StaticPages.getPage("index")
 
-    case r @ HttpRequest(GET, Uri.Path("/longRequest"),_,_,_) =>
-      Thread.sleep(30000)
-      sender() ! HttpResponse(entity = HttpEntity(`text/html`,
-        <html>
-          <body>
-            <h1> Thanks for waiting 10 seconds </h1>
-          </body>
-        </html>.toString
-      ))
-
-    //see some simple stats
+    //see some simple stats for the server
     case HttpRequest(GET, Uri.Path("/server-stats"), _, _, _) =>
       import akka.pattern.ask
       val client = sender
@@ -92,14 +82,7 @@ trait HandlerActor
           ))
       }
 
-    // TODO this is only to facilitate testing, should NEVER be in the code later
-    case HttpRequest(GET, Uri.Path("/stopHammerTime"), _, _, _) =>
-      sender ! HttpResponse(entity = "Shutting down in 1 second ...")
-      sender ! Http.Close
-      context.system.scheduler.scheduleOnce(1.second) { context.system.shutdown() }
-
-
-    // The general fallback: Try to get the resource from file as a static webpage TODO this returns the http request for debugging purposes, should be simplified later
+    // The general fallback: Try to get the resource from file as a static webpage
     case r: HttpRequest =>
       sender() ! StaticPages.getPage(r)
   }
@@ -165,25 +148,17 @@ class DbHandlerActor extends HandlerActor{
 
   // All the logics on how to handle requests.
   def customReceive: Receive = {
-    //~~~~~~~~~~~~~~~~~` DEMO THINGS TODO make these real functionalities
-    case HttpRequest(GET, Uri.Path("/createExample"),_,_,_) =>
-      val response = TitanGraphObject.instantiateGraphFramework(TitanGraphObject.graph)
-      sender() ! HttpResponse(entity = TitanGraphObject.graph.toString + "\n" + response)
-
     case HttpRequest(GET, Uri.Path("/insertMethod"),_,_,_) =>
       sender() ! HttpResponse(entity = insertFunction)
-
-    case HttpRequest(GET, Uri.Path("/getMethods"),_,_,_) =>
-      info("Got the request to getMethods... gonna route now.")
-      sender() ! HttpResponse(200, entity = findMethodsForFunction("length", 10))
-
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>
       sender() ! HttpResponse(200, entity = findFunctionByName(uri.path.tail.tail.tail.toString))
 
-    case HttpRequest(GET, uri, _, _, _ ) if uri.path.startsWith(Uri.Path("/searchByFunctionName")) =>
-      sender() ! HttpResponse(200, entity = s"Le dickbutt says: Your function '${uri.path.tail.tail.tail}' sucks and that he will not retrieve it at any cost.")
-    //~~~~~~~~~~~~~~~~~~~~~~
+    case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findMethodsForFunction")) =>
+      sender() ! HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString))
+
+    case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/getBestImplementationForMethod")) =>
+      sender() ! HttpResponse(200, entity = getBestImplementationForMethod(uri.path.tail.tail.tail.toString))
 
     // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
@@ -191,6 +166,10 @@ class DbHandlerActor extends HandlerActor{
 
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
+
+    case HttpRequest(PUT, Uri.Path("/insertVersion"),_,enti,_) => {
+      sender() ! HttpResponse(200, entity = insertSourceCode(enti.asString, "simon", List("kuchen", "kaffee"), "simon", "keine auskunft",false, true))
+    }
   }
 }
 
@@ -235,6 +214,7 @@ object StaticPages {
     }
   }
 
+
   /**
    * The static error-response
    */
@@ -261,15 +241,15 @@ object StaticPages {
                      <h1> 404 - Invalid Request! Please make sure your query is correct.</h1>
                      <h2> The query: </h2>
                      <ul>
-                      |              <li>GET Request to the address: ${r.uri}</li>
-                      |              <li>headers:
-                      |                <ul>
-                      |                  ${r.headers}
-                      |                </ul>
-                      |              </li>
-                      |              <li>The entity in the request: ${r.entity}</li>
-                      |              <li>The protocol used: ${r.protocol}</li>
-                      |            </ul>
+                       <li>GET Request to the address: ${r.uri}</li>
+                       <li>headers:
+                         <ul>
+                           ${r.headers}
+                         </ul>
+                       </li>
+                       <li>The entity in the request: ${r.entity}</li>
+                       <li>The protocol used: ${r.protocol}</li>
+                     </ul>
 
                      <img src = "http://www.likeplusone.org/feelsbadman.png"
                           alt="WatDatDenn?"
