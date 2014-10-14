@@ -23,7 +23,7 @@ import java.util
  * on it
  */
 trait TitanDbInteractions
-  extends DataBaseInteractions
+  extends DbInteractions
   with    Logging {
 
   import TitanDatabaseConnection._
@@ -225,9 +225,9 @@ object TitanDatabaseConnection extends Logging{
       // Decide if there exists a method with the provided arguments, if not create the method vertex
       debug("Setting up the methodVertex")
       //var vertex: Vertex = null
-      val methodOption = functionVertex.getEdges(Direction.OUT, MethodOf).collect{
-        case e: Edge if (args == e.getVertex(Direction.IN).getProperty[java.util.ArrayList[String]](Arguments).toList)
-          => e.getVertex(Direction.IN)
+      val methodOption = functionVertex.getVertices(Direction.OUT, MethodOf).collect{
+        case v: Vertex if (args == v.getProperty[java.util.ArrayList[String]](Arguments).toList)
+          => v
       }.headOption
 
       val methodVertex = methodOption match {

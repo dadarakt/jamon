@@ -16,10 +16,12 @@ import spray.can.server.Stats
 
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
-import database.{TitanGraphObject, TitanDatabaseConnection, TitanDbInteractions}
+import database.TitanDbInteractions
 import scala.io.Source
 import java.io.FileNotFoundException
-import scala.util.control.NonFatal
+
+import spray.json._
+import DefaultJsonProtocol._
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
@@ -34,6 +36,8 @@ trait HandlerActor
   import context.dispatcher
   implicit val timeout: Timeout = 3.seconds
   implicit val system           = context.system
+
+  val serverDebug = true
 
   // Actors which mix in this trait will have to define their customReceive which can override anything from default-
   // receive and add new behaviro
@@ -58,7 +62,7 @@ trait HandlerActor
       sender() ! StaticPages.getPage("index")
 
     //see some simple stats for the server
-    case HttpRequest(GET, Uri.Path("/server-stats"), _, _, _) =>
+    case HttpRequest(GET, Uri.Path("/server-stats"), _, _, _) if serverDebug =>
       import akka.pattern.ask
       val client = sender
       context.actorSelection("/user/IO-HTTP/listener-0") ? Http.GetStats onSuccess {
@@ -130,6 +134,27 @@ object DbDownHandlerActor {
   }
 }
 
+/**
+ * Case class used for serialization of requests.
+ * @param code
+ * @param funcName
+ * @param args
+ * @param author
+ * @param docs
+ * @param newImpl
+ * @param newVers
+ */
+case class InsertionRequest(code: String, funcName: String, args: List[String], author: String,
+                            docs: String, newImpl: Boolean = false, newVers: Boolean = false) {
+}
+
+
+/**
+ * Used to implicitly parse all incoming json requests to scala objects
+ */
+object InsertionRequestJsonProtocol extends DefaultJsonProtocol {
+  implicit val insertionRequestFormat = jsonFormat7(InsertionRequest)
+}
 
 /**
  * Defines a set of possible interactions with the database.
@@ -139,12 +164,17 @@ object DbDownHandlerActor {
  *
  * This level of abstraction is introduced in order to allow the backend to be interchangeable from what the
  * http-server does.
+ *
+ * Since at this level the interface has to be made, serialization of incoming contents also takes place here, while
+ * the returned strings will already be serialized from the backend.
  */
 class DbHandlerActor extends HandlerActor{
 
   // On instantiation a trait of this kind has to be mixed in, which contains the implementations for the logics
   // defined below.
-  this : database.DataBaseInteractions =>
+  this : database.DbInteractions =>
+
+  import InsertionRequestJsonProtocol._
 
   // All the logics on how to handle requests.
   def customReceive: Receive = {
@@ -167,14 +197,25 @@ class DbHandlerActor extends HandlerActor{
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
       sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
 
-    case HttpRequest(PUT, Uri.Path("/insertVersion"),_,enti,_) => {
-      sender() ! HttpResponse(200, entity = insertSourceCode(enti.asString, "simon", List("kuchen", "kaffee"), "simon", "keine auskunft",false, true))
-    }
+    // INSERTION of code. A first check of confirmity to the interface is made.
+    case HttpRequest(PUT, Uri.Path("/insertVersion"),_,entity,_) =>
+      if(entity.isEmpty) {
+        sender() ! HttpResponse(404, entity = "Please provide an entity containing the code to insert.")
+      } else {
+        val contents = entity.asString.parseJson.convertTo[InsertionRequest]
+        info(s"number of arguments provided in the call is $contents.length")
+        sender() ! HttpResponse(200, entity = insertSourceCode(entity.asString, "simon", List("kuchen", "kaffee"), "simon", "keine auskunft",false, true))
+      }
+
   }
 }
 
+
+
+
+
 object DbHandlerActor {
-  // TODO this is just a bit sluggish
+  // Mix in the implementation used in the backend
   def titanProps: Props = Props(new DbHandlerActor with TitanDbInteractions)
 }
 

@@ -180,13 +180,14 @@ object TitanGraphObject extends Logging {
 
   var hasShitInGraph = false
   /**
-   * Prints out everything in a graph. Only used for testing. 
+   * Prints out everything in a graph. Only used for testing. DOES not work for larger datasets because of the amount of
+   * vertices which have to be traversed and also the memory pressure and file writing processes.
    */
   def graphToString: String = {
 
     if(!hasShitInGraph) {
       hasShitInGraph = true
-      val numNodes = 10000
+      val numNodes = 100
       def randomString(n: Int, alphabet: String = "abcdefghijklmnopqrstuvwxyz /-"): String =
         Stream.continually(Random.nextInt(alphabet.size)).map(alphabet).take(n).mkString
 
@@ -196,12 +197,14 @@ object TitanGraphObject extends Logging {
 
       val insertionResults = for {
         i <- 0 until numNodes
-        funcName  = functionNames(i % functionNames.length)
-        args      = (1 to Random.nextInt(6)).map(arguments(_)).toList
+        funcName  = "wurst"
+        aha = arguments(Random.nextInt(arguments.length))
+        args      = (1 to Random.nextInt(6)).map(_ => arguments(Random.nextInt(arguments.length))).toList
         auth      = authors(Random.nextInt(authors.length))
         source    = randomString(500 + Random.nextInt(500))
         doc       = randomString(200 + Random.nextInt(200))
       } yield {
+        graph.commit
         MeasureFunction.measureCallWithResult(TitanDatabaseConnection.insertSourceCode(source, funcName, args, auth, doc, false, true))
       }
       val times = insertionResults.map(_._2)
@@ -212,35 +215,42 @@ object TitanGraphObject extends Logging {
       graph.commit
     }
 
-    info("Printing the graph")
+    info("Printing the graph...")
+
     val numVertices = graph.query.vertices.size
-    val functions = functionVertex.get.getVertices(Direction.OUT, IsFunction).toList
-    val numFunction = functions.length
-    val stringedFunctions = functions.map( functionV => {
-      // Gather data
-      val name                = functionV.getProperty[String](FunctionName)
-      val methods             = functionV.getVertices(Direction.OUT).toList
-      val numMethods          = methods.length
-      val implementations     = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
-      val numImplementations  = implementations.length
-      val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
-      val numVersions         = versions.length
-      val avgImplPerMethod    = numImplementations.toFloat / numMethods
-      val avgVersPerImpl      = numVersions.toFloat / numImplementations
-      val authors             = versions.map(_.getProperty[String](Author)).toSet
-      val times               = versions.map(_.getProperty[Long](TimeStamp))
-      val firstEdit           = times.max
-      val lastEdit            = times.min
-      val methodi = methods.map(v => s"$name(${v.getProperty[java.util.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
-      // Create the string to show the data
-      val methodsString       = s"\t -- Methods for this function: $methodi"
-      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"
-      val versionString       = s"\t -- Num versions: $numVersions, avg versions per implementation: $avgVersPerImpl"
-      val authorString        = s"\t -- Authors for this function: ${authors.mkString(", ")}"
-      val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
-      List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
-    }).mkString("\n")
-    graph.commit
-    s"Found $numFunction functions, the graph has $numVertices vertices: \n $stringedFunctions"
+    info(s"There are $numVertices vertices in the graph.")
+    s"This is the amount of vertices in the graph: $numVertices"
+//    val start = System.currentTimeMillis
+//    val numVertices = graph.query.vertices.size
+//    val functions = functionVertex.get.getVertices(Direction.OUT, IsFunction).toList
+//    val numFunction = functions.length
+//    val stringedFunctions = functions.map( functionV => {
+//      // Gather data
+//      val name                = functionV.getProperty[String](FunctionName)
+//      val methods             = functionV.getVertices(Direction.OUT).toList
+//      val numMethods          = methods.length
+//      val implementations     = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
+//      val numImplementations  = implementations.length
+//      val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
+//      val numVersions         = versions.length
+//      val avgImplPerMethod    = numImplementations.toFloat / numMethods
+//      val avgVersPerImpl      = numVersions.toFloat / numImplementations
+//      val authors             = versions.map(_.getProperty[String](Author)).toSet
+//      val times               = versions.map(_.getProperty[Long](TimeStamp))
+//      val firstEdit           = times.max
+//      val lastEdit            = times.min
+//      val methodi = methods.map(v => s"$name(${v.getProperty[java.util.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
+//      // Create the string to show the data
+//      val methodsString       = s"\t -- Methods for this function: $methodi"
+//      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"
+//      val versionString       = s"\t -- Num versions: $numVersions, avg versions per implementation: $avgVersPerImpl"
+//      val authorString        = s"\t -- Authors for this function: ${authors.mkString(", ")}"
+//      val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
+//      List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
+//    }).mkString("\n")
+//
+//    info(stringedFunctions)
+//    graph.commit
+//    s"Found $numFunction functions, the graph has $numVertices vertices in ${System.currentTimeMillis - start}: \n $stringedFunctions"
   }
 }

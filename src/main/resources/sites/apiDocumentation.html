@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="Julia-DB API" content="">
+    <meta name="Jannis Eichborn" content="">
+    <link rel="icon" href="https://pbs.twimg.com/profile_images/3331406046/647b7cf75cb5662b96901bc521968e94_400x400.png">
+
+    <title>Julia-DB API</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="jumbotron.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../../assets/js/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+</head>
+
+<body>
+
+<div class="navbar navbar-inverse navbar-fixed-top" role="navigation" style="background-color:WHITE">
+    <div class="container">
+        <div class="navbar-header">
+            <!--<button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target=".navbar-collapse">-->
+            <!--<span class="sr-only">Toggle navigation</span>-->
+            <!--<span class="icon-bar"></span>-->
+            <!--<span class="icon-bar"></span>-->
+            <!--<span class="icon-bar"></span>-->
+            <!--</button>-->
+            <a class="navbar-brand" href="http://www.julia-lang.org"><img style="width:50px" src="http://www.tog.ie/wp-content/uploads/2014/05/Julia_programming_language_logo-1.png"/></a>
+        </div>
+        <!--<div class="navbar-collapse collapse">-->
+        <!--<form class="navbar-form navbar-right" role="form">-->
+        <!--<div class="form-group">-->
+        <!--<input type="text" placeholder="Email" class="form-control">-->
+        <!--</div>-->
+        <!--<div class="form-group">-->
+        <!--<input type="password" placeholder="Password" class="form-control">-->
+        <!--</div>-->
+        <!--<button type="submit" class="btn btn-success">Sign in</button>-->
+        <!--</form>-->
+        <!--</div>&lt;!&ndash;/.navbar-collapse &ndash;&gt;-->
+    </div>
+</div>
+
+
+<div class="container">
+    <!-- Example row of columns -->
+    <div class="row">
+        <div class="col-md-12">
+            <h2>________</h2>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <h2>Search for functions by their name</h2>
+            <h5>getImplementationForMethod/searchTerm</h5>
+            <p>
+                Searches for the given term in function names only. Per default returns a list of all function names
+                which include the search term. These names can then be used to retrieve methods for a explicit function
+                using the 'findMethodsForFunction' resource.
+            </p>
+        </div>
+        <div class="col-md-4">
+            <h2>Find Methods for a function</h2>
+            <h5>findMethodsForFunction/-functionName-</h5>
+            <p>
+                Given the fully qualified name of the function it will return a list of Julia method signatures which
+                exist for the given function. The results can then be used to retrieve a particular implementation with
+                source code for a particular method using the 'getImplementationForMethod' resource.
+            </p>
+        </div>
+        <div class="col-md-4">
+            <h2>Get an implementation of a method</h2>
+            <h5>getImplementationForMethod/-methodName-</h5>
+            <p>
+                Allows for parameterized retrieval of source code of a method. Since there might be several implementations
+                of the same method the user can decide if he wants to choose the most popular, the most recent, the fastest
+                or most memory-efficient implementation.
+            </p>
+        </div>
+    </div>
+    <hr>
+
+    <footer>
+        <p>&copy; Jannis Eichborn 2014</p>
+    </footer>
+</div> <!-- /container -->
+
+
+<!-- Bootstrap core JavaScript
+================================================== -->
+<!-- Placed at the end of the document so the pages load faster -->
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="../../dist/js/bootstrap.min.js"></script>
+<!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+<script src="../../assets/js/ie10-viewport-bug-workaround.js"></script>
+</body>
+</html>

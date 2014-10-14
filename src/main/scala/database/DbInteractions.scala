@@ -16,7 +16,7 @@ import util.JuliaTypes._
  * This can be seen as static methods which can be called by actors on their mixed in implementation to do
  * transactions with the database. The passed back String represents the serialized answer to the query.
  */
-trait DataBaseInteractions {
+trait DbInteractions {
 
   final val defaultNumResults = 50
 

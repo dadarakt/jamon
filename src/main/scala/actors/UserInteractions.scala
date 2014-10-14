@@ -1,6 +1,6 @@
 package actors
 
-import database.DataBaseInteractions
+import database.DbInteractions
 
 /**
  * Created by Jannis on 10/5/14.
@@ -14,7 +14,7 @@ import database.DataBaseInteractions
 trait UserInteractions {
 
   // Needs the database-interactions to make the requests
-  this: DataBaseInteractions =>
+  this: DbInteractions =>
 
   //<<<<<<< Functions to FIND things >>>>>>>>>
   // Here only metadata are returned to show basic information on what exists in the database
