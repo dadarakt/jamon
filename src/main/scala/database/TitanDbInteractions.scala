@@ -48,7 +48,7 @@ trait TitanDbInteractions
     TitanDatabaseConnection.findFunctionByNameFuzzy(functionName, numResults)
   }
 
-  def findMethodsForFunction(functionName: String, numResults: Int = maxNumResults): String = {
+  def findMethodsForFunction(functionName: String, numResults: Int): List[String] = {
     TitanDatabaseConnection.findMethodsForFunction(functionName, numResults)
   }
 
@@ -113,19 +113,20 @@ object TitanDatabaseConnection extends Logging{
   }
 
 
-  def findMethodsForFunction(func: String, numResults: Int): String = {
+  def findMethodsForFunction(func: String, numResults: Int): List[String] = {
     val start = System.currentTimeMillis
     debug(s"Getting $numResults methods for function $func")
     val n = if(numResults < maxNumResults) numResults else maxNumResults
     graph.getVertices(FunctionName, func).headOption match {
       case Some(v) =>
-        val ans = s"${v.getVertices(Direction.OUT, MethodOf).take(n).map(v => s"$func(${v.getProperty[util.ArrayList[String]](Arguments).mkString(", ")})").mkString(sep)}"
+        val ans = v.getVertices(Direction.OUT, MethodOf).
+          take(n).map(v => s"$func(${v.getProperty[util.ArrayList[String]](Arguments).mkString(", ")})")
         graph.commit
         info(s"Retrieval of the methods for function $func took ${System.currentTimeMillis - start} ms")
-        ans
+        ans.toList
       case None =>
         graph.commit
-        s"Could not find the function '$func' in the graph."
+        List()
     }
   }
 

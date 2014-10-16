@@ -20,11 +20,11 @@ trait DbInteractions {
   final val defaultNumResults = 50
 
   /**
-   * Returns all methods for a particular function which is given as a name.
+   * Returns all methods for the given functionName which has to be a precise match.
    * @param function The name of the function
    * @return A list of all method-signatures which belong to the function.
    */
-  def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): String
+  def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): List[String]
 
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
     docs: String, newImpl: Boolean = false, newVers: Boolean = false): String

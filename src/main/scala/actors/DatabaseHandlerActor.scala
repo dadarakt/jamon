@@ -165,21 +165,25 @@ class DbHandlerActor extends HandlerActor{
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>
       val response = findFunctionByName(uri.path.tail.tail.tail.toString).toJson.prettyPrint
-      sender() ! HttpResponse(200, entity = response)
-
+      sender() !
+        HttpResponse(200, entity = response)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findMethodsForFunction")) =>
-      sender() ! HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString))
+      sender() !
+        HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString).toJson.prettyPrint)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/getBestImplementationForMethod")) =>
-      sender() ! HttpResponse(200, entity = getBestImplementationForMethod(uri.path.tail.tail.tail.toString))
+      sender() !
+        HttpResponse(200, entity = getBestImplementationForMethod(uri.path.tail.tail.tail.toString).toJson.prettyPrint)
 
     // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
-      sender() ! HttpResponse(entity = dbToString)
+      sender() !
+        HttpResponse(entity = dbToString)
 
     case HttpRequest(GET, Uri.Path("/canHasGraph"),_,_,_) =>
-      sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
+      sender() !
+        HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
 
     // INSERTION of code. A first check of confirmity to the interface is made.
     case HttpRequest(PUT, Uri.Path("/insertCode"),_,entity,_) =>

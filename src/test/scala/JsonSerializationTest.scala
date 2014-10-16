@@ -3,6 +3,8 @@ import org.scalatest.FunSuite
 
 /**
  * Created by Jannis on 10/16/14.
+ *
+ * Tests the expected behavior for the json parsing of function input
  */
 
 import spray.json._
