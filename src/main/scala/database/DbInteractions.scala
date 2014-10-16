@@ -24,7 +24,7 @@ trait DbInteractions {
    * @param function The name of the function
    * @return A list of all method-signatures which belong to the function.
    */
-  def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): List[String]
+  def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): List[MethodReturn]
 
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
     docs: String, newImpl: Boolean = false, newVers: Boolean = false): String
@@ -90,12 +90,14 @@ case class InsertionRequest(signature: JuliaSignature,
                             newImplementation: Boolean  = false,
                             newVersion: Boolean         = false)
 
+case class MethodReturn(name: String, id: Int)
 
 /**
  * Used to implicitly parse all incoming json requests to scala objects
  */
 object DatabaseJsonProtocols extends DefaultJsonProtocol {
   implicit val juliaArguemntFormat    = format3(JuliaArgument.apply)
+  implicit val methodReturnFormat     = format2(MethodReturn)
   implicit val juliaSignatureFormat   = format3(JuliaSignature)
   implicit val juliaFunctionFormat    = format2(JuliaFunction)
   implicit val insertionRequestFormat = format6(InsertionRequest)

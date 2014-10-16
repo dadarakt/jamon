@@ -164,17 +164,17 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = insertFunction)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>
-      val response = findFunctionByName(uri.path.tail.tail.tail.toString).toJson.prettyPrint
+      val response = findFunctionByName(uri.path.tail.tail.tail.toString).toJson.compactPrint
       sender() !
         HttpResponse(200, entity = response)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findMethodsForFunction")) =>
       sender() !
-        HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString).toJson.prettyPrint)
+        HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString).toJson.compactPrint)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/getBestImplementationForMethod")) =>
       sender() !
-        HttpResponse(200, entity = getBestImplementationForMethod(uri.path.tail.tail.tail.toString).toJson.prettyPrint)
+        HttpResponse(200, entity = getBestImplementationForMethod(uri.path.tail.tail.tail.toString).toJson.compactPrint)
 
     // General messages.
     case HttpRequest(GET, Uri.Path("/printGraph"),_,_,_) =>
