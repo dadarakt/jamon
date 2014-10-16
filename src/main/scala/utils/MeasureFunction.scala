@@ -1,4 +1,4 @@
-package util
+package utils
 
 /**
  * Can be used when function calls need to be timed for testing

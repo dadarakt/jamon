@@ -8,7 +8,7 @@ import org.scalatest.{BeforeAndAfterAll, FunSuite}
 import scala.util.Random
 import TitanGraphObject._
 import scala.collection.JavaConversions._
-import util.MeasureFunction
+import utils.MeasureFunction
 import TitanDatabaseConnection.{removeFunction, insertSourceCode}
 
 class TitanDbInteractionsTest extends FunSuite with BeforeAndAfterAll{
@@ -56,9 +56,9 @@ class TitanDbInteractionsTest extends FunSuite with BeforeAndAfterAll{
     val graph = graphObject.graph
     val newVers =TitanDatabaseConnection.insertSourceCode(code, funcName, args, auth, doc, false, true)
     assert(vers.getProperty[String](Code) === "overwritten")
-    assert(newVers.getProperty[String](Code) === code)
+    assert(newVers.get.getProperty[String](Code) === code)
     assert(impl.getEdges(Direction.OUT, VersionOf).size === 2)
-    assert(vers.getProperty[Long](TimeStamp) < newVers.getProperty[Long](TimeStamp))
+    assert(vers.getProperty[Long](TimeStamp) < newVers.get.getProperty[Long](TimeStamp))
   }
 
   test("Insert a new implementation, make sure there is a new one and the old one still exists.") {

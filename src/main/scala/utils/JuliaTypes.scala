@@ -1,4 +1,4 @@
-package util
+package utils
 
 /**
  * Created by Jannis on 4/8/14.
@@ -7,7 +7,7 @@ package util
  * and structures used in the system.
  */
 
-import util.JuliaTypes._
+import utils.JuliaTypes._
 
 /**
  * The input to the system which is one piece of work. Has all needed meta-information to be used in the database later
@@ -44,20 +44,28 @@ object JuliaTypes {
    */
   sealed trait JuliaCode
 
+
   /**
    * Represents a julia argument as a triplet of (symbol-)name, type, and default value.
+   * (type, defaultValue, argumentName)
    */
-  type JuliaArgument = (String, String, String)
+  case class JuliaArgument(name: String, typ: String, default: Option[String])
+
+  object JuliaArgument {
+    def apply(name: String, typ: String, default: Any): JuliaArgument = JuliaArgument(name, typ, Some(default.toString))
+  }
+
 
   /**
    * Represents a julia argument which does not have a name anymore as a tuple of the type and default value
+   *
    */
-  type JuliaAbstractArgument = (String, String)
+  type JuliaAbstractArgument = (String, Option[Any])
 
   /**
    * Represents a body of a function as an AST parsed into XML
    */
-  type JuliaCodeBody = xml.Node
+  type JuliaCodeBody = String
 
   type JuliaFunctionName = String
 
@@ -65,28 +73,17 @@ object JuliaTypes {
 
   type Metadata = String // TODO should become something more meaningful
 
-  /**
-   * Defines the arguments which a function can get. Has ordered arguments and unordered keywordArguments.
-   * @param arguments
-   * @param keywordArguments
-   */
-  case class JuliaArguments(arguments: List[JuliaArguments], keywordArguments: Set[JuliaArguments])
-
-
-  /**
-   * Arguments without (symbol-)names.
-   * @param arguments
-   */
-  case class JuliaAbstractArguments(arguments: List[JuliaAbstractArguments], keywordArguments: Set[JuliaArguments])
 
 
   /**
    * Defines the signature which is to be used for classification of the function.
    * @param name The symbol for the function.
    * @param arguments The >ordered< list of arguments to the function.
-   * @param keywordArguments The >unordered< set of keyword arguments to the function.
+   * @param varargs Optional variable argument list as (name, type)
    */
-  case class JuliaSignature(name: String, arguments: List[JuliaArgument], keywordArguments: Set[JuliaArgument])
+  case class JuliaSignature(name: String,
+                            arguments: List[JuliaArgument],
+                            varargs: Option[JuliaArgument])
     extends JuliaCode
 
   /**

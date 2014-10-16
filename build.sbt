@@ -49,8 +49,7 @@ libraryDependencies ++= {
     "org.parboiled"           %   "parboiled-core"        % parboiledVers,
     "org.parboiled"           %%   "parboiled-scala"      % parboiledVers,
     "io.spray"                %   "spray-can"             % sprayVers,
-		"org.scalafx" 						%%  "scalafx"               % "1.0.0-R8",
-		"io.spray" 								%%  "spray-json" 						% "1.3.0"
+		"org.scalafx" 						%%  "scalafx"               % "1.0.0-R8"
   )
 }
 

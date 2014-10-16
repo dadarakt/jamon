@@ -1,6 +1,6 @@
 package database
 
-import _root_.util.MeasureFunction
+import _root_.utils.MeasureFunction
 import grizzled.slf4j.Logging
 import scala.util.{Random, Failure, Success, Try}
 import com.thinkaurelius.titan.core._
@@ -239,7 +239,7 @@ object TitanGraphObject extends Logging {
 //      val times               = versions.map(_.getProperty[Long](TimeStamp))
 //      val firstEdit           = times.max
 //      val lastEdit            = times.min
-//      val methodi = methods.map(v => s"$name(${v.getProperty[java.util.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
+//      val methodi = methods.map(v => s"$name(${v.getProperty[java.utils.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
 //      // Create the string to show the data
 //      val methodsString       = s"\t -- Methods for this function: $methodi"
 //      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"

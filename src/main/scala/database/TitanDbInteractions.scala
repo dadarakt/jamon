@@ -1,22 +1,17 @@
 package database
 
-import _root_.util.MeasureFunction
+import _root_.utils.MeasureFunction
 import grizzled.slf4j.Logging
 import com.thinkaurelius.titan.core._
 import scala.util.control.NonFatal
-import scala.util.{Random, Try}
 import com.tinkerpop.blueprints._
-import com.thinkaurelius.titan.core.attribute.Cmp._
-import _root_.util.JuliaTypes.JuliaSignature
 import com.tinkerpop.blueprints.util.ElementHelper
-import com.thinkaurelius.titan.core.attribute.{Text, Contain, Geoshape}
 import scala.collection.JavaConversions._
-import com.thinkaurelius.titan.graphdb.query.TitanPredicate
-import com.thinkaurelius.titan.core.util.TitanCleanup
 import scala.Some
-import scala.util.{Failure, Success}
 import TitanGraphObject._
 import java.util
+import com.thinkaurelius.titan.core.attribute.Text._
+import MeasureFunction._
 
 /**
  * Defines methods to read data from a Titan-Database for an actor. Does not handle the resource, but defines operations
@@ -49,7 +44,7 @@ trait TitanDbInteractions
       "DB could not be accessed. Please try again later."
   }
 
-  def findFunctionByName(functionName: String, numResults: Int): String = {
+  def findFunctionByName(functionName: String, numResults: Int): List[String] = {
     TitanDatabaseConnection.findFunctionByNameFuzzy(functionName, numResults)
   }
 
@@ -68,6 +63,13 @@ trait TitanDbInteractions
     val vertex  = TitanDatabaseConnection.insertSourceCode(source, funcName, args, author, docs, newImpl, newVers)
     s"Inserted the data into vertex $vertex"
   }
+  
+  def insertSourceCode(r: InsertionRequest): String = {
+    //val vertex = TitanDatabaseConnection.insertSourceCode(r.code, r.funcName, r.args, r.author, r.docs, r.newImpl, r.newVers)
+    val vertex = "wurst"
+    s"Inserted the data into vertex $vertex"
+  }
+  
 
   // TODO these need to be implemented
   def find = ???
@@ -87,20 +89,27 @@ object TitanDatabaseConnection extends Logging{
   final val sep               = "§"
   final val maxNumResults     = 1000
 
-  def findFunctionByNameFuzzy(func: String, numResults: Int): String = {
+  def findFunctionByNameFuzzy(func: String, numResults: Int): List[String] = {
     val start = System.currentTimeMillis
     debug(s"Trying to find functions for the string $func")
-    if(func.isEmpty) return "No search term given"
+
+    // Make sure to get useful input
+    if(func.isEmpty) return List[String]()
     val n = if(numResults < maxNumResults) numResults else maxNumResults
-    val vertices = graph.query.has(FunctionName, com.thinkaurelius.titan.core.attribute.Text.CONTAINS_REGEX, s".*$func.*").vertices.take(n)
-    val ans = vertices.collect {
-      case v if v.getProperty[String](FunctionName) != null =>
-        v.getProperty[String](FunctionName)
+
+    // Retrieve all vertices and get the fully qualified function names
+    try {
+      val (vertices, retrieveTime)  = measureCallWithResult(graph.query.has(FunctionName, CONTAINS_REGEX, s".*$func.*").vertices.view)
+      val (results, toListTime)     = measureCallWithResult(vertices.take(n).map(_.getProperty[String](FunctionName)).toList.filterNot(_ == null))
+      graph.commit
+      info(s"Search for $func took ${System.currentTimeMillis - start} ms in total. Retrieval: $retrieveTime, Processing: $toListTime")
+      results
+    } catch {
+        case NonFatal(ex) => warn(s"There was an error while searching for the function name: $func")
+        graph.rollback
+        error(s"Error during retrieval, $ex")
+        List()
     }
-    //val aha =  vertices.map(_.getProperty[String](FunctionName)).mkString(sep)
-    graph.commit
-    info(s"Search for $func took ${System.currentTimeMillis - start} ms")
-    if(ans.isEmpty) "No matching function found" else ans.mkString(sep)
   }
 
 
@@ -196,7 +205,7 @@ object TitanDatabaseConnection extends Logging{
    * @return
    */
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
-                       docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): Vertex = {
+                       docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): Option[Vertex] = {
     // First instantiate the vertex with the provided data
     info(s"$author started to insert a new implementation into the graph")
 
@@ -318,13 +327,13 @@ object TitanDatabaseConnection extends Logging{
 
       graph.commit()
       info("Insertion of data was successful")
-      newVers
+      Some(newVers)
 
     } catch {
       case NonFatal(ex) =>
         warn(s"Could not insert the vertex into the database, $ex")
         graph.rollback
-        throw ex
+        None
     }
   }
 

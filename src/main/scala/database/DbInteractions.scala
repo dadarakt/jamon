@@ -4,10 +4,9 @@ package database
  * Created by Jannis on 5/1/14.
  */
 
-import com.thinkaurelius.titan.core.TitanGraph
-import grizzled.slf4j.Logging
-import scala.util.{Try, Failure, Success}
-import util.JuliaTypes._
+import utils.JuliaTypes._
+import spray.json._
+import DefaultJsonProtocol._
 
 /**
  * Defines the interface to the database which abstracts over the backend of a particular database.
@@ -30,6 +29,8 @@ trait DbInteractions {
   def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
     docs: String, newImpl: Boolean = false, newVers: Boolean = false): String
 
+  def insertSourceCode(request: InsertionRequest): String
+
   /**
    * Searches for the function and returns meta-information on the resulting functions.
    * TODO will be overloaded and has to return weighted results
@@ -43,7 +44,7 @@ trait DbInteractions {
    * @param numResults Additional parameter to limit the number of results returned. Cannot exceed 1000.
    * @return The names of the functions which contain the searchTerm as a list.
    */
-  def findFunctionByName(searchTerm: String, numResults: Int = defaultNumResults): String
+  def findFunctionByName(searchTerm: String, numResults: Int = defaultNumResults): List[String]
 
   /**
    * Retrieves the best (after some kind of measure TODO) implementation (with its most recent version) from the graph
@@ -70,6 +71,34 @@ trait DbInteractions {
 
   // ----- Development -----
   def dbToString: String
+}
+
+/**
+ * Case class used for serialization of requests.
+ * @param code
+ * @param funcName
+ * @param args
+ * @param author
+ * @param docs
+ * @param newImplementation
+ * @param newVersion
+ */
+case class InsertionRequest(signature: JuliaSignature,
+                            code: String,
+                            author: String              = "anonymous",
+                            documentation: String       = "No documentation available",
+                            newImplementation: Boolean  = false,
+                            newVersion: Boolean         = false)
+
+
+/**
+ * Used to implicitly parse all incoming json requests to scala objects
+ */
+object DatabaseJsonProtocols extends DefaultJsonProtocol {
+  implicit val juliaArguemntFormat    = format3(JuliaArgument.apply)
+  implicit val juliaSignatureFormat   = format3(JuliaSignature)
+  implicit val juliaFunctionFormat    = format2(JuliaFunction)
+  implicit val insertionRequestFormat = format6(InsertionRequest)
 }
 
 

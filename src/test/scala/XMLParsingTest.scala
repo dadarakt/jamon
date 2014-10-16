@@ -2,11 +2,11 @@
 // * Tests the xml parsing used to read xml from files or the serial connection to the client
 // */
 //
-////import util.{Requests, JuliaFunctions}
-//import util.XMLParsing._
+////import utils.{Requests, JuliaFunctions}
+//import utils.XMLParsing._
 //import scala.xml.Node
 //import org.scalatest.FunSuite
-//import scala.util.{Try, Success, Failure}
+//import scala.utils.{Try, Success, Failure}
 //
 //class XMLParsingTest extends FunSuite {
 //  // Get all the data for testing from below
@@ -363,7 +363,7 @@
 //                </expr>"""
 //  )
 //
-//  val supposedQuery = util.Query(1.396967410888E12,1.397227557E12,"simon","EDITOR","simon","0.2.1",Requests(List("InsertCode")),JuliaFunctions(List(<expr head="function">
+//  val supposedQuery = utils.Query(1.396967410888E12,1.397227557E12,"simon","EDITOR","simon","0.2.1",Requests(List("InsertCode")),JuliaFunctions(List(<expr head="function">
 //    <args>
 //      <expr head="call">
 //        <args symbol="resizeFunc"/>

@@ -16,12 +16,14 @@ import spray.can.server.Stats
 
 import scala.concurrent.duration._
 import grizzled.slf4j.Logging
-import database.TitanDbInteractions
+import database.{InsertionRequest, TitanDbInteractions}
 import scala.io.Source
 import java.io.FileNotFoundException
 
 import spray.json._
 import DefaultJsonProtocol._
+import database.DatabaseJsonProtocols._
+import scala.util.control.NonFatal
 
 /**
  * A trait which is to be mixed into all actors that serve the http server for handling incoming requests.
@@ -134,27 +136,7 @@ object DbDownHandlerActor {
   }
 }
 
-/**
- * Case class used for serialization of requests.
- * @param code
- * @param funcName
- * @param args
- * @param author
- * @param docs
- * @param newImpl
- * @param newVers
- */
-case class InsertionRequest(code: String, funcName: String, args: List[String], author: String,
-                            docs: String, newImpl: Boolean = false, newVers: Boolean = false) {
-}
 
-
-/**
- * Used to implicitly parse all incoming json requests to scala objects
- */
-object InsertionRequestJsonProtocol extends DefaultJsonProtocol {
-  implicit val insertionRequestFormat = jsonFormat7(InsertionRequest)
-}
 
 /**
  * Defines a set of possible interactions with the database.
@@ -174,7 +156,7 @@ class DbHandlerActor extends HandlerActor{
   // defined below.
   this : database.DbInteractions =>
 
-  import InsertionRequestJsonProtocol._
+  import DefaultJsonProtocol._
 
   // All the logics on how to handle requests.
   def customReceive: Receive = {
@@ -182,7 +164,9 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = insertFunction)
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findFunctionByName")) =>
-      sender() ! HttpResponse(200, entity = findFunctionByName(uri.path.tail.tail.tail.toString))
+      val response = findFunctionByName(uri.path.tail.tail.tail.toString).toJson.prettyPrint
+      sender() ! HttpResponse(200, entity = response)
+
 
     case HttpRequest(GET, uri,_,_,_) if uri.path.startsWith(Uri.Path("/findMethodsForFunction")) =>
       sender() ! HttpResponse(200, entity = findMethodsForFunction(uri.path.tail.tail.tail.toString))
@@ -198,21 +182,27 @@ class DbHandlerActor extends HandlerActor{
       sender() ! HttpResponse(entity = "Of course you could. IF I HAD ANY!!")
 
     // INSERTION of code. A first check of confirmity to the interface is made.
-    case HttpRequest(PUT, Uri.Path("/insertVersion"),_,entity,_) =>
+    case HttpRequest(PUT, Uri.Path("/insertCode"),_,entity,_) =>
+      info("someone wants to insert")
       if(entity.isEmpty) {
-        sender() ! HttpResponse(404, entity = "Please provide an entity containing the code to insert.")
+        info("no entity provided")
+        sender() ! HttpResponse(400, entity = "Malformed Input. Please provide an entity containing the code to insert.")
       } else {
-        val contents = entity.asString.parseJson.convertTo[InsertionRequest]
-        info(s"number of arguments provided in the call is $contents.length")
-        sender() ! HttpResponse(200, entity = insertSourceCode(entity.asString, "simon", List("kuchen", "kaffee"), "simon", "keine auskunft",false, true))
-      }
+        info(s"got an entity! ${entity.asString}")
 
+        val insertionRequest = try {
+          entity.asString.parseJson.convertTo[InsertionRequest]
+        } catch {
+          case NonFatal(ex) =>
+            error(s"There was an error while parsing the json, $ex")
+            sender() ! HttpResponse(400, entity = "Malformed Input. Failed during parsing.")
+            throw ex
+        }
+        info("Parsed the json succesfully")
+        sender() ! HttpResponse(200, entity = insertSourceCode(insertionRequest))
+      }
   }
 }
-
-
-
-
 
 object DbHandlerActor {
   // Mix in the implementation used in the backend
