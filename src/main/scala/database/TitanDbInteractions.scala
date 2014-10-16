@@ -12,6 +12,10 @@ import TitanGraphObject._
 import java.util
 import com.thinkaurelius.titan.core.attribute.Text._
 import MeasureFunction._
+import utils.JuliaTypes.{JuliaArgument, JuliaSignature}
+import spray.json._
+import DefaultJsonProtocol._
+import DatabaseJsonProtocols._
 
 /**
  * Defines methods to read data from a Titan-Database for an actor. Does not handle the resource, but defines operations
@@ -27,7 +31,7 @@ trait TitanDbInteractions
   val graphObject = TitanGraphObject
 
   // Reference to the available graph
-  def graph: Option[TitanGraph] =
+  def graph: Option[TitanGraph] = {
     try {
       Some(graphObject.graph)
     } catch {
@@ -35,6 +39,7 @@ trait TitanDbInteractions
         error(s"Could not set up the graph for interactions in TitanDbInteractions line 38, $e")
         None
     }
+  }
 
   def dbToString: String = graph match {
     case Some(graph) =>
@@ -58,11 +63,11 @@ trait TitanDbInteractions
     TitanDatabaseConnection.getBestImplementation(funcName, args)
   }
 
-  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
-                       docs: String, newImpl: Boolean = false, newVers: Boolean = false) = {
-    val vertex  = TitanDatabaseConnection.insertSourceCode(source, funcName, args, author, docs, newImpl, newVers)
-    s"Inserted the data into vertex $vertex"
-  }
+//  def insertSourceCode(source: String, funcName: String, sig: JuliaSignature, author: String,
+//                       docs: String, newImpl: Boolean = false, newVers: Boolean = false) = {
+//    val vertex  = TitanDatabaseConnection.insertSourceCode(source, sig, author, docs, newImpl, newVers)
+//    s"Inserted the data into vertex $vertex"
+//  }
   
   def insertSourceCode(r: InsertionRequest): String = {
     //val vertex = TitanDatabaseConnection.insertSourceCode(r.code, r.funcName, r.args, r.author, r.docs, r.newImpl, r.newVers)
@@ -99,9 +104,9 @@ object TitanDatabaseConnection extends Logging{
     // Retrieve all vertices and get the fully qualified function names
     try {
       val (vertices, retrieveTime)  = measureCallWithResult(graph.query.has(FunctionName, CONTAINS_REGEX, s".*$func.*").vertices.view)
-      val (results, toListTime)     = measureCallWithResult(vertices.take(n).map(_.getProperty[String](FunctionName)).toList.filterNot(_ == null))
+      val (results, toListTime)     = measureCallWithResult(vertices.view.take(n).map(_.getProperty[String](FunctionName)).toList)
       graph.commit
-      info(s"Search for $func took ${System.currentTimeMillis - start} ms in total. Retrieval: $retrieveTime, Processing: $toListTime")
+      info(s"Search for $func took ${System.currentTimeMillis - start} ms in total. Retrieval: $retrieveTime, Processing: $toListTime $results")
       results
     } catch {
         case NonFatal(ex) => warn(s"There was an error while searching for the function name: $func")
@@ -202,13 +207,13 @@ object TitanDatabaseConnection extends Logging{
    * First prototype on how to insert a user's code into the database. Will later be the base for all simplyfied
    * insertions. This function carries all the parameters.
    * @param source
-   * @param args
+   * @param sig The signature which holds all the information regarding parameters
    * @return
    */
-  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
+  def insertSourceCode(source: String, sig: JuliaSignature, author: String,
                        docs: String, newImplementation: Boolean = false, newVersion: Boolean = false): Option[Vertex] = {
     // First instantiate the vertex with the provided data
-    info(s"$author started to insert a new implementation into the graph")
+    println(s"$author started to insert a new implementation into the graph")
 
     val functionNode = graph.query.has(TopLevelName, "functions").vertices.head
 
@@ -217,14 +222,14 @@ object TitanDatabaseConnection extends Logging{
 
       // Try to find the function in the graph with the same name, if not create a new function vertex
       debug("Setting up the functionVertex")
-      val functionVertex = graph.query.has(FunctionName, funcName).vertices.headOption match {
+      val functionVertex = graph.query.has(FunctionName, sig.name).vertices.headOption match {
         case Some(vertex) =>
-          info(s"Found the function ${vertex.getProperty[String](FunctionName)} in the graph, will use it.")
+          println(s"Found the function ${vertex.getProperty[String](FunctionName)} in the graph, will use it.")
           vertex
         case None => {// go on and create the vertex for the function and link it
-          info(s"Did not find the function $funcName, will create the vertex for it.")
+          println(s"Did not find the function ${sig.name}, will create the vertex for it.")
           val newFunctionVertex = graph.addVertexWithLabel(Function)
-          ElementHelper.setProperties(newFunctionVertex, FunctionName, funcName, Documentation, docs, TimeStamp, timestamp)
+          ElementHelper.setProperties(newFunctionVertex, FunctionName, sig.name, Documentation, docs, TimeStamp, timestamp)
           val functionEdge = graph.addEdge(null, functionNode, newFunctionVertex, IsFunction)
           ElementHelper.setProperties(functionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
           debug("Created the new function")
@@ -232,26 +237,30 @@ object TitanDatabaseConnection extends Logging{
         }
       }
 
+      val signatures = expandSignature(sig)
+
+
+
       // Decide if there exists a method with the provided arguments, if not create the method vertex
       debug("Setting up the methodVertex")
       //var vertex: Vertex = null
       val methodOption = functionVertex.getVertices(Direction.OUT, MethodOf).collect{
-        case v: Vertex if (args == v.getProperty[java.util.ArrayList[String]](Arguments).toList)
-          => v
+        case v: Vertex if (sig.signatureString == v.getProperty[String](SignatureString)) => v
       }.headOption
 
       val methodVertex = methodOption match {
         case Some(v) =>{
-          info(s"Found the method $funcName(${args.mkString(",")}) in the graph, will use it.")
+          println(s"Found the method $sig in the graph, will use it.")
           v
         }
         case None => {
-          info(s"Did not find the method $funcName(${args.mkString(",")}), will create the vertex for it.")
+          println(s"Did not find the method $sig, will create the vertex for it.")
           val newMethodVertex = graph.addVertexWithLabel(Method)
-          ElementHelper.setProperties(newMethodVertex, Documentation, docs, TimeStamp, timestamp)
-          args.foreach(newMethodVertex.addProperty(Arguments, _))
+          ElementHelper.setProperties(newMethodVertex, Documentation, docs, SignatureString, sig.signatureString,
+                                                       Signature, sig.toJson.compactPrint, TimeStamp, timestamp)
           val methodEdge = graph.addEdge(null, functionVertex, newMethodVertex, MethodOf)
-          ElementHelper.setProperties(methodEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
+          ElementHelper.setProperties(methodEdge, TimeStamp, timestamp, SignatureString, sig.signatureString,
+                                                  Weighting, InitialWeighting)
           debug("Created the new method.")
           newMethodVertex
         }
@@ -261,7 +270,7 @@ object TitanDatabaseConnection extends Logging{
       // If no new implementation is desired by the author, search for nodes which are from the author
       debug("Setting up the implementation vertex.")
       val implementationVertex = if (newImplementation) {
-        info("The user wanted to create a new implementation, now creating it.")
+        println("The user wanted to create a new implementation, now creating it.")
         val newImplementationVertex = graph.addVertexWithLabel(Implementation)
         ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
         val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
@@ -274,11 +283,11 @@ object TitanDatabaseConnection extends Logging{
         }.headOption
         implementationOption match {
           case Some(vertex) =>
-            info(s"Retrieved the prior implementation from author $author, will use it.")
+            println(s"Retrieved the prior implementation from author $author, will use it.")
             vertex.setProperty(TimeStamp, timestamp)
             vertex
           case None =>
-            info(s"No prior implementation found for author $author, will now generate it.")
+            println(s"No prior implementation found for author $author, will now generate it.")
             val newImplementationVertex= graph.addVertexWithLabel(Implementation)
             ElementHelper.setProperties(newImplementationVertex, Author, author, Documentation, docs, TimeStamp, timestamp)
             val implementationEdge = graph.addEdge(null, methodVertex, newImplementationVertex, ImplementationOf)
@@ -290,21 +299,21 @@ object TitanDatabaseConnection extends Logging{
 
       // If no new version is desired delete the old version
       val newVers = if(newVersion) {
-        info("User wanted to create a new version for the implementation. Creating the new one now.")
+        println("User wanted to create a new version for the implementation. Creating the new one now.")
         val versionVertex = graph.addVertexWithLabel("version")
-        ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
-        args.foreach(versionVertex.addProperty(Arguments, _))
+        ElementHelper.setProperties(versionVertex, Code, source, Author, author, SignatureString, sig.signatureString,
+                                                   Documentation, docs, TimeStamp, timestamp)
         val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
         ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
         debug("Done creating the new version")
         versionVertex
       } else {
-        info("User wants to overwrite latest version.")
+        println("User wants to overwrite latest version.")
         // find most recent version
         implementationVertex.getEdges(Direction.OUT, VersionOf).toList.sortBy(_.getVertex(Direction.IN).
           getProperty[Long](TimeStamp)).headOption match {
           case Some(e) => {
-            info("Found older verion, will override old values")
+            println("Found older verion, will override old values")
             val v = e.getVertex(Direction.IN)
             v.setProperty(TimeStamp, timestamp)
             v.setProperty(Code, source)
@@ -313,10 +322,10 @@ object TitanDatabaseConnection extends Logging{
             v
           }
           case None => {
-            info("There were no versions of the implementation, will now create the initial one.")
+            println("There were no versions of the implementation, will now create the initial one.")
             val versionVertex = graph.addVertexWithLabel("version")
-            ElementHelper.setProperties(versionVertex, Code, source, Author, author, Documentation, docs, TimeStamp, timestamp)
-            args.foreach(versionVertex.addProperty(Arguments, _))
+            ElementHelper.setProperties(versionVertex, Code, source, Author, author,
+                                        SignatureString, sig.signatureString, Documentation, docs, TimeStamp, timestamp)
             debug("Adding the final edges for the insertion.")
             val versionEdge = graph.addEdge(null, implementationVertex, versionVertex, VersionOf)
             ElementHelper.setProperties(versionEdge, TimeStamp, timestamp, Weighting, InitialWeighting)
@@ -325,17 +334,32 @@ object TitanDatabaseConnection extends Logging{
           }
         }
       }
-
-      graph.commit()
-      info("Insertion of data was successful")
+      graph.commit
+      println("Insertion of data was successful")
       Some(newVers)
-
     } catch {
       case NonFatal(ex) =>
-        warn(s"Could not insert the vertex into the database, $ex")
+        println(s"Could not insert the vertex into the database, $ex")
         graph.rollback
         None
     }
+  }
+
+  /**
+   * Expands the signature to all the methods it has. Since default values technically constitute a new function
+   * this has to be done to update all methods with the given signature.
+   * @param sig The complete signature
+   * @return a list of all expanded signatures
+   */
+  def expandSignature(sig: JuliaSignature): List[JuliaSignature] = {
+    val nodefaults  = sig.arguments.filter(_.default == None)
+    val defaults    = sig.arguments.filter(_.default.isDefined).map(a => JuliaArgument(a.name, a.typ, None))
+    val perms = defaults.zipWithIndex.map{case (arg: JuliaArgument, index: Int) =>
+      JuliaSignature(sig.name, nodefaults ::: defaults.take(index+1), None)}
+
+    List(JuliaSignature(sig.name, nodefaults, None))  :::
+      perms.dropRight(1)                              :::
+      List(JuliaSignature(sig.name, nodefaults ::: defaults, sig.varargs))
   }
 
 

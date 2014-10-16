@@ -26,8 +26,8 @@ trait DbInteractions {
    */
   def findMethodsForFunction(function: String, numResults: Int = defaultNumResults): List[MethodReturn]
 
-  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
-    docs: String, newImpl: Boolean = false, newVers: Boolean = false): String
+//  def insertSourceCode(source: String, funcName: String, args: List[String], author: String,
+//    docs: String, newImpl: Boolean = false, newVers: Boolean = false): String
 
   def insertSourceCode(request: InsertionRequest): String
 

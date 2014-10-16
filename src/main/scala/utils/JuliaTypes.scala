@@ -83,8 +83,31 @@ object JuliaTypes {
    */
   case class JuliaSignature(name: String,
                             arguments: List[JuliaArgument],
-                            varargs: Option[JuliaArgument])
-    extends JuliaCode
+                            varargs: Option[JuliaArgument]) extends JuliaCode {
+
+    def signatureString = {
+      val argString     = arguments.map(_.typ).mkString(",")
+      val varargsString = varargs match {
+        case Some(arg) => s",${arg.typ}..."
+        case None      => ""
+      }
+      s"name($argString$varargsString)"
+    }
+
+    override def toString: String = {
+      val nodefaultString = arguments.filter(!_.default.isDefined).map(a => s"${a.name}::${a.typ}").mkString(", ")
+      val argsFiltered = arguments.filter(_.default.isDefined)
+      val defaultString = if(argsFiltered.isEmpty) "" else ", " + argsFiltered.map(a => s"${a.name}::${a.typ}=${a.default.get}").mkString(", ")
+      val varargsString = varargs match {
+        case Some(arg) =>
+          val defaultString = if(arg.default.isDefined) s"=${arg.default.get}..." else "..."
+          s", ${varargs.get.name}::${varargs.get.typ}${defaultString}"
+        case None =>
+          ""
+      }
+      s"$name($nodefaultString$defaultString$varargsString)"
+    }
+  }
 
   /**
    * A complete function of julia code.

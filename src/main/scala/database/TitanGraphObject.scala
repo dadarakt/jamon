@@ -12,6 +12,7 @@ import scala.collection.JavaConversions._
 import scala.util.Failure
 import scala.Some
 import scala.util.Success
+import utils.JuliaTypes.JuliaSignature
 
 /**
  * The resource which represents the graph so that it does not need to be instantiated every single time but can be
@@ -41,6 +42,8 @@ object TitanGraphObject extends Logging {
   final val Method          = "method"
   final val Implementation  = "implementation"
   final val Version         = "version"
+  final val Signature       = "signature"
+  final val SignatureString = "signatureString"
 
   final val FunctionName    = "FunctionName"
   final val TopLevelName    = "TopLevelName"
@@ -126,7 +129,9 @@ object TitanGraphObject extends Logging {
       val iid                 = mgmt.makePropertyKey(Iid).dataType(classOf[String]).make
       val topLevel            = mgmt.makePropertyKey(TopLevelName).dataType(classOf[String]).make // << used only for the entry points
       val function            = mgmt.makePropertyKey(FunctionName).dataType(classOf[String]).make
-      val args                = mgmt.makePropertyKey(Arguments).dataType(classOf[String]).cardinality(Cardinality.LIST).make
+      val argString           = mgmt.makePropertyKey(Arguments).dataType(classOf[String]).make
+      val signature           = mgmt.makePropertyKey(Signature).dataType(classOf[String]).make
+      val signatureString     = mgmt.makePropertyKey(SignatureString).dataType(classOf[String]).make
       val documentation       = mgmt.makePropertyKey(Documentation).dataType(classOf[String]).make
       val timestamp           = mgmt.makePropertyKey(TimeStamp).dataType(classOf[java.lang.Long]).make
       val code                = mgmt.makePropertyKey(Code).dataType(classOf[String]).make
@@ -149,9 +154,9 @@ object TitanGraphObject extends Logging {
       // Create the indices used to speed up traversals over the graph (especially retrieval of nodes)
       mgmt.buildIndex("entryPoints", classOf[Vertex]).addKey(topLevel).buildCompositeIndex
       mgmt.buildIndex("byFunctionName", classOf[Vertex]).addKey(function).buildCompositeIndex
-      mgmt.buildIndex("byArguments", classOf[Vertex]).addKey(args).buildCompositeIndex
+      mgmt.buildIndex("byArguments", classOf[Vertex]).addKey(argString).buildCompositeIndex
       mgmt.buildIndex("byFunctionNameMixed", classOf[Vertex]).addKey(function).buildMixedIndex(Index)
-      mgmt.buildEdgeIndex(methOf, "byMethodName", Direction.OUT, Order.DEFAULT, weighting)
+      mgmt.buildEdgeIndex(methOf, "methodsByWeighting", Direction.OUT, Order.DEFAULT, signatureString)
       info("\t -> Done setting up the indices")
 
       mgmt.commit()
@@ -184,73 +189,44 @@ object TitanGraphObject extends Logging {
    * vertices which have to be traversed and also the memory pressure and file writing processes.
    */
   def graphToString: String = {
-
-    if(!hasShitInGraph) {
-      hasShitInGraph = true
-      val numNodes = 100
-      def randomString(n: Int, alphabet: String = "abcdefghijklmnopqrstuvwxyz /-"): String =
-        Stream.continually(Random.nextInt(alphabet.size)).map(alphabet).take(n).mkString
-
-      val functionNames = Array("length", "arity", "dump", "foo", "bar", "rustle", "tinker", "messAbout", "put", "get")
-      val arguments     = Array("Int32", "Int64", "Float64", "String", "Float32", "Uint64", "Bool", "Vector")
-      val authors       = Array("sören", "findus", "simon", "helmut", "verena", "anna", "lisa", "lotta", "rainald", "torben")
-
-      val insertionResults = for {
-        i <- 0 until numNodes
-        funcName  = "wurst"
-        aha = arguments(Random.nextInt(arguments.length))
-        args      = (1 to Random.nextInt(6)).map(_ => arguments(Random.nextInt(arguments.length))).toList
-        auth      = authors(Random.nextInt(authors.length))
-        source    = randomString(500 + Random.nextInt(500))
-        doc       = randomString(200 + Random.nextInt(200))
-      } yield {
-        graph.commit
-        MeasureFunction.measureCallWithResult(TitanDatabaseConnection.insertSourceCode(source, funcName, args, auth, doc, false, true))
-      }
-      val times = insertionResults.map(_._2)
-      val avg   = times.drop(20).foldLeft(0.0)((t,r) => t + r) / times.length
-      val max   = times.max
-      val min   = times.min
-      info(s"Inserted ${times.length} versions into the graph. min: $min, max: $max, avg: $avg")
-      graph.commit
-    }
-
     info("Printing the graph...")
 
-    val numVertices = graph.query.vertices.size
-    info(s"There are $numVertices vertices in the graph.")
-    s"This is the amount of vertices in the graph: $numVertices"
-//    val start = System.currentTimeMillis
 //    val numVertices = graph.query.vertices.size
-//    val functions = functionVertex.get.getVertices(Direction.OUT, IsFunction).toList
-//    val numFunction = functions.length
-//    val stringedFunctions = functions.map( functionV => {
-//      // Gather data
-//      val name                = functionV.getProperty[String](FunctionName)
-//      val methods             = functionV.getVertices(Direction.OUT).toList
-//      val numMethods          = methods.length
-//      val implementations     = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
-//      val numImplementations  = implementations.length
-//      val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
-//      val numVersions         = versions.length
-//      val avgImplPerMethod    = numImplementations.toFloat / numMethods
-//      val avgVersPerImpl      = numVersions.toFloat / numImplementations
-//      val authors             = versions.map(_.getProperty[String](Author)).toSet
-//      val times               = versions.map(_.getProperty[Long](TimeStamp))
-//      val firstEdit           = times.max
-//      val lastEdit            = times.min
-//      val methodi = methods.map(v => s"$name(${v.getProperty[java.utils.ArrayList[String]](Arguments).mkString(", ")})").mkString(" - ")
-//      // Create the string to show the data
-//      val methodsString       = s"\t -- Methods for this function: $methodi"
-//      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"
-//      val versionString       = s"\t -- Num versions: $numVersions, avg versions per implementation: $avgVersPerImpl"
-//      val authorString        = s"\t -- Authors for this function: ${authors.mkString(", ")}"
-//      val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
-//      List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
-//    }).mkString("\n")
-//
-//    info(stringedFunctions)
-//    graph.commit
-//    s"Found $numFunction functions, the graph has $numVertices vertices in ${System.currentTimeMillis - start}: \n $stringedFunctions"
+//    info(s"There are $numVertices vertices in the graph.")
+  //    s"This is the amount of vertices in the graph: $numVertices"
+    val start = System.currentTimeMillis
+    val numVertices = graph.query.vertices.size
+    info(s"There are $numVertices vertices in the graph")
+    val functions = functionVertex.get.getVertices(Direction.OUT, IsFunction).toList
+    val numFunction = functions.length
+    info(s"there are $numFunction functions in the graph")
+    val stringedFunctions = functions.map( functionV => {
+      // Gather data
+      val name                = functionV.getProperty[String](FunctionName)
+      val methods             = functionV.getVertices(Direction.OUT).toList
+      val numMethods          = methods.length
+      val implementations     = methods.map(_.getVertices(Direction.OUT, ImplementationOf)).flatten
+      val numImplementations  = implementations.length
+      val versions            = implementations.map(_.getVertices(Direction.OUT, VersionOf)).flatten
+      val numVersions         = versions.length
+      val avgImplPerMethod    = numImplementations.toFloat / numMethods
+      val avgVersPerImpl      = numVersions.toFloat / numImplementations
+      val authors             = versions.map(_.getProperty[String](Author)).toSet
+      val times               = versions.map(_.getProperty[Long](TimeStamp))
+      val firstEdit           = times.max
+      val lastEdit            = times.min
+      val methodi = methods.map(v => s"$name(${v.getProperty[String](SignatureString).mkString(", ")})").mkString(" - ")
+      // Create the string to show the data
+      val methodsString       = s"\t -- Methods for this function: $methodi"
+      val implString          = s"\t -- Num implementations: $numImplementations, avg implementations per method: $avgImplPerMethod"
+      val versionString       = s"\t -- Num versions: $numVersions, avg versions per implementation: $avgVersPerImpl"
+      val authorString        = s"\t -- Authors for this function: ${authors.mkString(", ")}"
+      val editString          = s"\t -- First edit: $firstEdit, last edit: $lastEdit"
+      List(s" --> function: $name",methodsString, implString, versionString, authorString, editString).mkString("\n")
+    }).mkString("\n")
+
+    info(stringedFunctions)
+    graph.commit
+    s"Found $numFunction functions, the graph has $numVertices vertices in ${System.currentTimeMillis - start}: \n $stringedFunctions"
   }
 }
